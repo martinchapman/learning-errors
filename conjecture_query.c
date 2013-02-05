@@ -1,3 +1,6 @@
+#define _Learn_Pos _Learn_b[_Learn_idx++] = 1        
+#define _Learn_Neg _Learn_b[_Learn_idx++] = 0
+
 #define _Learn_check(x) if (x) _Learn_Neg; else _Learn_Pos; check_conjecture(x);
 
 

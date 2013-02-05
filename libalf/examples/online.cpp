@@ -46,6 +46,7 @@
  */
 
 #include <iostream> 
+#include <fstream>
 #include <string>
 #include <list>
 #include <stdlib.h>
@@ -129,11 +130,21 @@ list<int> get_CounterExample(int alphabetsize) {
  */
 bool check_Equivalence(conjecture * cj) {
 
+	
+
+	
 	// display the automaton
 	if (cj != NULL) {
 		finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
 		cout << endl << "Conjecture:" << endl << endl;
+		//cout << a->visualize();
+		streambuf* strm_buffer = cout.rdbuf();		
+		ofstream dot("a.dot");
+		cout.rdbuf (dot.rdbuf());
 		cout << a->visualize();
+		cout.rdbuf (strm_buffer);
+		dot.close();
+		system("dotty a.dot");
 	}
 
 	// query the user for an answer and retrieve the answer.
@@ -166,7 +177,7 @@ bool answer_Membership(list<int> query) {
 		// print the query on screen
 		FILE *file;
 		file = fopen("membership_data.c", "w");
-		fprintf(file, "#define word_length_bound %d\nint _Learn_mq[word_length_bound] = {", query.size());
+		fprintf(file, "#define mq_length %d\nint _Learn_mq[mq_length] = {", query.size());
 		list<int>::iterator it;
 		for (it = query.begin(); it != query.end(); )
 		{
