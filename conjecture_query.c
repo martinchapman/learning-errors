@@ -3,7 +3,7 @@
 
 #define _Learn_check(x) if (x) _Learn_Neg; else _Learn_Pos; check_conjecture(x);
 
-
+/*
 void check_conjecture(bool assert_condition) {
 	char state = 0;
 	int sim_idx = 0;
@@ -25,5 +25,22 @@ void check_conjecture(bool assert_condition) {
 	{
 		if (state != 2) assert(0); // positive feedback: trace rejected, although it does not satisfy assertion.
 	}	
-}
+} */
 
+#include "conjecture_data.c"
+
+void check_conjecture(bool assert_condition) {
+	char state = 0;
+	int sim_idx = 0;
+	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
+		state = A[state][_Learn_b[sim_idx++]];
+	if (assert_condition)
+	{
+		if (accept[state]) assert(0); // negative feedback: trace accepted, although it satisfies assertion.
+	}
+	else
+	{
+		if (!accept[state]) assert(0); // positive feedback: trace rejected, although it does not satisfy assertion.
+	}	
+}
+	
