@@ -91,6 +91,8 @@ class conjecture {
 
 		// create/parse human readable version
 		virtual std::string write() const = 0;
+			
+		
 		virtual bool read(std::string input) = 0;
 
 		// visual version (dotfile preferred)
@@ -325,6 +327,7 @@ failed:
 		}}}
 		virtual std::string write() const
 		{ /* depends on output_alphabet, has to be done by you! */ return ""; }
+		
 		virtual bool read(__attribute__ ((__unused__)) std::string input)
 		{ /* depends on output_alphabet, has to be done by you! */ return false; }
 		virtual std::string visualize() const
@@ -483,7 +486,7 @@ failed:
 			return false;
 		}}}
 		virtual std::string write() const
-		{ /* depends on output_alphabet, has to be done by you! */ return ""; }
+		{ /* depends on output_alphabet, has to be done by you! */ return ""; }		
 		virtual bool read(__attribute__ ((__unused__)) std::string input)
 		{ /* depends on output_alphabet, has to be done by you! */ return false; }
 		virtual std::string visualize() const
@@ -636,6 +639,7 @@ failed:
 		}}}
 		virtual std::string write() const
 		{ /* depends on output_alphabet, has to be done by you! */ return ""; }
+		
 		virtual bool read(__attribute__ ((__unused__)) std::string input)
 		{ /* depends on output_alphabet, has to be done by you! */ return false; }
 		virtual std::string visualize() const
@@ -665,6 +669,7 @@ class finite_automaton : public moore_machine<bool> {
 		virtual std::basic_string<int32_t> serialize() const;
 		virtual bool deserialize(serial_stretch & serial);
 		virtual std::string write() const;
+		virtual std::string write_min() const;
 		virtual bool read(std::string input);
 		virtual std::string visualize() const;
 

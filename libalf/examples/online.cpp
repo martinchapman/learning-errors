@@ -50,6 +50,7 @@
 #include <string>
 #include <list>
 #include <stdlib.h>
+#include <assert.h>
 // Used to define the libalf name space.
 #include <libalf/alf.h>
 // Angluin's L* algorithm
@@ -58,169 +59,87 @@
 using namespace std;
 using namespace libalf;
 
-/*
- * Print a short information text.
- */
-void print_Help() {
-
-	cout << endl;
-	cout << "This example demonstrates how to use libalf's online algorithms. It puts" << endl;
-	cout << "the user, i.e. you, in the position of the teacher. Using libalf is easy:" << endl;
-	cout << endl;
-	cout << "1) Input the size of the alphabet you want to use." << endl << endl;
-	cout << "   libalf uses integers as symbols. This means that a word is a sequence" << endl;
-	cout << "   of integers in the range between 0 and the size of the alphabet - 1." << endl << endl;
-	cout << "   For reasons of easier parsing, you are only allowed alphabets up to" << endl;
-	cout << "   ten symbols in this example (which is, however, no restriction in" << endl;
-	cout << "   general)." << endl << endl;
-	cout << "2) Answer the queries (simply follow the instructions on the screen)." << endl << endl;
-	cout << "   Membership queries have to be classified as belonging to the target" << endl;
-	cout << "   language (1) or not (0)." << endl << endl;
-	cout << "   Conjectures to equivalence queries are given in the Graphviz dot" << endl;
-	cout << "   format. You can use the dot tool to draw the automata." << endl;
-	cout << endl;
-}
 
 /*
- * Request the alphabet size from the user. The alphabet size has to be between
- * 1 and 9.
- */
-int get_AlphabetSize() {
-	int i;
-	cout << "Please insert the alphabet size (between 1 and 10): ";
-	cin >> i;
-
-	return i;
-}
-
-/*
- * Requests a counter-example from the user. The counter-example must not
- * contain illegal characters, i.e. not 0, ..., alphabetsize - 1.
+ * Reading the counterexample from model.txt.
  */
 list<int> get_CounterExample(int alphabetsize) {
 	list<int> ce;
-	string c;
-
-	bool ok;
-	do {
-		ok = true;
-
-		cout << "Please enter a counter example: ";
-		cin >> c;
-
-		unsigned int i;
-		for (i = 0; i < c.length(); i++) {
-			if (c.at(i) < '0' || c.at(i) > ('0' + alphabetsize - 1)) {
-				cout << "Found illegal character " << c.at(i) << endl;
-				ok = false;
-				ce.clear();
-				break;
-			}
-			ce.push_back(c.at(i) - '0');
-		}
-	} while (!ok);
-
+	char i;
+	ifstream read("model.txt");
+	cout << "Counterexamle: ";  
+	while(read>>i) 
+	{
+		cout << " " << i;
+		ce.push_back(i - '0');
+	}
+	cout << endl;
 	return ce;
 }
 
 /*
- * Function to check if the correct conjecture is computed. The conjecture is
- * displayed to the user. The user classifies by entering 'y' to mark it correct
- * and 'n' mark it incorrect.
+ * getting the candidate data and writing it to conjecture_data.c; invoking the script for a conjecture query. Returning the result.  
  */
 bool check_Equivalence(conjecture * cj) {
 
-	
+	assert(cj != NULL);
 
-	
-	// display the automaton
-	if (cj != NULL) {
-		finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
-		cout << endl << "Conjecture:" << endl << endl;
-		//cout << a->visualize();
-		streambuf* strm_buffer = cout.rdbuf();		
-		ofstream dot("a.dot");
-		cout.rdbuf (dot.rdbuf());
-		cout << a->visualize();
-		cout.rdbuf (strm_buffer);
-		dot.close();
-		system("dotty a.dot");
-	}
+	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
+	cout << endl << "Conjecture:" << endl << endl;
+	cout << a->visualize();
+	streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
+	ofstream dot("a.dot");
+	cout.rdbuf (dot.rdbuf());
+	cout << a->visualize();
+	dot.close();
 
-	// query the user for an answer and retrieve the answer.
-	string answer;
-	do {
-		cout << "Please specify whether the conjecture is equivalent (y/n): ";
-		cin >> answer;
-		if (answer.compare("y") == 0)
-			return true;
-		else if (answer.compare("n") == 0)
-			return false;
-		else
-			cout << "Wrong Input" << endl;
-	} while (true);
+	ofstream candidate("conjecture_data.c");    // same thing for write()
+	cout.rdbuf (candidate.rdbuf());
+	cout << a->write(); // write() is a rewrite of the original lib function. 
+	candidate.close();
+	cout.rdbuf (strm_buffer); // reverting cout to its normal behavior. 
+
+	int res = system("cmd /C \"ce.bat\"");		// invoking the script for a conjecture query. 
+	cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
+
+	return (res != 0);	
 }
 
 /*
- * Function used to obtain information about the classification of a word.
- * The Query is presented to the user.
- * The user classifies the word by typing "y" for acceptance and "n" for
- * rejection.
+ * Function used to obtain information about the classification of a word. 
  */
 bool answer_Membership(list<int> query) {
 
 	if (query.size() == 0) return false;
-	
-	//do {
-		cout << "Please classify the word '";
 
-		// print the query on screen
-		FILE *file;
-		file = fopen("membership_data.c", "w");
-		fprintf(file, "#define mq_length %d\nint _Learn_mq[mq_length] = {", query.size());
-		list<int>::iterator it;
-		for (it = query.begin(); it != query.end(); )
-		{
-			cout << *it;
-			fprintf(file, "%d", *it);
-			it++;
-			if (it != query.end()) fprintf(file, ", ");
-		}
-		fprintf(file, "};");
-	    fclose(file);
+	cout << "Please classify the word: ";		
+	FILE *file;
+	file = fopen("membership_data.c", "w");
+	fprintf(file, "#define mq_length %d\nint _Learn_mq[mq_length] = {", query.size());
+	list<int>::iterator it;
+	for (it = query.begin(); it != query.end(); )
+	{
+		cout << *it;
+		fprintf(file, "%d", *it);
+		it++;
+		if (it != query.end()) fprintf(file, ", ");
+	}
+	fprintf(file, "};");
+	fclose(file);
 
-		fflush(stdout);
-		int res = system("cmd /C \"ce.bat m\"");		
-		printf("res is %d\n", res);
-		
-		//cout << "' (0/1): ";
-		
-		//cin >> answer;
-		return (res == 0);
-		
+	fflush(stdout);
+	int res = system("cmd /C \"ce.bat m\"");		// invoking the script. The 'm' tells the scrpt that it is a membership query. 
+	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;		
 
-
-		/*if (answer.compare("1") == 0)
-			return true;
-		else if (answer.compare("0") == 0)
-			return false;
-		else
-			cout << "Wrong Input" << endl;*/
-	//} while (true);
-
-	//return answer.compare("1") == 0 ? true : false;
+	return (res == 0);		
 }
 
 /*
  * The main method
  */
 int main(int argc, char**argv) {
-
-	// First, print some help info
-	//print_Help();
-
-	// Get alphabet size
-	int alphabet_size = 2; // get_AlphabetSize();
+	
+	int alphabet_size = 2; 
 
 	// Create new knowledgebase. In this case, we choose bool as type for the knowledgebase.
 	knowledgebase<bool> base;
@@ -290,8 +209,8 @@ int main(int argc, char**argv) {
 	} while (result == NULL);
 
 	//Display the result on the screen.
-	cout << endl << "Result:" << endl << result->visualize() << endl;
-
+	//	cout << endl << "Result:" << endl << result->visualize() << endl;
+	system("dotty a.dot");
 	// Delete result
 	delete result;
 	

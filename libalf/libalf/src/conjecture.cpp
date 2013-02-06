@@ -239,6 +239,82 @@ invalid:
 	clear();
 	return false;
 }}}
+
+
+string finite_automaton::write() const
+{{{
+	string ret;
+
+	if(valid) {
+		char buf[256];
+		map<int, map<int, set<int> > >::const_iterator mmsi;
+		map<int, set<int> >::const_iterator msi;
+		set<int>::const_iterator si;
+		map<int, bool>::const_iterator oi;
+		bool first_komma;
+
+		/*snprintf(buf, 256, "[general]\n"
+				   "\tis dfa = %s;\n"
+				   "\talphabet size = %d;\n"
+				   "\tnumber of states = %d;\n"
+				   "[initial states]\n",
+				this->is_deterministic ? "true" : "false", this->input_alphabet_size, this->state_count);*/
+		snprintf(buf, 256, "#define states %d\n", this->state_count);
+
+		ret += buf;
+
+	/*	first_komma = true;
+		for(si = this->initial_states.begin(); si != this->initial_states.end(); ++si) {
+			snprintf(buf, 256, "%s%d", first_komma ? "\t" : ", ", *si);
+			first_komma = false;
+			ret += buf;
+		}
+		if(!first_komma)
+			ret += ";";
+
+		ret += "\n[final states]\n";*/
+		ret += "bool accept[states] = {";
+		
+		first_komma = true;
+		for(oi = this->output_mapping.begin(); oi != this->output_mapping.end(); ++oi) {
+			if(oi->second) {
+				snprintf(buf, 256, "%s%d", first_komma ? " " : ", ", oi->first);
+				first_komma = false;
+				ret += buf;
+			}
+			else 
+			{
+				snprintf(buf, 256, "%s0", first_komma ? " " : ", ");
+				first_komma = false;
+				ret += buf;
+			}
+			
+		}
+		
+		ret += "};\n";
+
+		ret += "char A[states][2] = {";
+		first_komma = true;
+		for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi) {
+			//ret += "{";
+			for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi) {				
+				for(si = msi->second.begin(); si != msi->second.end(); ++si) {
+					snprintf(buf, 256, "%s %d ",  first_komma ? " " : ", ", *si);
+					first_komma = false;
+					ret += buf;
+				}				
+			}
+			//ret += "}";
+		}
+		ret += "};";
+	}
+
+	return ret;
+}}}
+
+/* original:
+
+
 string finite_automaton::write() const
 {{{
 	string ret;
@@ -295,6 +371,76 @@ string finite_automaton::write() const
 
 	return ret;
 }}}
+*/
+
+string finite_automaton::write_min() const  //ofer
+{{{
+	string ret;
+
+	return " ";
+
+	if(valid) {
+		char buf[256];
+		map<int, map<int, set<int> > >::const_iterator mmsi;
+		map<int, set<int> >::const_iterator msi;
+		set<int>::const_iterator si;
+		map<int, bool>::const_iterator oi;
+		bool first_komma;
+
+		/*snprintf(buf, 256, "[general]\n"
+				   "\tis dfa = %s;\n"
+				   "\talphabet size = %d;\n"
+				   "\tnumber of states = %d;\n"
+				   "[initial states]\n",
+				this->is_deterministic ? "true" : "false", this->input_alphabet_size, this->state_count);*/
+		snprintf(buf, 256, "#define states %d\n", this->state_count);
+
+		ret += buf;
+
+	/*	first_komma = true;
+		for(si = this->initial_states.begin(); si != this->initial_states.end(); ++si) {
+			snprintf(buf, 256, "%s%d", first_komma ? "\t" : ", ", *si);
+			first_komma = false;
+			ret += buf;
+		}
+		if(!first_komma)
+			ret += ";";
+
+		ret += "\n[final states]\n";*/
+		ret += "bool accept[states] = {";
+		/*
+		first_komma = true;
+		for(oi = this->output_mapping.begin(); oi != this->output_mapping.end(); ++oi) {
+			if(oi->second) {
+				snprintf(buf, 256, "%s%d", first_komma ? " " : ", ", oi->first);
+				first_komma = false;
+				ret += buf;
+			}
+			
+		}
+		
+		ret += "};\n";
+
+		ret += "char A[states][2] = {\n";
+
+		for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi) {
+			for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi) {
+				ret += "{";
+				for(si = msi->second.begin(); si != msi->second.end(); ++si) {
+					snprintf(buf, 256, "\t %d\n",  *si);
+					ret += buf;
+				}
+				ret += "}";
+			}
+		}*/
+		ret += "};";
+	}
+
+	return ret;
+}}}
+
+
+
 bool finite_automaton::read(string input)
 {{{
 	bool set_is_det = false, set_alphabet_size = false, set_state_count = false;
