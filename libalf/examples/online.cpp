@@ -1,3 +1,10 @@
+
+// TODO: 
+// 1. check issue of max unrolling due to the number of states + length of path. 
+// 2. what should be done about illegal paths that seem to be accepted in the automaton ? 
+
+
+
 /* 
  * This file is part of libalf.
  *
@@ -59,6 +66,7 @@
 using namespace std;
 using namespace libalf;
 
+string input_file;
 
 /*
  * Reading the counterexample from model.txt.
@@ -98,8 +106,8 @@ bool check_Equivalence(conjecture * cj) {
 	cout << a->write(); // write() is a rewrite of the original lib function. 
 	candidate.close();
 	cout.rdbuf (strm_buffer); // reverting cout to its normal behavior. 
-
-	int res = system("cmd /C \"ce.bat\"");		// invoking the script for a conjecture query. 
+	string cmd = string("cmd /C \"ce.bat ") + input_file + string(" \"");
+	int res = system(cmd.c_str());		// invoking the script for a conjecture query. 
 	cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
 
 	return (res != 0);	
@@ -128,7 +136,8 @@ bool answer_Membership(list<int> query) {
 	fclose(file);
 
 	fflush(stdout);
-	int res = system("cmd /C \"ce.bat m\"");		// invoking the script. The 'm' tells the scrpt that it is a membership query. 
+	string cmd = string("cmd /C \"ce.bat ") + input_file + string(" m\"");
+	int res = system(cmd.c_str());		// invoking the script. The 'm' tells the scrpt that it is a membership query. 
 	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;		
 
 	return (res == 0);		
@@ -166,6 +175,11 @@ int main(int argc, char**argv) {
 	 * If the conjecture is rejected, the algorithm requires a counter
 	 * example from the user and iteration is continued.
 	 */
+
+	if (argc != 2) {fprintf(stderr, "usage: online <file_name>\n"); exit(1);}
+	input_file = argv[1];
+	printf("reading from %s\n", input_file.c_str());
+
 	do {
 	
 		// Advance the learning algorithm

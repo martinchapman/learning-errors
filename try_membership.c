@@ -7,7 +7,7 @@ void f(int x) {
 		x = nondet_int();
 	}
 	_Learn_Neg;
-	_Learn_check(x <= 20); // was assert(x <= 20);	
+	_Learn_assert(x <= 20); // was assert(x <= 20);	
 	
 }
 

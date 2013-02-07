@@ -1,2 +1,2 @@
-#define word_length_bound 1
-int _Learn_mq[word_length_bound] = {0}
+#define mq_length 1
+int _Learn_mq[mq_length] = {1};
