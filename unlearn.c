@@ -1,6 +1,7 @@
 #define _Learn_Pos 
 #define _Learn_Neg 
-#define _Learn_check(x) assert(x) 
+#define _Learn_trap
+#define _Learn_assert(x) assert(x) 
 
 
 void assert(_Bool);

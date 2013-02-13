@@ -16,4 +16,5 @@ void f(int x) {
 void main() {
   int x = nondet_int();
 	f(x);
+  _Learn_trap;
 }

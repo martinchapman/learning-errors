@@ -179,7 +179,7 @@ int main(int argc, char**argv) {
 	if (argc != 2) {fprintf(stderr, "usage: online <file_name>\n"); exit(1);}
 	input_file = argv[1];
 	printf("reading from %s\n", input_file.c_str());
-
+	
 	do {
 	
 		// Advance the learning algorithm
@@ -197,7 +197,8 @@ int main(int argc, char**argv) {
 
 				// Answer query
 				bool a = answer_Membership(*li);
-
+				//if (counter == 5) exit(1);
+				//++counter ;
 				// Add answer to knowledgebase
 				base.add_knowledge(*li, a);
 			}
@@ -210,8 +211,7 @@ int main(int argc, char**argv) {
 				result = cj;
 			} else {
 				// Get a counter-example
-				list<int> ce = get_CounterExample(alphabet_size);
-
+				list<int> ce = get_CounterExample(alphabet_size);			
 				// Add counter-example to algorithm
 				algorithm.add_counterexample(ce);
 				
@@ -219,6 +219,7 @@ int main(int argc, char**argv) {
 				delete cj;
 			}
 		}
+		
 
 	} while (result == NULL);
 
