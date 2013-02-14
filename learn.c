@@ -14,7 +14,7 @@ int _Learn_b[word_length_bound];  // an array that captures the actual path.
 int _Learn_idx = 0;
 
 
-#ifdef membership
+#ifdef membership				// defines the mode: membership queries or checking the conjecture
 #include "membership_query.c"
 #else
 #include "conjecture_query.c"

@@ -278,7 +278,7 @@ string finite_automaton::write() const
 		first_komma = true;
 		for(oi = this->output_mapping.begin(); oi != this->output_mapping.end(); ++oi) {
 			if(oi->second) {
-				snprintf(buf, 256, "%s%d", first_komma ? " " : ", ", oi->first);
+				snprintf(buf, 256, "%s%d", first_komma ? " " : ", ", 1 /*oi->first*/);
 				first_komma = false;
 				ret += buf;
 			}
