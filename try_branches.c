@@ -3,11 +3,11 @@
 void f(int x) {
 	if (x > 0)
 	{
-		//_Learn_Pos;
+//		_Learn_Pos;
 		return;
 	}
 	else ;
-		//_Learn_Neg;
+//		_Learn_Neg;
 	while (x < 10)
 	{		
 		_Learn_Pos;

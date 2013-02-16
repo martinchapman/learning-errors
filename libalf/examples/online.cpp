@@ -58,6 +58,7 @@
 #include <list>
 #include <stdlib.h>
 #include <assert.h>
+
 // Used to define the libalf name space.
 #include <libalf/alf.h>
 // Angluin's L* algorithm
@@ -67,7 +68,9 @@ using namespace std;
 using namespace libalf;
 
 string input_file;
-
+int word_length; 
+ostringstream word_length_s;   
+	
 /*
  * Reading the counterexample from model.txt.
  */
@@ -105,11 +108,12 @@ bool check_Equivalence(conjecture * cj) {
 	cout.rdbuf (candidate.rdbuf());
 	cout << a->write(); // write() is a rewrite of the original lib function. 
 	candidate.close();
-	cout.rdbuf (strm_buffer); // reverting cout to its normal behavior. 
-	string cmd = string("cmd /C \"ce.bat ") + input_file + string(" \"");
+	cout.rdbuf (strm_buffer); // reverting cout to its normal behavior. 		
+	string cmd = string("cmd /C \"ce.bat ") + input_file + " " + word_length_s.str() + string(" \"");
 	int res = system(cmd.c_str());		// invoking the script for a conjecture query. 
+	//cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
+	res = system("grep -q FAILURE tmp");
 	cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
-
 	return (res != 0);	
 }
 
@@ -136,9 +140,14 @@ bool answer_Membership(list<int> query) {
 	fclose(file);
 
 	fflush(stdout);
-	string cmd = string("cmd /C \"ce.bat ") + input_file + string(" m\"");
+	
+	string cmd = string("cmd /C \"ce.bat ") + input_file + " " + word_length_s.str() + " "  + string(" m\"");
 	int res = system(cmd.c_str());		// invoking the script. The 'm' tells the scrpt that it is a membership query. 
+	//cout << "res = " << res << endl;
+	//cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;		
+	res = system("grep -q FAILURE tmp");
 	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;		
+	
 
 	return (res == 0);		
 }
@@ -176,10 +185,20 @@ int main(int argc, char**argv) {
 	 * example from the user and iteration is continued.
 	 */
 
-	if (argc != 2) {fprintf(stderr, "usage: online <file_name>\n"); exit(1);}
+	if (argc != 3) {fprintf(stderr, "usage: online <file_name> <word-length>\n"); exit(1);}
 	input_file = argv[1];
-	printf("reading from %s\n", input_file.c_str());
 	
+	word_length = atoi(argv[2]);
+	printf("reading from %s; word_length = %d\n", input_file.c_str(), word_length);
+	FILE *file;
+	file = fopen("word_length.c", "w");
+	fprintf(file, "#define word_length_bound %d", word_length);
+	word_length_s << (word_length + 1); // we need to unroll one more than the word_length
+	cout << word_length_s.str() << endl;
+	fclose(file);
+
+	bool conjectured = false;
+	//int counter = 0;
 	do {
 	
 		// Advance the learning algorithm
@@ -188,6 +207,7 @@ int main(int argc, char**argv) {
 		// Resolve membership queries
 		if (cj == NULL) {
 
+			conjectured = false;
 			// retrieve queries
 			list<list<int> > queries = base.get_queries();
 
@@ -197,16 +217,21 @@ int main(int argc, char**argv) {
 
 				// Answer query
 				bool a = answer_Membership(*li);
-				//if (counter == 5) exit(1);
-				//++counter ;
+				//if (counter == 1) exit(1);
+				//counter ++;
+				
 				// Add answer to knowledgebase
 				base.add_knowledge(*li, a);
 			}
 		}
 		// Resolve equivalence queries
 		else {
-			bool is_equivalent = check_Equivalence(cj);
-
+			if (conjectured) {
+				cout << "last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. " << endl;
+				exit(1);
+			}
+			conjectured = true;
+			bool is_equivalent = check_Equivalence(cj);			
 			if (is_equivalent) {
 				result = cj;
 			} else {
