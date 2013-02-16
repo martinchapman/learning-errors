@@ -185,14 +185,16 @@ int main(int argc, char**argv) {
 	 * example from the user and iteration is continued.
 	 */
 
-	if (argc != 3) {fprintf(stderr, "usage: online <file_name> <word-length>\n"); exit(1);}
-	input_file = argv[1];
-	
+	if (argc < 3 || argc > 4) {fprintf(stderr, "usage: online <file_name> <word-length> [<alphabet-size>]\nDefault alphabet-size is 2.\n"); exit(1);}
+	input_file = argv[1];	
 	word_length = atoi(argv[2]);
-	printf("reading from %s; word_length = %d\n", input_file.c_str(), word_length);
+	if (argc == 4) alphabet_size = atoi(argv[3]); 
+	printf("reading from %s; word_length = %d, alphabet-size = %d\n", input_file.c_str(), word_length, alphabet_size);
 	FILE *file;
 	file = fopen("word_length.c", "w");
-	fprintf(file, "#define word_length_bound %d", word_length);
+	fprintf(file, "#define word_length_bound %d\n", word_length);
+	fprintf(file, "#define AlphaBetSize %d", alphabet_size);
+
 	word_length_s << (word_length + 1); // we need to unroll one more than the word_length
 	cout << word_length_s.str() << endl;
 	fclose(file);

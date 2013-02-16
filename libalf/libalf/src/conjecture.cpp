@@ -241,7 +241,7 @@ invalid:
 }}}
 
 
-string finite_automaton::write() const
+string finite_automaton::write() const  // ofer. Original below.
 {{{
 	string ret;
 
@@ -292,8 +292,9 @@ string finite_automaton::write() const
 		}
 		
 		ret += "};\n";
-
-		ret += "char A[states][2] = {";
+		ostringstream ab_size_s;   
+		ab_size_s << this->input_alphabet_size;
+		ret += "char A[states][" + ab_size_s.str() + "] = {";
 		first_komma = true;
 		for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi) {
 			//ret += "{";

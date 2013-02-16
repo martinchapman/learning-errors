@@ -70,7 +70,7 @@ int ALIM ()
 
 int Inhibit_Biased_Climb ()
 {
-	if (Climb_Inhibit) {_Learn_Pos;} else {_Learn_Neg;}
+	if (Climb_Inhibit) {_Learn(1);} else {_Learn(0);}
     return (Climb_Inhibit ? Up_Separation + NOZCROSS : Up_Separation);
 }
 
@@ -82,11 +82,11 @@ bool Non_Crossing_Biased_Climb()
 
     upward_preferred = Inhibit_Biased_Climb() > Down_Separation;
     if (upward_preferred)
-    {_Learn_Pos;
+    {_Learn(1);
 	result = !(Own_Below_Threat()) || ((Own_Below_Threat()) && (!(Down_Separation >= ALIM())));
     }
     else
-    {	_Learn_Neg;
+    {	_Learn(0);
 	result = Own_Above_Threat() && (Cur_Vertical_Sep >= MINSEP) && (Up_Separation >= ALIM());
     }
     return result;
@@ -100,11 +100,11 @@ bool Non_Crossing_Biased_Descend()
 
     upward_preferred = (Up_Separation + NOZCROSS) > Down_Separation;
     if (upward_preferred)
-    {_Learn_Pos;
+    {_Learn(1);
 	result = Own_Below_Threat() && (Cur_Vertical_Sep >= MINSEP) && (Down_Separation >= ALIM());
     }
     else
-    {_Learn_Neg;
+    {_Learn(0);
 	result = !(Own_Above_Threat()) || ((Own_Above_Threat()) && (Up_Separation >= ALIM()));
     }
     return result;
@@ -112,7 +112,7 @@ bool Non_Crossing_Biased_Descend()
 
 bool Own_Below_Threat()
 {
-    return (Own_Tracked_Alt < Other_Tracked_Alt);
+    return nondet_int(); //(Own_Tracked_Alt < Other_Tracked_Alt); // ofer
 }
 
 bool Own_Above_Threat()
@@ -133,36 +133,36 @@ int alt_sep_test()
     alt_sep = UNRESOLVED;
     
 	if (enabled && ((tcas_equipped && intent_not_known) || !tcas_equipped))  {
-		_Learn_Pos;
-		need_upward_RA = 1; /*Non_Crossing_Biased_Climb() && Own_Below_Threat(); */// ofer
+		_Learn(1);
+		need_upward_RA = Non_Crossing_Biased_Climb() && Own_Below_Threat(); // ofer
 		need_downward_RA =  Non_Crossing_Biased_Descend() && Own_Above_Threat(); 
 		if (need_upward_RA && need_downward_RA){
-			_Learn_Pos;
+			_Learn(1);
 			/* unreachable: requires Own_Below_Threat and Own_Above_Threat
 			to both be true - that requires Own_Tracked_Alt < Other_Tracked_Alt
 			and Other_Tracked_Alt < Own_Tracked_Alt, which isn't possible */
 			alt_sep = UNRESOLVED;
 		}
 		else {
-			_Learn_Neg;
+			_Learn(0);
 			if (need_upward_RA){
-				_Learn_Pos;
+				_Learn(1);
 				alt_sep = UPWARD_RA;
 			}
 			else {
-				_Learn_Neg;
+				_Learn(0);
 				if (need_downward_RA){
-					_Learn_Pos;
+					_Learn(1);
 					alt_sep = DOWNWARD_RA;
 				}
 				else {
-					_Learn_Neg;
+					_Learn(0);
 					alt_sep = UNRESOLVED;
 				}
 			}
 		}
 	}
-	else _Learn_Neg;
+	else _Learn(0);
     	
     return alt_sep;
 }
@@ -182,6 +182,6 @@ main(int argc, char*argv[])
   Other_RAC =  0; 
   Other_Capability =  2; 
   Climb_Inhibit =  0; 
-   _Learn_assert(alt_sep_test()==0);  
+  _Learn_assert(alt_sep_test()==0);  
   _Learn_trap;
 }
