@@ -15,6 +15,7 @@
 #define MINSEP     300          /* min separation in feet */
 #define NOZCROSS   100		/* in feet */
 				/* variables */
+#define BUG
 
 typedef int bool;
 
@@ -112,7 +113,7 @@ bool Non_Crossing_Biased_Descend()
 
 bool Own_Below_Threat()
 {
-    return nondet_int(); //(Own_Tracked_Alt < Other_Tracked_Alt); // ofer
+	return (Own_Tracked_Alt < Other_Tracked_Alt); 
 }
 
 bool Own_Above_Threat()
@@ -134,7 +135,7 @@ int alt_sep_test()
     
 	if (enabled && ((tcas_equipped && intent_not_known) || !tcas_equipped))  {
 		_Learn(1);
-		need_upward_RA = Non_Crossing_Biased_Climb() && Own_Below_Threat(); // ofer
+		need_upward_RA = 1; //Non_Crossing_Biased_Climb() && Own_Below_Threat(); // ofer
 		need_downward_RA =  Non_Crossing_Biased_Descend() && Own_Above_Threat(); 
 		if (need_upward_RA && need_downward_RA){
 			_Learn(1);

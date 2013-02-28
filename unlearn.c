@@ -1,5 +1,4 @@
-#define _Learn_Pos 
-#define _Learn_Neg 
+#define _Learn
 #define _Learn_trap
 #define _Learn_assert(x) assert(x) 
 

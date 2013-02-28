@@ -1,6 +1,8 @@
 // determines if we are in membership or conjecture mode
 #include "mode.c"
 #include "word_length.c"
+#define BRANCH
+
 // cbmc stuff
 #define bool _Bool
 void assert(_Bool);

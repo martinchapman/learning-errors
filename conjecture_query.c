@@ -9,7 +9,7 @@
 					
 
 // the introduction of res below is because 'x' might be a function with side effects -- we do not want to call it twice.
-#define _Learn_assert(x) {int res = x; if (res) {_Learn(0);} else {_Learn(1);} check_conjecture(res);}
+#define _Learn_assert(x) {int res = x; /*if (res) {_Learn(0);} else {_Learn(1);}*/ check_conjecture(res);}
 #include "conjecture_data.c"
 
 // called from _Learn_assert and from _Learn_trap. 
