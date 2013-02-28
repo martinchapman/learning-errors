@@ -66,6 +66,7 @@
 
 using namespace std;
 using namespace libalf;
+int alphabet_size = 2; 
 
 string input_file;
 int word_length; 
@@ -77,9 +78,12 @@ ostringstream word_length_s;
 list<int> get_CounterExample(int alphabetsize) {
 	list<int> ce;
 	char i;
+	int length;
 	ifstream read("model.txt");
-	cout << "Counterexamle: ";  
-	while(read>>i) 
+	cout << "Counterexamle ";
+	read >> length;
+	cout << "(length = " << length << ")";
+	while(read>>i && (length--)) 
 	{
 		cout << " " << i;
 		ce.push_back(i - '0');
@@ -129,8 +133,13 @@ bool answer_Membership(list<int> query) {
 	file = fopen("membership_data.c", "w");
 	fprintf(file, "#define mq_length %d\nint _Learn_mq[mq_length] = {", query.size());
 	list<int>::iterator it;
+	bool saw_assert_test_letter = false;
 	for (it = query.begin(); it != query.end(); )
 	{
+		if (*it == alphabet_size - 1) {
+			if (saw_assert_test_letter) {cout << " ! \n"; fclose(file); fflush(stdout); return false;}
+			saw_assert_test_letter = true;
+		}
 		cout << *it;
 		fprintf(file, "%d", *it);
 		it++;
@@ -157,14 +166,12 @@ bool answer_Membership(list<int> query) {
  */
 int main(int argc, char**argv) {
 	
-	int alphabet_size = 2; 
+	
 
 	// Create new knowledgebase. In this case, we choose bool as type for the knowledgebase.
 	knowledgebase<bool> base;
 
-	// Create learning algorithm (Angluin L*) without a logger (2nd argument is NULL) and alphabet size alphabet_size
-	angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
-
+	
 	conjecture * result = NULL;
 
 	/*
@@ -198,6 +205,10 @@ int main(int argc, char**argv) {
 	word_length_s << (word_length + 1); // we need to unroll one more than the word_length
 	cout << word_length_s.str() << endl;
 	fclose(file);
+
+	// Create learning algorithm (Angluin L*) without a logger (2nd argument is NULL) and alphabet size alphabet_size
+	angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
+
 
 	bool conjectured = false;
 	//int counter = 0;

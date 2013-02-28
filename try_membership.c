@@ -3,10 +3,10 @@
 void f(int x) {
 	while (x < 10)
 	{		
-		_Learn_Pos;
+		_Learn(1);
 		x = nondet_int();
 	}
-	_Learn_Neg;
+	_Learn(0);
 	_Learn_assert(x <= 20); // was assert(x <= 20);	
 	
 }
