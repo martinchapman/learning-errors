@@ -1,0 +1,2 @@
+cp membership_query_nobranch.c membership_query.c
+cp conjecture_query_nobranch.c conjecture_query.c
