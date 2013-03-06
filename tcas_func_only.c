@@ -183,18 +183,19 @@ int alt_sep_test()
 main(int argc, char*argv[])
 {	
   initialize();
-  Cur_Vertical_Sep =  nondet_int(); //860; 
+  Cur_Vertical_Sep = nondet_int(); //860; 
   High_Confidence = 1; 
   Two_of_Three_Reports_Valid = 1; 
-  Own_Tracked_Alt =  nondet_int();//618; 
-  Own_Tracked_Alt_Rate =  nondet_int();//329; 
-  Other_Tracked_Alt =  nondet_int();//574; 
-  Alt_Layer_Value =  3;  // ofer. was 4, which violates array bounds.
-  Up_Separation =  nondet_int();//893; 
-  Down_Separation =  nondet_int();//914; 
-  Other_RAC =  0; 
-  Other_Capability =  2; 
-  Climb_Inhibit =  0; 
-  _Learn_assert(alt_sep_test()==0);  
+  Own_Tracked_Alt = nondet_int();//618; 
+  Own_Tracked_Alt_Rate = nondet_int();//329; 
+  Other_Tracked_Alt = nondet_int();//574; 
+  Alt_Layer_Value = 3;  // ofer. was 4, which violates array bounds.
+  Up_Separation = nondet_int();//893; 
+  Down_Separation = nondet_int();//914; 
+  Other_RAC = 0;
+  Other_Capability = 2;
+  Climb_Inhibit = 0; 
+  
+  _Learn_assert(alt_sep_test()==0);
   _Learn_trap;
 }

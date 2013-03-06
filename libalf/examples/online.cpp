@@ -64,6 +64,8 @@
 // Angluin's L* algorithm
 #include <libalf/algorithm_angluin.h>
 
+#define POSITIVE_QUERIES_FILE "positive_queries_filter.c"
+
 using namespace std;
 using namespace libalf;
 int alphabet_size = 2; 
@@ -137,7 +139,7 @@ bool answer_Membership(list<int> query) {
 	for (it = query.begin(); it != query.end(); )
 	{
 		if (*it == alphabet_size - 1) {
-			if (saw_assert_test_letter) {cout << " ! \n"; fclose(file); fflush(stdout); return false;}
+			if (saw_assert_test_letter) {cout << " ! \n"; fprintf(file, "[answering 'no' trvially. This file will not be used]"); fclose(file); fflush(stdout); return false;}
 			saw_assert_test_letter = true;
 		}
 		cout << *it;
@@ -151,12 +153,26 @@ bool answer_Membership(list<int> query) {
 	fflush(stdout);
 	
 	string cmd = string("cmd /C \"ce.bat ") + input_file + " " + word_length_s.str() + " "  + string(" m\"");
-	int res = system(cmd.c_str());		// invoking the script. The 'm' tells the scrpt that it is a membership query. 
-	//cout << "res = " << res << endl;
-	//cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;		
+	int res = system(cmd.c_str());		// invoking the script. The 'm' tells the scrpt that it is a membership query. 	
 	res = system("grep -q FAILURE tmp");
 	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;		
 	
+
+	if (res == 0)
+	{		
+		int size = query.size();		
+		ostringstream ist;		
+		ist << "echo \"if (_Learn_idx == " << size << " && ";
+		int i = 0;
+		for (it = query.begin(); it != query.end(); ++i)			
+		{
+			ist << "_Learn_b[" << i  << "] == " << *it;			
+			it++;
+			if (it != query.end()) ist << " && "; else ist << ") assume (0); \" >> " << POSITIVE_QUERIES_FILE;			
+		}
+		system (ist.str().c_str());
+	}
+
 
 	return (res == 0);		
 }
@@ -201,7 +217,9 @@ int main(int argc, char**argv) {
 	file = fopen("word_length.c", "w");
 	fprintf(file, "#define word_length_bound %d\n", word_length);
 	fprintf(file, "#define AlphaBetSize %d", alphabet_size);
-
+	ostringstream tmp;
+	tmp << "rm -f " << POSITIVE_QUERIES_FILE << "echo > " << POSITIVE_QUERIES_FILE;
+	system(tmp.str().c_str());
 	word_length_s << (word_length + 1); // we need to unroll one more than the word_length
 	cout << word_length_s.str() << endl;
 	fclose(file);
