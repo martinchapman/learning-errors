@@ -244,65 +244,55 @@ invalid:
 string finite_automaton::write() const  // ofer. Original below.
 {{{
 	string ret;
-
+	FILE *analyzer;
+	analyzer = fopen("automaton.data", "w");
 	if(valid) {
 		char buf[256];
+		char buf_for_analyzer[256]; 
 		map<int, map<int, set<int> > >::const_iterator mmsi;
 		map<int, set<int> >::const_iterator msi;
 		set<int>::const_iterator si;
 		map<int, bool>::const_iterator oi;
 		bool first_komma;
 
-		/*snprintf(buf, 256, "[general]\n"
-				   "\tis dfa = %s;\n"
-				   "\talphabet size = %d;\n"
-				   "\tnumber of states = %d;\n"
-				   "[initial states]\n",
-				this->is_deterministic ? "true" : "false", this->input_alphabet_size, this->state_count);*/
 		snprintf(buf, 256, "#define states %d\n", this->state_count);
-
+		fprintf(analyzer, "%d\n", this->state_count);
 		ret += buf;
-
-	/*	first_komma = true;
-		for(si = this->initial_states.begin(); si != this->initial_states.end(); ++si) {
-			snprintf(buf, 256, "%s%d", first_komma ? "\t" : ", ", *si);
-			first_komma = false;
-			ret += buf;
-		}
-		if(!first_komma)
-			ret += ";";
-
-		ret += "\n[final states]\n";*/
+		
 		ret += "bool accept[states] = {";
 		
 		first_komma = true;
 		for(oi = this->output_mapping.begin(); oi != this->output_mapping.end(); ++oi) {
 			if(oi->second) {
 				snprintf(buf, 256, "%s%d", first_komma ? " " : ", ", 1 /*oi->first*/);
+				fprintf(analyzer, "%d ", 1 /*oi->first*/);
 				first_komma = false;
-				ret += buf;
+				ret += buf;				
 			}
 			else 
 			{
 				snprintf(buf, 256, "%s0", first_komma ? " " : ", ");
+				fprintf(analyzer, "0 ");
 				first_komma = false;
-				ret += buf;
+				ret += buf;				
 			}
 			
 		}
-		
+		fprintf(analyzer,"\n");
 		ret += "};\n";
 		ostringstream ab_size_s;   
 		ab_size_s << this->input_alphabet_size;
 		ret += "char A[states][" + ab_size_s.str() + "] = {";
 		first_komma = true;
-		for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi) {
+		int i=0;
+		for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi, ++i) {
 			//ret += "{";
 			for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi) {				
 				for(si = msi->second.begin(); si != msi->second.end(); ++si) {
 					snprintf(buf, 256, "%s %d ",  first_komma ? " " : ", ", *si);
+					fprintf(analyzer, "%d %d\n",  i, *si);
 					first_komma = false;
-					ret += buf;
+					ret += buf;					
 				}				
 			}
 			//ret += "}";
@@ -310,6 +300,8 @@ string finite_automaton::write() const  // ofer. Original below.
 		ret += "};";
 	}
 
+	fclose(analyzer);
+	
 	return ret;
 }}}
 
@@ -594,7 +586,17 @@ end:
 }}}
 string finite_automaton::visualize() const
 {{{
-	stringstream str;
+	stringstream str, tmp;
+	int v;
+	set<int> dominator_set;	
+
+	FILE *dominators = fopen("dominators.data", "r");
+	while (!feof(dominators))
+	{
+		fscanf(dominators, "%d", &v);
+		dominator_set.insert(v);
+	}
+	printf("read dominators.data with %d dominators\n", dominator_set.size() );
 
 	if(valid) {
 		set<int>::iterator sti;
@@ -617,7 +619,7 @@ string finite_automaton::visualize() const
 			if(oi->second) {
 				++final_state_count;
 				if(!header_written) {
-					str << "\tnode [shape=doublecircle, style=\"\", color=black];";
+					str << "\tnode [shape=doublecircle, style=\"\", color=green];"; // accepting states are always in the dominators
 					header_written = true;
 				}
 				str << " q" << oi->first;
@@ -626,14 +628,39 @@ string finite_automaton::visualize() const
 		if(header_written)
 			str << ";\n";
 
-		// normal states
-		if(final_state_count < state_count) {
-			str << "\tnode [shape=circle, style=\"\", color=black];";
+		// normal states, not dominators
+		int j = 0;
+		
+		if(final_state_count < state_count) {			
+			tmp << "\tnode [shape=circle, style=\"\", color=black];";
 			for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi)
 				if(!oi->second)
-					str << " q" << oi->first;
-			str << ";\n";
+				{
+					if (dominator_set.find(oi->first) == dominator_set.end())
+					{ 
+						++j;
+						tmp << " q" << oi->first;
+					}
+				}
+			tmp << ";\n";
 		}
+		if (j) str << tmp.str();
+		j = 0;
+		// normal states, dominators
+		if(final_state_count < state_count) {			
+			tmp << "\tnode [shape=circle, style=\"\", color=green];";
+			for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi)
+				if(!oi->second)
+				{
+					if (dominator_set.find(oi->first) != dominator_set.end())
+					{
+						++j;
+						tmp << " q" << oi->first;
+					}
+				}
+			tmp << ";\n";
+		}
+		if (j) str << tmp.str();
 
 		// non-visible states for arrows to initial states
 		header_written = false;

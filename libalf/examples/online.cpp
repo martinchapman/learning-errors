@@ -105,10 +105,10 @@ bool check_Equivalence(conjecture * cj) {
 	cout << endl << "Conjecture:" << endl << endl;
 	cout << a->visualize();
 	streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
-	ofstream dot("a.dot");
-	cout.rdbuf (dot.rdbuf());
-	cout << a->visualize();
-	dot.close();
+	//ofstream dot("a.dot");
+	//cout.rdbuf (dot.rdbuf());
+	//cout << a->visualize();
+	//dot.close();
 
 	ofstream candidate("conjecture_data.c");    // same thing for write()
 	cout.rdbuf (candidate.rdbuf());
@@ -281,6 +281,17 @@ int main(int argc, char**argv) {
 
 	//Display the result on the screen.
 	//	cout << endl << "Result:" << endl << result->visualize() << endl;
+
+	system("cmd /C \"dominators.exe\"");
+
+	finite_automaton * a = dynamic_cast<finite_automaton*> (result);
+	streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
+	ofstream dot("a.dot");
+	cout.rdbuf (dot.rdbuf());
+	cout << a->visualize();
+	dot.close();
+
+
 	system("dotty a.dot");
 	// Delete result
 	delete result;
