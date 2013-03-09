@@ -588,7 +588,7 @@ string finite_automaton::visualize() const
 {{{
 	stringstream str, tmp;
 	int v;
-	set<int> dominator_set;	
+	set<int> dominator_set, doomed_set;	
 
 	FILE *dominators = fopen("dominators.data", "r");
 	while (!feof(dominators))
@@ -596,7 +596,18 @@ string finite_automaton::visualize() const
 		fscanf(dominators, "%d", &v);
 		dominator_set.insert(v);
 	}
+	fclose(dominators);
 	printf("read dominators.data with %d dominators\n", dominator_set.size() );
+
+	FILE *doomed = fopen("doomed.data", "r");
+	while (!feof(doomed))
+	{
+		fscanf(doomed, "%d", &v);
+		doomed_set.insert(v);
+	}
+	fclose(doomed);
+	printf("read doomed.data with %d doomed\n", doomed_set.size() );
+
 
 	if(valid) {
 		set<int>::iterator sti;
@@ -619,7 +630,7 @@ string finite_automaton::visualize() const
 			if(oi->second) {
 				++final_state_count;
 				if(!header_written) {
-					str << "\tnode [shape=doublecircle, style=\"\", color=green];"; // accepting states are always in the dominators
+					str << "\tnode [shape=doublecircle, style=\"\", color=green, label = \"D\"];"; // accepting states are always dominators + Doomed
 					header_written = true;
 				}
 				str << " q" << oi->first;
@@ -628,39 +639,20 @@ string finite_automaton::visualize() const
 		if(header_written)
 			str << ";\n";
 
-		// normal states, not dominators
-		int j = 0;
+		// normal states
+
+		if(final_state_count < state_count) {					
+			for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi)
+				if(!oi->second)
+				{
+					string color = (dominator_set.find(oi->first) != dominator_set.end())? "green" : "black";
+					string label = (doomed_set.find(oi->first) != doomed_set.end())? "D" : "\"\"";
+					tmp << "\tnode [shape=circle, style=\"\", color=" << color << ", label = " << label << "]; q" << oi->first << ";" << endl;
+				}
+		}
 		
-		if(final_state_count < state_count) {			
-			tmp << "\tnode [shape=circle, style=\"\", color=black];";
-			for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi)
-				if(!oi->second)
-				{
-					if (dominator_set.find(oi->first) == dominator_set.end())
-					{ 
-						++j;
-						tmp << " q" << oi->first;
-					}
-				}
-			tmp << ";\n";
-		}
-		if (j) str << tmp.str();
-		j = 0;
-		// normal states, dominators
-		if(final_state_count < state_count) {			
-			tmp << "\tnode [shape=circle, style=\"\", color=green];";
-			for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi)
-				if(!oi->second)
-				{
-					if (dominator_set.find(oi->first) != dominator_set.end())
-					{
-						++j;
-						tmp << " q" << oi->first;
-					}
-				}
-			tmp << ";\n";
-		}
-		if (j) str << tmp.str();
+		
+		str << tmp.str();
 
 		// non-visible states for arrows to initial states
 		header_written = false;

@@ -139,7 +139,7 @@ bool answer_Membership(list<int> query) {
 	for (it = query.begin(); it != query.end(); )
 	{
 		if (*it == alphabet_size - 1) {
-			if (saw_assert_test_letter) {cout << " ! \n"; fprintf(file, "[answering 'no' trvially. This file will not be used]"); fclose(file); fflush(stdout); return false;}
+			if (saw_assert_test_letter) {cout << *it << " ! \n"; fprintf(file, "[answering 'no' trvially. This file will not be used]"); fclose(file); fflush(stdout); return false;}
 			saw_assert_test_letter = true;
 		}
 		cout << *it;
@@ -283,6 +283,7 @@ int main(int argc, char**argv) {
 	//	cout << endl << "Result:" << endl << result->visualize() << endl;
 
 	system("cmd /C \"dominators.exe\"");
+	system("cmd /C \"dfs.exe\"");
 
 	finite_automaton * a = dynamic_cast<finite_automaton*> (result);
 	streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
