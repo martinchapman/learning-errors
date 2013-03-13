@@ -40,6 +40,7 @@
 
 #include "libalf/conjecture.h"
 #include "libalf/serialize.h"
+#include<string.h>
 
 namespace libalf {
 
@@ -254,9 +255,11 @@ string finite_automaton::write() const  // ofer. Original below.
 		set<int>::const_iterator si;
 		map<int, bool>::const_iterator oi;
 		bool first_komma;
+		ostringstream ab_size_s;   
+		ab_size_s << this->input_alphabet_size;
 
 		snprintf(buf, 256, "#define states %d\n", this->state_count);
-		fprintf(analyzer, "%d\n", this->state_count);
+		fprintf(analyzer, "%d %d\n", this->state_count, this->input_alphabet_size);
 		ret += buf;
 		
 		ret += "bool accept[states] = {";
@@ -280,8 +283,7 @@ string finite_automaton::write() const  // ofer. Original below.
 		}
 		fprintf(analyzer,"\n");
 		ret += "};\n";
-		ostringstream ab_size_s;   
-		ab_size_s << this->input_alphabet_size;
+		
 		ret += "char A[states][" + ab_size_s.str() + "] = {";
 		first_komma = true;
 		int i=0;
@@ -584,32 +586,78 @@ end:
 
 	return valid;
 }}}
-string finite_automaton::visualize() const
+string finite_automaton::visualize() const  // ofer
 {{{
-	stringstream str, tmp;
+	stringstream str, tmp, dom_edges;
 	int v;
-	set<int> dominator_set, doomed_set;	
-
-	FILE *dominators = fopen("dominators.data", "r");
-	while (!feof(dominators))
-	{
-		fscanf(dominators, "%d", &v);
-		dominator_set.insert(v);
-	}
-	fclose(dominators);
-	printf("read dominators.data with %d dominators\n", dominator_set.size() );
-
-	FILE *doomed = fopen("doomed.data", "r");
-	while (!feof(doomed))
-	{
-		fscanf(doomed, "%d", &v);
-		doomed_set.insert(v);
-	}
-	fclose(doomed);
-	printf("read doomed.data with %d doomed\n", doomed_set.size() );
-
+	set<int> dominator_set, doomed_set, roots_set, dominating_edges_set;	
+#define MaxAlphabet 100
+	char * label[MaxAlphabet]; // 100 = max alphabet size. // should replace this with a map
 
 	if(valid) {
+		FILE *dominators = fopen("dominators.data", "r");
+		if (dominators )
+		{
+			while (!feof(dominators))
+			{
+				fscanf(dominators, "%d", &v);
+				dominator_set.insert(v);
+			}
+			fclose(dominators);
+			printf("read dominators.data with %d dominators\n", dominator_set.size() );
+		}
+
+
+		FILE *doomed = fopen("doomed.data", "r");
+		if (doomed) {
+			while (!feof(doomed))
+			{
+				fscanf(doomed, "%d", &v);
+				doomed_set.insert(v);
+			}
+			fclose(doomed);
+			printf("read doomed.data with %d doomed\n", doomed_set.size() );
+		}
+
+		for (int i = 0; i < MaxAlphabet; ++i) { // just in case not all labels are defined, we default them to their numeric value.
+			label[i] = (char *)malloc(3);
+			sprintf(label[i], "%d", i);
+		}
+		FILE *labels = fopen("labels.data", "r");
+		char s[100]; // max label length imagined
+		int j = 0;
+		while (!feof(labels))
+		{
+			if (fscanf(labels, "%d %s", &v, s) < 2) continue; // {fprintf(stderr, "failed to read labels file\n"); exit(1);}
+			label[v] = strdup(s); 
+			++j;
+		}
+		printf("read labels.data with %d labels\n", j);		
+
+		FILE *roots = fopen("roots.data", "r");
+		if (roots) {
+			while (!feof(roots ))
+			{
+				if (fscanf(roots , "%d", &v) != 1) continue;
+				roots_set.insert(v);
+			}
+			fclose(roots );
+			printf("read roots.data with %d roots \n", roots_set.size() );
+		}
+		
+
+		FILE *dominating_edges = fopen("dominating_edges.data", "r");
+		if (dominating_edges) {
+			while (!feof(dominating_edges ))
+			{
+				if (fscanf(dominating_edges , "%d", &v) != 1) continue;
+				dominating_edges_set.insert(v);
+			}
+			fclose(dominating_edges);
+			printf("read dominating_edges.data with %d dominating edges \n", dominating_edges_set.size() );
+		}
+
+
 		set<int>::iterator sti;
 		bool header_written;
 
@@ -618,6 +666,15 @@ string finite_automaton::visualize() const
 			"\tgraph[fontsize=8]\n"
 			"\trankdir=LR;\n"
 			"\tsize=8;\n\n";
+
+		// dominating_edges_set
+		dom_edges << "node [shape=rectengle, color = green, label= \"Dominating edges: ";
+		for (set<int>::iterator it = dominating_edges_set.begin(); it != dominating_edges_set.end(); ++it)
+		{
+			dom_edges << label[*it] << " ";
+		}
+		dom_edges << "\"]; dom_edges;";
+		str << dom_edges.str(); 
 
 		// mark final states
 		header_written = false;
@@ -643,15 +700,15 @@ string finite_automaton::visualize() const
 
 		if(final_state_count < state_count) {					
 			for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi)
-				if(!oi->second)
-				{
+				if(!oi->second && roots_set.find(oi->first)  == roots_set.end())
+				{					
 					string color = (dominator_set.find(oi->first) != dominator_set.end())? "green" : "black";
 					string label = (doomed_set.find(oi->first) != doomed_set.end())? "D" : "\"\"";
 					tmp << "\tnode [shape=circle, style=\"\", color=" << color << ", label = " << label << "]; q" << oi->first << ";" << endl;
 				}
 		}
-		
-		
+
+
 		str << tmp.str();
 
 		// non-visible states for arrows to initial states
@@ -677,7 +734,10 @@ string finite_automaton::visualize() const
 		for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
 			for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
 				for(si = msi->second.begin(); si != msi->second.end(); ++si)
-					str << "\tq" << mmsi->first << " -> q" << *si << " [label=\"" << msi->first << "\"];\n";
+				{
+					if (roots_set.find(mmsi->first)  == roots_set.end() && roots_set.find(*si)  == roots_set.end()) // edge is not from/to a root (root = sink unaccepting state)
+						str << "\tq" << mmsi->first << " -> q" << *si << " [label=\"" << label[msi->first] << "\"];\n";
+				}
 
 		// end
 		str << "};\n";

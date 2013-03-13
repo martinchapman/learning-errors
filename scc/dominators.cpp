@@ -35,15 +35,15 @@ typedef adjacency_list<
 int test_main(int, char*[])
 {
 	typedef DominatorCorrectnessTestSet::edge edge;
-
 	DominatorCorrectnessTestSet testSet;
 	int current_state;
+	int i1, i2;
 
 	FILE *in = fopen("automaton.data", "r");
 
-	fscanf(in, "%d", &testSet.numOfVertices );
+	fscanf(in, "%d %d", &testSet.numOfVertices, &i1); // i1 will not be used (it is the size of the alphabet, which we do not use).
 
-	int i1, i2;
+	
 	for (i2 = 0 ; i2 < testSet.numOfVertices; ++i2) // finding accepting state
 	{
 		fscanf(in, "%d", &i1);

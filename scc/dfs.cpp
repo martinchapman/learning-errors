@@ -8,51 +8,66 @@
 #include <vector>
 
 int numOfVertices, current_state; 
-bool **matrix;
+int **matrix;
 bool *visited;
 
 void dfs(int s) {
 	visited[s] = true;
 	for (int t = 0; t < numOfVertices; ++t)
 	{
-		if (!visited[t] && matrix[s][t]) dfs(t);
+		if (!visited[t] && (matrix[s][t] >=0)) dfs(t);
 	}
 }
 
+// can we reach target from s, without using e ? 
+bool reachable_excluding_edge(int s, int e, int target) {
+	if (s == target) return true;
+	visited[s] = true;
+	for (int t = 0; t < numOfVertices; ++t)
+	{
+		if (!visited[t] && (matrix[s][t] >=0) && (matrix[s][t] != e)) return reachable_excluding_edge(t, e, target);
+	}
+	return false;
+}
 
 void print_m() {
 	int s = 0, j;
 	for (; s < numOfVertices; ++s) {				
 		j = 0;
 		for (; j < numOfVertices; ++j) {
-			printf("%d ", matrix[s][j]);
+			printf("%3d ", matrix[s][j]);
 		}
 		printf("\n");
 	}
 	printf("\n");
 }
 
+
+void reset_visited() {
+	for (int t = 0; t < numOfVertices; ++t) visited[t] = false;
+}
+
 void main() {
-	int s = 0, j;
-	FILE *in = fopen("automaton.data", "r");  
-	fscanf(in, "%d", &numOfVertices );
+	int s = 0, j, alphabetSize;
+	FILE *out, *in = fopen("automaton.data", "r");  
+	fscanf(in, "%d %d", &numOfVertices, &alphabetSize );
 
 	// initializing matrix
-	matrix = new bool*[numOfVertices];
+	matrix = new int*[numOfVertices];
 	for(int i = 0; i < numOfVertices; ++i) {
-	    matrix[i] = new bool[numOfVertices];
+	    matrix[i] = new int[numOfVertices];
 	}
 
 	for (int t = 0; t < numOfVertices; ++t)
 		for (int j = 0; j < numOfVertices; ++j)
-			matrix[t][j] = false;
+			matrix[t][j] = -1; 
 	
 	
 	visited = new bool[numOfVertices];	
-	for (int t = 0; t < numOfVertices; ++t) visited[t] = false;
+	reset_visited();
 
 	// reading input
-	int i1, i2;
+	int i1, i2, label = -1;
 	for (i2 = 0 ; i2 < numOfVertices; ++i2) // finding accepting state
 	{
 		fscanf(in, "%d", &i1);
@@ -61,32 +76,46 @@ void main() {
 
 	while (!feof(in)) 
 	{
-		fscanf(in, "%d %d", &i1, &i2);
-		if (i1 == current_state) continue; // removing outgoing edges of accepting states.
-		matrix[i2][i1] = true; // reversing the edges	
+		label++;
+		if (fscanf(in, "%d %d", &i1, &i2) != 2) continue; // for last iteration
+		if (i1 == current_state) continue; // removing outgoing edges of accepting states.		
+		matrix[i2][i1] = label % alphabetSize; // note that the edges are recorded in reversed direction		
 	}
-
+	//print_m();
 	// finding roots which are not accepting (in the reversed graph)
+	out = fopen("roots.data", "w");
 	std::vector<int> roots;	
 	for (; s < numOfVertices; ++s) {
 		if (s == current_state) continue;
 		bool root = true;
 		j = 0;
 		for (; j < numOfVertices; ++j) {
-			if (matrix[j][s] && s!= j) {root = false; break;}
+			if (matrix[j][s] >= 0 && s!= j) {root = false; break;}
 		}
-		if (root) roots.push_back(s);
+		if (root) {
+			roots.push_back(s);
+			fprintf(out, "%d ", s);
+		}
 	}
+	fclose(out);
 
 	// marking reachable nodes
 	for (int j = 0; j < roots.size(); ++j)
 		dfs(roots[j]);
 
-	FILE *out = fopen("doomed.data", "w");
+	out = fopen("doomed.data", "w");
 
 	for (int t = 0; t < numOfVertices; ++t)
 	{
 		if (!visited[t]) fprintf(out, "%d ", t);
 	}
 	fclose(out);
+
+	out = fopen("dominating_edges.data", "w");
+	int target_node = 0;
+	for (int excluded_edge = 0; excluded_edge < alphabetSize; ++excluded_edge) {
+		reset_visited();		
+		if (!reachable_excluding_edge(current_state, excluded_edge, target_node)) 
+			fprintf(out, "%d ", excluded_edge);
+	}
 }
