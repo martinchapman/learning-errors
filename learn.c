@@ -1,4 +1,5 @@
 // determines if we are in membership or conjecture mode
+#include <string.h>
 #include "mode.c"
 #include "word_length.c"
 #define BRANCH
@@ -21,6 +22,18 @@ int _Learn_idx = 0;
 #else
 #include "conjecture_query.c"
 #endif
+
+// for automatic instrumentation
+void branch_ID(const char *st) {
+	if (!strcmp(st, "taken")) {_Learn(1);}
+	else _Learn(0);
+}
+
+void func_enter_ID(const char *st) {
+	if (!strcmp(st, "c::fake0")) {_Learn(0);}
+	else if (!strcmp(st, "c::fake1")) {_Learn(1);}
+	else if (!strcmp(st,"c::Own_Above_Threat")) {_Learn(2);}	
+}
 
 
 
