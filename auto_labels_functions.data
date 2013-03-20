@@ -1,0 +1,10 @@
+0 ALIM
+1 Inhibit_Biased_Climb
+2 Non_Crossing_Biased_Climb
+3 Non_Crossing_Biased_Descend
+4 Own_Above_Threat
+5 Own_Below_Threat
+6 alt_sep_test
+7 fake0
+8 fake1
+9 initialize

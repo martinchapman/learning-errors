@@ -58,17 +58,19 @@
 #include <list>
 #include <stdlib.h>
 #include <assert.h>
-
+#include <string.h>
 // Used to define the libalf name space.
 #include <libalf/alf.h>
 // Angluin's L* algorithm
 #include <libalf/algorithm_angluin.h>
-
-#define POSITIVE_QUERIES_FILE "positive_queries_filter.c"
+#include <vector>
+#include <map>
+#include "../../file_names.h" // ofer
 
 using namespace std;
 using namespace libalf;
-int alphabet_size = 2; 
+int alphabet_size; 
+int **matrix;
 
 string input_file;
 int word_length; 
@@ -81,7 +83,7 @@ list<int> get_CounterExample(int alphabetsize) {
 	list<int> ce;
 	char i;
 	int length;
-	ifstream read("model.txt");
+	ifstream read(MODEL);
 	cout << "Counterexamle ";
 	read >> length;
 	cout << "(length = " << length << ")";
@@ -110,12 +112,12 @@ bool check_Equivalence(conjecture * cj) {
 	//cout << a->visualize();
 	//dot.close();
 
-	ofstream candidate("conjecture_data.c");    // same thing for write()
+	ofstream candidate(CONJECTURE_DATA);    // same thing for write()
 	cout.rdbuf (candidate.rdbuf());
 	cout << a->write(); // write() is a rewrite of the original lib function. 
 	candidate.close();
 	cout.rdbuf (strm_buffer); // reverting cout to its normal behavior. 		
-	string cmd = string("cmd /C \"ce.bat ") + input_file + " " + word_length_s.str() + string(" \"");
+	string cmd = string("cmd /C \"") + CE + " " + input_file + " " + word_length_s.str() + string(" \"");
 	int res = system(cmd.c_str());		// invoking the script for a conjecture query. 
 	//cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
 	res = system("grep -q FAILURE tmp");
@@ -132,7 +134,7 @@ bool answer_Membership(list<int> query) {
 
 	cout << "Please classify the word: ";		
 	FILE *file;
-	file = fopen("membership_data.c", "w");
+	file = fopen(MEMBERSHIP_DATA, "w");
 	fprintf(file, "#define mq_length %d\nint _Learn_mq[mq_length] = {", query.size());
 	list<int>::iterator it;
 	bool saw_assert_test_letter = false;
@@ -149,10 +151,11 @@ bool answer_Membership(list<int> query) {
 	}
 	fprintf(file, "};");
 	fclose(file);
+	cout << endl;
 
 	fflush(stdout);
 	
-	string cmd = string("cmd /C \"ce.bat ") + input_file + " " + word_length_s.str() + " "  + string(" m\"");
+	string cmd = string("cmd /C \"") + CE + " " + input_file + " " + word_length_s.str() + " "  + string(" m\"");
 	int res = system(cmd.c_str());		// invoking the script. The 'm' tells the scrpt that it is a membership query. 	
 	res = system("grep -q FAILURE tmp");
 	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;		
@@ -168,7 +171,7 @@ bool answer_Membership(list<int> query) {
 		{
 			ist << "_Learn_b[" << i  << "] == " << *it;			
 			it++;
-			if (it != query.end()) ist << " && "; else ist << ") assume (0); \" >> " << POSITIVE_QUERIES_FILE;			
+			if (it != query.end()) ist << " && "; else ist << ") __CPROVER_assume (0); \" >> " << POSITIVE_QUERIES_FILE;			
 		}
 		system (ist.str().c_str());
 	}
@@ -177,12 +180,75 @@ bool answer_Membership(list<int> query) {
 	return (res == 0);		
 }
 
+int generate_func_names(int letter) {
+	char name[100];
+	FILE *func_names = fopen(FUNC_NAMES, "r"),
+		 *ToLearn = fopen(FUNCNAMETONUM, "w"),
+		 *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w");
+	if (func_names == NULL) {fprintf(stderr, "cannot open %s. ", FUNC_NAMES); exit(1);}	
+	bool first = true;
+	while (!feof(func_names)) {
+		if (fscanf(func_names, "%s", name) != 1) continue;
+		if (!strcmp(name, "main") || !strcmp(name, "_Learn_branch") || !strcmp(name,"check_conjecture") || !strcmp(name,"check_conjecture_at_trap")) continue; // TODO: change function names so they all start with _Learn
+		if (!first) fprintf(ToLearn, "else ");
+		first = false;
+		fprintf(Labels, "%d %s\n", letter, name);
+		fprintf(ToLearn, "if (!strcmp(\"c::%s\", st)) {_Learn(%d);}\n", name, letter++); // the c:: is necessary because goto-instrument reports the function name with this prefix.
+		
+	}
+	fclose(func_names);
+	fclose(ToLearn);
+	fclose(Labels);
+	return letter;
+}
+
+
+struct edge {char s[100]; char t[100];};
+void compute_allowed_pairs() {  // call before removing the ".c" from input_file
+	stringstream s;	
+	vector<edge> edge_list;
+	edge tmp_edge;
+	map<char *, int> edge_index;
+
+	s << GENERATE_CALL_GRAPH << " " << input_file << " " << CG;
+	system(s.str().c_str());
+	FILE *cg = fopen(CG, "r");
+	
+	while (!feof(cg)) {
+		if (fscanf(cg, "%s %s", tmp_edge.s, tmp_edge.t) != 2) continue;
+		edge_list.push_back(tmp_edge);		
+		edge_index.insert(pair<char *, int>(tmp_edge.s, edge_index.size() + 1));
+		edge_index.insert(pair<char *, int>(tmp_edge.t, edge_index.size() + 1));
+	}
+	int numOfVertices = edge_index.size();
+	cout << "# of vertices = " << numOfVertices;
+	// initializing matrix
+	matrix = new int*[numOfVertices];
+	for(int i = 0; i < numOfVertices; ++i) {
+	    matrix[i] = new int[numOfVertices];
+	}
+	// resetting matrix
+	for (int t = 0; t < numOfVertices; ++t)
+		for (int j = 0; j < numOfVertices; ++j)
+			matrix[t][j] = 0;
+
+	// filling matrix
+	vector<edge>::iterator it;	
+	for (it = edge_list.begin(); it != edge_list.end(); ++it) {
+		int src = edge_index[(*it).s];
+		int target = edge_index[(*it).t];
+		matrix[src][target] = 1;
+	}
+}
+
+
+
 /*
  * The main method
  */
 int main(int argc, char**argv) {
 	
-	
+	bool instrument_branches = false, instrument_functions = false;
 
 	// Create new knowledgebase. In this case, we choose bool as type for the knowledgebase.
 	knowledgebase<bool> base;
@@ -208,21 +274,63 @@ int main(int argc, char**argv) {
 	 * example from the user and iteration is continued.
 	 */
 
-	if (argc < 3 || argc > 4) {fprintf(stderr, "usage: online <file_name> <word-length> [<alphabet-size>]\nDefault alphabet-size is 2.\n"); exit(1);}
+	if (argc < 3) {fprintf(stderr, "usage: online <file_name> <word-length> [--auto {b,f}]* [<alphabet-size>]" "\n-- auto\tautomatic instrumentation of (f)unction entries or (b)ranch.\n\tif (f) is chosen, each function becomes a letter in the alphabet. Ignores alphabet-size if given. \n Default alphabet-size is 2.\n"); exit(1);}
 	input_file = argv[1];	
 	word_length = atoi(argv[2]);
-	if (argc == 4) alphabet_size = atoi(argv[3]); 
+	for (int i = 3; i < argc ; ++i) {
+		if (!strcmp(argv[i], "--auto")) {
+			if (argc == i + 1) {fprintf(stderr, "missing argument {'b','f'}  for --auto\n"); exit(1);}
+			if (!strcmp(argv[i+1], "b")) instrument_branches = true;
+			else if (!strcmp(argv[i+1], "f")) instrument_functions = true;
+			else {fprintf(stderr, "argument after --auto must be in {'b','f'} \n"); exit(1);}
+			++i;
+		}
+		else if (isdigit(argv[i][0])) alphabet_size = atoi(argv[3]); 
+		else {fprintf(stderr, "wrong argument: %s\n", argv[i]); exit(1);}
+	}
+	
+	
+	compute_allowed_pairs();
+	
+	ostringstream tmp;
+	tmp << "rm -f " << AUTO_LABELS;
+	system(tmp.str().c_str());
+	if (instrument_branches || instrument_functions) alphabet_size = 0; // if --auto, then we override user-input regarding the alphabetsize.
+
+	if (instrument_branches) {
+		alphabet_size = 2;		
+	}
+	tmp.str("");
+	if (instrument_functions) {
+		unsigned int pos = input_file.find('.');
+		if (pos != std::string::npos) input_file = input_file.substr(0,pos);
+		tmp << "cmd /C \"" << GET_FUNC_NAMES  << "\" " << input_file;
+		cout << "running " << tmp.str() << endl;
+		system(tmp.str().c_str());
+		alphabet_size = generate_func_names(alphabet_size) + 1;
+	}
+
+	tmp.str("");
+	tmp << "cat " << (instrument_branches ? AUTO_LABELS_BRANCHES : " ") << " " << (instrument_functions ? AUTO_LABELS_FUNCTIONS : " ") << " > " << AUTO_LABELS;
+	if (instrument_branches || instrument_functions) system(tmp.str().c_str());
+	
+	
+
+	tmp.str("");
 	printf("reading from %s; word_length = %d, alphabet-size = %d\n", input_file.c_str(), word_length, alphabet_size);
 	FILE *file;
-	file = fopen("word_length.c", "w");
+	file = fopen(WORD_LENGTH, "w");
 	fprintf(file, "#define word_length_bound %d\n", word_length);
 	fprintf(file, "#define AlphaBetSize %d", alphabet_size);
-	ostringstream tmp;
-	tmp << "rm -f " << POSITIVE_QUERIES_FILE << "echo > " << POSITIVE_QUERIES_FILE;
+	
+	tmp << "rm -f " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;
 	system(tmp.str().c_str());
 	word_length_s << (word_length + 1); // we need to unroll one more than the word_length
 	cout << word_length_s.str() << endl;
 	fclose(file);
+	
+	
+	
 
 	// Create learning algorithm (Angluin L*) without a logger (2nd argument is NULL) and alphabet size alphabet_size
 	angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
@@ -294,7 +402,7 @@ int main(int argc, char**argv) {
 
 
 	system("dotty a.dot");
-	// Delete result
+	
 	delete result;
 	
 	return 0;

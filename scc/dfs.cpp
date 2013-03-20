@@ -6,8 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <vector>
+#include "../file_names.h"
 
-int numOfVertices, current_state; 
+int numOfVertices, current_state = 0; 
 int **matrix;
 bool *visited;
 
@@ -49,7 +50,7 @@ void reset_visited() {
 
 void main() {
 	int s = 0, j, alphabetSize;
-	FILE *out, *in = fopen("automaton.data", "r");  
+	FILE *out, *in = fopen(AUTOMATON, "r");  
 	fscanf(in, "%d %d", &numOfVertices, &alphabetSize );
 
 	// initializing matrix
@@ -62,6 +63,8 @@ void main() {
 		for (int j = 0; j < numOfVertices; ++j)
 			matrix[t][j] = -1; 
 	
+	
+
 	
 	visited = new bool[numOfVertices];	
 	reset_visited();
@@ -83,7 +86,7 @@ void main() {
 	}
 	//print_m();
 	// finding roots which are not accepting (in the reversed graph)
-	out = fopen("roots.data", "w");
+	out = fopen(ROOTS, "w");
 	std::vector<int> roots;	
 	for (; s < numOfVertices; ++s) {
 		if (s == current_state) continue;
@@ -103,7 +106,7 @@ void main() {
 	for (int j = 0; j < roots.size(); ++j)
 		dfs(roots[j]);
 
-	out = fopen("doomed.data", "w");
+	out = fopen(DOOMED, "w");
 
 	for (int t = 0; t < numOfVertices; ++t)
 	{
@@ -111,7 +114,7 @@ void main() {
 	}
 	fclose(out);
 
-	out = fopen("dominating_edges.data", "w");
+	out = fopen(DOMINATING_EDGES, "w");
 	int target_node = 0;
 	for (int excluded_edge = 0; excluded_edge < alphabetSize; ++excluded_edge) {
 		reset_visited();		

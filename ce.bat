@@ -1,6 +1,8 @@
 @echo off
 IF "%3" == "m" (echo #define membership > mode.c) else (echo #define conjecture > mode.c)
-cbmc -Iansi-c-lib --unwind %2 --no-unwinding-assertions --xml-ui %1 > tmp
+goto-cl %1.c
+goto-instrument --function-enter _Learn_function_enter --dump-c %1.exe a.c
+cbmc -Iansi-c-lib --unwind %2 --no-unwinding-assertions --xml-ui a.c > tmp
 grep ERROR tmp
 IF %errorlevel% == 0 echo ERROR in output of CBMC
 IF NOT "%3" == "m" (grep -A 3 "<identifier>c::_Learn_ce_length</identifier>" tmp | grep "<value>" | tail -n 1 |  tr -d "<value>"/,\{\}  > model.txt ) 

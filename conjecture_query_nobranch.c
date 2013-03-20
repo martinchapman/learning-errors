@@ -6,7 +6,7 @@ int _Learn_ce_length;
 // 1st line below: nondet completion of the path.
 // 2nd line below: we invoke check_conjecture at each step with assert_condition = 1 because we want the condition  "if (accept[state]) assert(0)" in _Learn_assert to be checked.
 #define _Learn_trap for (;_Learn_idx < word_length_bound; _Learn_idx ) {_Learn_b[_Learn_idx] =  nondet_int(); \
-	assume(_Learn_b[_Learn_idx ] >= 0 && _Learn_b[_Learn_idx ] < AlphaBetSize); _Learn_idx++; check_conjecture(1); } 
+	__CPROVER_assume(_Learn_b[_Learn_idx ] >= 0 && _Learn_b[_Learn_idx ] < AlphaBetSize); _Learn_idx++; check_conjecture(1); } 
 					
 
 // the introduction of res below is because 'x' might be a function with side effects -- we do not want to call it twice.
@@ -36,6 +36,6 @@ void check_conjecture(bool assert_condition) {
 			assert(0); // positive feedback: trace rejected, although it does not satisfy assertion.
 		}
 	}
-	if (_Learn_idx  == word_length_bound) assume(0); // paths that go through the assertion and do not invoke the assertion, still get here. They will skip the for loop below and jump to check_conjecture(1), which will wrongly fail them.
+	if (_Learn_idx  == word_length_bound) __CPROVER_assume(0); // paths that go through the assertion and do not invoke the assertion, still get here. They will skip the for loop below and jump to check_conjecture(1), which will wrongly fail them.
 }
 	

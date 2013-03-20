@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dominator_tree.hpp>
-
+#include "../file_names.h"
 #include <fstream>
 
 using namespace std;
@@ -36,10 +36,10 @@ int test_main(int, char*[])
 {
 	typedef DominatorCorrectnessTestSet::edge edge;
 	DominatorCorrectnessTestSet testSet;
-	int current_state;
+	int current_state = 0;
 	int i1, i2;
 
-	FILE *in = fopen("automaton.data", "r");
+	FILE *in = fopen(AUTOMATON, "r");
 
 	fscanf(in, "%d %d", &testSet.numOfVertices, &i1); // i1 will not be used (it is the size of the alphabet, which we do not use).
 
@@ -102,7 +102,7 @@ int test_main(int, char*[])
 
 	cout << endl << "dominators of " << current_state << ":" << endl;
 
-	FILE *out = fopen("dominators.data","w");
+	FILE *out = fopen(DOMINATORS,"w");
 	while(current_state != (numeric_limits<int>::max)()) {		
 		fprintf(out, "%d ", current_state);
 		cout << current_state << ",";
@@ -110,7 +110,7 @@ int test_main(int, char*[])
 	}
 	cout << endl;
 	fclose(out);
-	cout << "Wrote list of dominators to dominators.data" << endl;
+	cout << "Wrote list of dominators to " << DOMINATORS << endl;
 
 	return 0;
 }

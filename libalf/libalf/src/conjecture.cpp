@@ -40,9 +40,11 @@
 
 #include "libalf/conjecture.h"
 #include "libalf/serialize.h"
+#include "../../../file_names.h" // ofer
 #include<string.h>
 
 namespace libalf {
+
 
 using namespace std;
 
@@ -246,7 +248,7 @@ string finite_automaton::write() const  // ofer. Original below.
 {{{
 	string ret;
 	FILE *analyzer;
-	analyzer = fopen("automaton.data", "w");
+	analyzer = fopen(AUTOMATON, "w");
 	if(valid) {
 		char buf[256];
 		char buf_for_analyzer[256]; 
@@ -265,17 +267,17 @@ string finite_automaton::write() const  // ofer. Original below.
 		ret += "bool accept[states] = {";
 		
 		first_komma = true;
-		for(oi = this->output_mapping.begin(); oi != this->output_mapping.end(); ++oi) {
+		for(oi = this->output_mapping.begin(); oi != this->output_mapping.end(); ++oi) {  // marking accepting states
 			if(oi->second) {
 				snprintf(buf, 256, "%s%d", first_komma ? " " : ", ", 1 /*oi->first*/);
-				fprintf(analyzer, "%d ", 1 /*oi->first*/);
+				fprintf(analyzer, "%d ", 1 /*oi->first*/); // accepting
 				first_komma = false;
 				ret += buf;				
 			}
 			else 
 			{
 				snprintf(buf, 256, "%s0", first_komma ? " " : ", ");
-				fprintf(analyzer, "0 ");
+				fprintf(analyzer, "0 "); // non-accepting
 				first_komma = false;
 				ret += buf;				
 			}
@@ -595,7 +597,7 @@ string finite_automaton::visualize() const  // ofer
 	char * label[MaxAlphabet]; // 100 = max alphabet size. // should replace this with a map
 
 	if(valid) {
-		FILE *dominators = fopen("dominators.data", "r");
+		FILE *dominators = fopen(DOMINATORS, "r");
 		if (dominators )
 		{
 			while (!feof(dominators))
@@ -604,11 +606,11 @@ string finite_automaton::visualize() const  // ofer
 				dominator_set.insert(v);
 			}
 			fclose(dominators);
-			printf("read dominators.data with %d dominators\n", dominator_set.size() );
+			printf("read %s with %d dominators\n", DOMINATORS, dominator_set.size() );
 		}
 
 
-		FILE *doomed = fopen("doomed.data", "r");
+		FILE *doomed = fopen(DOOMED, "r");
 		if (doomed) {
 			while (!feof(doomed))
 			{
@@ -616,25 +618,32 @@ string finite_automaton::visualize() const  // ofer
 				doomed_set.insert(v);
 			}
 			fclose(doomed);
-			printf("read doomed.data with %d doomed\n", doomed_set.size() );
+			printf("read %s with %d doomed\n", DOOMED, doomed_set.size() );
 		}
 
 		for (int i = 0; i < MaxAlphabet; ++i) { // just in case not all labels are defined, we default them to their numeric value.
 			label[i] = (char *)malloc(3);
 			sprintf(label[i], "%d", i);
 		}
-		FILE *labels = fopen("labels.data", "r");
-		char s[100]; // max label length imagined
-		int j = 0;
-		while (!feof(labels))
-		{
-			if (fscanf(labels, "%d %s", &v, s) < 2) continue; // {fprintf(stderr, "failed to read labels file\n"); exit(1);}
-			label[v] = strdup(s); 
-			++j;
+		char file[30] = AUTO_LABELS;
+		FILE *labels = fopen(file, "r");
+		if (labels == NULL) {
+			strcpy(file, LABELS);
+			labels = fopen(LABELS, "r");
 		}
-		printf("read labels.data with %d labels\n", j);		
+		if (labels) {
+			char s[100]; // max label length imagined
+			int j = 0;
+			while (!feof(labels))
+			{
+				if (fscanf(labels, "%d %s", &v, s) < 2) continue; // {fprintf(stderr, "failed to read labels file\n"); exit(1);}
+				label[v] = strdup(s); 
+				++j;
+			}
+			printf("read %s with %d labels\n", file, j);		
+		}
 
-		FILE *roots = fopen("roots.data", "r");
+		FILE *roots = fopen(ROOTS, "r");
 		if (roots) {
 			while (!feof(roots ))
 			{
@@ -642,11 +651,11 @@ string finite_automaton::visualize() const  // ofer
 				roots_set.insert(v);
 			}
 			fclose(roots );
-			printf("read roots.data with %d roots \n", roots_set.size() );
+			printf("read %s with %d roots \n", ROOTS, roots_set.size() );
 		}
 		
 
-		FILE *dominating_edges = fopen("dominating_edges.data", "r");
+		FILE *dominating_edges = fopen(DOMINATING_EDGES, "r");
 		if (dominating_edges) {
 			while (!feof(dominating_edges ))
 			{
@@ -654,7 +663,7 @@ string finite_automaton::visualize() const  // ofer
 				dominating_edges_set.insert(v);
 			}
 			fclose(dominating_edges);
-			printf("read dominating_edges.data with %d dominating edges \n", dominating_edges_set.size() );
+			printf("read %s with %d dominating edges \n", DOMINATING_EDGES, dominating_edges_set.size() );
 		}
 
 
@@ -669,11 +678,14 @@ string finite_automaton::visualize() const  // ofer
 
 		// dominating_edges_set
 		dom_edges << "node [shape=rectengle, color = green, label= \"Dominating edges: ";
+		bool first = true;
 		for (set<int>::iterator it = dominating_edges_set.begin(); it != dominating_edges_set.end(); ++it)
 		{
-			dom_edges << label[*it] << " ";
+			if (!first) dom_edges << ", ";
+			first = false;
+			dom_edges << label[*it];
 		}
-		dom_edges << "\"]; dom_edges;";
+		dom_edges << "\"]; dom_edges;\n";
 		str << dom_edges.str(); 
 
 		// mark final states
