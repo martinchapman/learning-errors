@@ -7,7 +7,7 @@
 //=======================================================================
 #include <boost/test/minimal.hpp>
 #include <iostream>
-#include <algorithm>
+//#include <algorithm>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dominator_tree.hpp>
 #include "../file_names.h"

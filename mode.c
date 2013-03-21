@@ -1,1 +1,1 @@
-#define membership 
+#define conjecture

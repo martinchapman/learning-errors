@@ -4,7 +4,7 @@ PREFIX ?= /usr/local
 # note: to change anything in the library, we need to run make install from C:\temp\learn_environment\trunk\libalf\libalf. The executable in Examples links to the library in /usr/local
 
 
-CPPFLAGS+=-I${PREFIX}/include -Wall
+CPPFLAGS+=-I${PREFIX}/include -Wall 
 
 LDFLAGS+=-L${PREFIX}/lib
 

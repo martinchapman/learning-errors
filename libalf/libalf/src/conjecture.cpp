@@ -630,6 +630,7 @@ string finite_automaton::visualize() const  // ofer
 		if (labels == NULL) {
 			strcpy(file, LABELS);
 			labels = fopen(LABELS, "r");
+			if (labels) printf("*** Note: using labels from %s ***\n", LABELS);
 		}
 		if (labels) {
 			char s[100]; // max label length imagined
