@@ -4,9 +4,9 @@ PREFIX ?= /usr/local
 # note: to change anything in the library, we need to run make install from C:\temp\learn_environment\trunk\libalf\libalf. The executable in Examples links to the library in /usr/local
 
 
-CPPFLAGS+=-I${PREFIX}/include -Wall 
+CPPFLAGS+=-I${PREFIX}/include -Wall -g
 
-LDFLAGS+=-L${PREFIX}/lib
+LDFLAGS+=-L${PREFIX}/lib -g
 
 # Add winsock2 library if compiled for Windows.
 ifeq (${OS}, Windows_NT)

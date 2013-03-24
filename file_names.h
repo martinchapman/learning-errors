@@ -18,17 +18,17 @@
 
 
 #define CONJECTURE_DATA "conjecture_data.c"
+#define CONJECTURE_DATA_H "conjecture_data.h" // included from learn_code.c
 #define MEMBERSHIP_DATA "membership_data.c"
-// included from learn.c: 
-#define FUNCNAMETONUM "FuncNameToNum.c"
-#define WORD_LENGTH "word_length.c"
+#define MEMBERSHIP_DATA_H "membership_data.h"
+#define WORD_LENGTH "word_length.c" 
 
 // main batch file: 
 #define CE "ce.bat" 
 #define GENERATE_CALL_GRAPH "generate_call_graph.bat"
-
 // retrieves function names from a goto-instrument output: 
 #define GET_FUNC_NAMES "get_func_names.bat"
+#define CONVERT "convert.bat"
 
 // ce of cbmc; generated in CE
 #define MODEL "model.txt"

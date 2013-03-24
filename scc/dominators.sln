@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dominators", "scc.vcxproj", "{FA84E78D-C658-4884-91CB-FA90364244EC}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bfs", "bfs.vcxproj", "{71248994-68DD-4B31-85C3-825C045AA47F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dfs", "bfs.vcxproj", "{71248994-68DD-4B31-85C3-825C045AA47F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

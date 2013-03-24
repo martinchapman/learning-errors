@@ -247,8 +247,9 @@ invalid:
 string finite_automaton::write() const  // ofer. Original below.
 {{{
 	string ret;
-	FILE *analyzer;
+	FILE *analyzer, *header;
 	analyzer = fopen(AUTOMATON, "w");
+	header = fopen(CONJECTURE_DATA_H, "w");
 	if(valid) {
 		char buf[256];
 		char buf_for_analyzer[256]; 
@@ -261,11 +262,14 @@ string finite_automaton::write() const  // ofer. Original below.
 		ab_size_s << this->input_alphabet_size;
 
 		snprintf(buf, 256, "#define states %d\n", this->state_count);
+		fprintf(header, "#define states %d\nextern bool accept[states];\nextern char A[states][AlphaBetSize];\n", this->state_count);		
+		fclose(header);
+
 		fprintf(analyzer, "%d %d\n", this->state_count, this->input_alphabet_size);
 		ret += buf;
 		
 		ret += "bool accept[states] = {";
-		
+
 		first_komma = true;
 		for(oi = this->output_mapping.begin(); oi != this->output_mapping.end(); ++oi) {  // marking accepting states
 			if(oi->second) {

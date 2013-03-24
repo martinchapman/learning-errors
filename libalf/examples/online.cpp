@@ -24,6 +24,8 @@ int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 
 bool **matrix; // represents the call graph
+
+struct edge {char s[100]; char t[100];};
 map<string, int> 
 	edge_index_cfg, // indices for all functions in the cfg (superset of edge_index)
 	edge_index; // indices for functions we care about.
@@ -33,188 +35,107 @@ string input_file_name,
 	input_file_name_full; // with extension (e.g. file.c)
 int word_length; 
 ostringstream word_length_s;
-	
-/*
- * Reading the counterexample from model.txt.
- */
-list<int> get_CounterExample(int alphabetsize) {
-	list<int> ce;
-	char i;
-	int length;
-	ifstream read(MODEL);
-	cout << "Counterexamle ";
-	read >> length;
-	cout << "(length = " << length << ")";
-	while(read>>i && (length--)) 
-	{
-		cout << " " << i;
-		ce.push_back(i - '0');
-	}
-	cout << endl;
-	return ce;
+FILE *convert;	
+
+/*********************** building 'matrix' (the allowed consecutive function calls) based on the call-graph  ******************/
+
+void rewrite_function_enter(char *name, int num) // rewriting the instrumented calls: either erase or change to reporting an int.
+{
+	stringstream st; 
+	if (num == -1) // remove statement
+		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"// ";
+	else
+		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";	
+	fprintf(convert, "%s", st.str().c_str());
 }
 
-
-int run_cbmc(bool membership) {
-	if (membership) system("echo \"#define membership\" > mode.c");
-	else system("echo \"#define conjecture\" > mode.c");
-	string goto_instrument_argument("");
-	if (instrument_branches) goto_instrument_argument += string("--branch _Learn_branch ");
-	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter ");
-	stringstream tmp;	
-	string tmp_file("tmpfile");
-	if (!goto_instrument_argument.empty()) {
-		tmp << "cmd /c \"goto-cl " << input_file_name_full <<"\"";
-		system(tmp.str().c_str());
-		tmp.str("");
-		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"";
-		system(tmp.str().c_str());
-		tmp.str("");
-		tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui a.c " << " > " << tmp_file << "\"";
-		system(tmp.str().c_str());
-	}
-	else {
-			tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui " << input_file_name_full << " > " << tmp_file << "\"";
-			system(tmp.str().c_str());
-	}
-	string m = membership ? " m\"" : "\"";
-	string cmd = string("cmd /C \"") + CE + string(" ") + tmp_file + m;
-	system(cmd.c_str());
-	tmp.str("");
-	tmp <<  "grep -q FAILURE " << tmp_file;
-	return system(tmp.str().c_str());
+void rewrite_branch(char *name, int num) 
+{
+	stringstream st; 
+	if (num == -1) // remove statement
+		st << "-e s/\"_Learn_branch((const char \\*)\\\"" << string(name) << "\\\");\"// ";
+	else
+		st << "-e s/\"_Learn_branch((const char \\*)\\\"" << string(name) << "\\\");\"/\"_Learn_branch(" << num << ");\"/ ";	
+	fprintf(convert, "%s", st.str().c_str());
 }
 
-/*
- * getting the candidate data and writing it to conjecture_data.c; invoking the script for a conjecture query. Returning the result.  
- */
-bool check_Equivalence(conjecture * cj) {
-
-	assert(cj != NULL);
-
-	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
-	cout << endl << "Conjecture:" << endl << endl;
-	cout << a->visualize();
-	streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
-	//ofstream dot("a.dot");
-	//cout.rdbuf (dot.rdbuf());
-	//cout << a->visualize();
-	//dot.close();
-
-	ofstream candidate(CONJECTURE_DATA);    // same thing for write()
-	cout.rdbuf (candidate.rdbuf());
-	cout << a->write(); // write() is a rewrite of the original lib function. 
-	candidate.close();
-	cout.rdbuf (strm_buffer); // reverting cout to its normal behavior. 		
-	//string cmd = string("cmd /C \"") + CE + " " + input_file_name + " " + word_length_s.str() + string("c ") + (instrument_functions ? string("f") : instrument_branches ? string("b") : string("")) + string("\"");
-	//int res = system(cmd.c_str());		// invoking the script for a conjecture query. 
-	int res = run_cbmc(false);
-	//cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
-	// 	res = system("grep -q FAILURE tmp");
-	cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
-	return (res != 0);	
-}
-
-/*
- * Function used to obtain information about the classification of a word. 
- */
-bool answer_Membership(list<int> query) {
-
-	if (query.size() == 0) return false;
-
-	cout << "Please classify the word: ";
-	FILE *file;
-	file = fopen(MEMBERSHIP_DATA, "w");
-	fprintf(file, "#define mq_length %d\nint _Learn_mq[mq_length] = {", query.size());
-	list<int>::iterator it;
-	//bool saw_assert_test_letter = false;
-	int last_func_call = -1;
-	for (it = query.begin(); it != query.end(); )
-	{
-	/*	if (*it == alphabet_size - 1) {
-			if (saw_assert_test_letter) {cout << *it << " ! \n"; fprintf(file, "[answering 'no' trvially. This file will not be used]"); fclose(file); fflush(stdout); return false;}
-			saw_assert_test_letter = true;
-		}
-	*/	
-		if (*it >= min_func_idx) // TODO: screen also first letter: only those that can be accessed through main without one of the good functions can be first. 
-		{		
-			if (last_func_call >=0 && !matrix[last_func_call - min_func_idx][*it - min_func_idx]) { cout << *it << " @! \n"; return false;}
-			last_func_call = *it;
-		}
-		cout << *it;
-		fprintf(file, "%d", *it);
-		it++;
-		if (it != query.end()) fprintf(file, ", ");
-	}
-	fprintf(file, "};");
-	fclose(file);
-	cout << endl;
-
-	fflush(stdout);
-	
-	int res = run_cbmc(true);
-
-	//string cmd = string("cmd /C \"") + CE + " " + input_file_name + " " + word_length_s.str() + " "  + string(" m ") + (instrument_functions ? string("f") : instrument_branches ? string("b") : string("")) + string("\"");	
-	//int res = system(cmd.c_str());		// invoking the script. The 'm' tells the script that it is a membership query.
-	
-	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;
-	
-
-	if (res == 0)
-	{		
-		int size = query.size();		
-		ostringstream ist;		
-		ist << "echo \"if (_Learn_idx == " << size << " && ";
-		int i = 0;
-		for (it = query.begin(); it != query.end(); ++i)			
-		{
-			ist << "_Learn_b[" << i  << "] == " << *it;			
-			it++;
-			if (it != query.end()) ist << " && "; else ist << ") __CPROVER_assume (0); \" >> " << POSITIVE_QUERIES_FILE;			
-		}
-		system (ist.str().c_str());
-	}
-
-
-	return (res == 0);		
-}
-
-// populates AUTO_LABELS_FUNCTIONS with function labels, and FUNCNAMETONUM with strcmp instruction to be included in learn.c
 int generate_func_names(int letter) {
+// reads func names from FUNC_NAMES and 
+// 1) fills the global list edge_index (to be used later in compute_allowed_pairs())
+// 2) populates AUTO_LABELS_FUNCTIONS with function labels, 
+// 3) prepares the COVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjectiure, etc), 
+//    and replaces the (char *) <func_name> with (int) index in the file a.c (the result of goto-instrument). Using int rather than strings avoids
+//    strcmp() instructions which turn into loops. 
 	char name[100];
 	FILE *func_names = fopen(FUNC_NAMES, "r"),
-		 *ToLearn = fopen(FUNCNAMETONUM, "w"),
 		 *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w");
-	if (func_names == NULL) {fprintf(stderr, "cannot open %s. ", FUNC_NAMES); exit(1);}	
+	if (func_names == NULL) {fprintf(stderr, "cannot open %s. ", FUNC_NAMES); exit(1);}
 	bool first = true;
 	while (!feof(func_names)) {
 		if (fscanf(func_names, "%s", name) != 1) continue;
-		if (!strcmp(name, "main") || !strcmp(name, "_Learn_branch") || !strcmp(name,"check_conjecture") || !strcmp(name,"check_conjecture_at_trap")) continue; // TODO: change function names so they all start with _Learn
-		if (!first) fprintf(ToLearn, "else ");
+		if (!strcmp(name, "main")) // here we can add other functions we wish to ignore
+		{
+			rewrite_function_enter(name, -1); // -1 = remove statement
+			continue; 
+		}		
 		first = false;
 		edge_index.insert(pair<string, int>(string(name), letter));
 		fprintf(Labels, "%d %s\n", letter, name);
-		fprintf(ToLearn, "if (!strcmp(\"c::%s\", st)) {_Learn(%d);}\n", name, letter++); // the c:: is necessary because goto-instrument reports the function name with this prefix.
-		
+		rewrite_function_enter(name, letter++);		
 	}
+// what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
 #ifdef USE_ASSERT_LETTER
-	edge_index.insert(pair<string, int>(string("assert"), letter++));
-#endif
+	fprintf(Labels, "%d %s\n", letter, "assert");
+	edge_index.insert(pair<string, int>(string("assert"), letter++));	
+#endif	
+	
 	fclose(func_names);
-	fclose(ToLearn);
-	fclose(Labels);
+	fclose(Labels);	
 	return letter;
 }
 
+void project_matrix_to_relevant_vertices_source(int n, int m, int current, int source){
+	// performs dfs for a given source node
+ 
+    int v;
+    
+	for(v = 0; v < n; v++)
+    {
+        if( matrix[current][v] == 1 ){
+			matrix[source][v] = 1;
+			if(v >= m) 
+				project_matrix_to_relevant_vertices_source( n, m, v, source );
+		}
+	}
+}	
 
-struct edge {char s[100]; char t[100];};
+void project_matrix_to_relevant_vertices(int n, int m){  // performs dfs contracting edges of the non-instrumented nodes	 
+// the matrix size is n x n. Only the first m x m submatrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
+// 'assume', '_Learn_...' are not followed). This function updates the m x m submatrix such that matrix[i][j] = 1 (i,j <= m)
+// if there is a path from i to j in the n x n matrix.
+
+	for( int i=0; i<m; i++)
+		project_matrix_to_relevant_vertices_source( n, m, i, i);
+}
+
+void print_matrix(int numOfVertices) {
+	cout << " -------------------------------------------------" << endl;
+	for (int t = 0; t < numOfVertices; ++t){
+		for (int j = 0; j < numOfVertices; ++j)
+			cout << matrix[t][j] << " ";
+		cout << endl;
+	}
+	cout << endl;
+}
+
 void compute_allowed_pairs() { 
-	stringstream s;	
+// creates the initial matrix according to the call graph. The indices are shifted by min_func_idx which is 2 if '--auto b' (branch instrumentation) is activated, and 0 otherwise.
+	stringstream st;	
 	vector<edge> edge_list;
 	edge tmp_edge;	
 	
-	s << "cmd /C \"" << GENERATE_CALL_GRAPH << " " << input_file_name_full << " " << CG << "\"";
-	system(s.str().c_str());
+	st << "cmd /C \"" << GENERATE_CALL_GRAPH << " " << input_file_name_full << " " << CG << "\"";
+	system(st.str().c_str());
 	FILE *cg = fopen(CG, "r");
 	if (!cg) {fprintf(stderr, "cannot open %s", CG); exit(1);}	
 	
@@ -223,84 +144,41 @@ void compute_allowed_pairs() {
 	while (!feof(cg)) {
 		if (fscanf(cg, "%s %s\n", tmp_edge.s, tmp_edge.t) != 2) continue;
 		edge_list.push_back(tmp_edge);				
-		edge_index_cfg.insert(pair<string, int>(string(tmp_edge.s), edge_index_cfg.size()));
-		edge_index_cfg.insert(pair<string, int>(string(tmp_edge.t), edge_index_cfg.size()));
-		cout << tmp_edge.s << " " << tmp_edge.t << "( " << edge_index_cfg.size() << ")" << endl;
+		edge_index_cfg.insert(pair<string, int>(string(tmp_edge.s), edge_index_cfg.size() + min_func_idx ));
+		edge_index_cfg.insert(pair<string, int>(string(tmp_edge.t), edge_index_cfg.size() + min_func_idx ));
+	//	cout << tmp_edge.s << " " << tmp_edge.t << "( " << edge_index_cfg.size() << ")" << endl;
 	}
 	int numOfVertices = edge_index_cfg.size();
 	cout << "# of vertices = " << numOfVertices << endl;
+
 	// initializing matrix
 	matrix = new bool*[numOfVertices];
 	for(int i = 0; i < numOfVertices; ++i) {
 	    matrix[i] = new bool[numOfVertices];
 	}
+
 	// resetting matrix
 	for (int t = 0; t < numOfVertices; ++t)
 		for (int j = 0; j < numOfVertices; ++j)
 			matrix[t][j] = false;
 
 	// filling matrix
-	vector<edge>::iterator it;	
+	vector<edge>::iterator it;
 	for (it = edge_list.begin(); it != edge_list.end(); ++it) {
 		int src = edge_index_cfg[(*it).s] - min_func_idx;
 		int target = edge_index_cfg[(*it).t] - min_func_idx;
-		//cout << src << (*it).s << " " << target << (*it).t << endl;
+		cout << "min_func_idx = " << min_func_idx << ": " << src << (*it).s << " " << target << (*it).t << endl;
 		matrix[src][target] = true;
 	}
-	for (int t = 0; t < numOfVertices; ++t){
-		for (int j = 0; j < numOfVertices; ++j)
-			cout << matrix[t][j] << " ";
-		cout << endl;
-	}
-}
-
-
-void remove_files() {
-	ostringstream tmp;
-	tmp << "rm -f " << AUTO_LABELS << " " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;	// we need a positives_query file because it is included from other files. 
-	system(tmp.str().c_str());
-}
-
-
-void init_auto_instrumentation(bool instrument_branches, bool instrument_functions)
-{
-	ostringstream tmp;
 	
-
-	if (instrument_branches) {
-		alphabet_size += 2;		
-	}
-	if (instrument_functions) {		
-		tmp << "cmd /C \"" << GET_FUNC_NAMES  << " " << input_file_name << " " << FUNC_NAMES << "\""; // populates FUNC_NAMES with function names, according to the instrumented file generated by goto-instrument
-		cout << "running " << tmp.str() << endl;
-		system(tmp.str().c_str());
-		min_func_idx = alphabet_size;
-		alphabet_size = generate_func_names(alphabet_size); // this one also updates AUTO_LABELS_FUNCTIONS
-		compute_allowed_pairs();
-	}	
-	else {
-#ifdef USE_ASSERT_LETTER	
-	alphabet_size++; // because of the assert function.	
-#endif	
-	min_func_idx = alphabet_size; // we need to define it because it is used in answer_query
-	}	
-
-	if (instrument_branches || instrument_functions) {
-		tmp.str("");
-		tmp << "cat " << (instrument_branches ? AUTO_LABELS_BRANCHES : " ") << " " << (instrument_functions ? AUTO_LABELS_FUNCTIONS : " ") << " > " << AUTO_LABELS;
-		system(tmp.str().c_str());
-	}
+	print_matrix(numOfVertices); 
+	print_matrix(edge_index.size()); 
+	project_matrix_to_relevant_vertices(numOfVertices, edge_index.size());
+	print_matrix(edge_index.size());	
 }
 
-void init_word_length_file() {
-	printf("reading from %s; word_length = %d, alphabet-size = %d\n", input_file_name_full.c_str(), word_length, alphabet_size);
-	FILE *file = fopen(WORD_LENGTH, "w");
-	fprintf(file, "#define word_length_bound %d\n", word_length);
-	fprintf(file, "#define AlphaBetSize %d", alphabet_size);
-	fclose(file);	
-	word_length_s << (word_length + 1); // we need to unroll one more than the word_length
-}
 
+/****************************** before learn *************************/
 
 void parse_options(int argc, char**argv) {		
 	if (argc < 3) {fprintf(stderr, "usage: online <file_name> <word-length> [--auto {b,f}]* [<user (manualy inserted) alphabet-size>]" "\n-- auto\tautomatic instrumentation of (f)unction entries or (b)ranch.\n\tif (f) is chosen, each function becomes a letter in the alphabet. Ignores alphabet-size if given. \n Default 'manual' alphabet-size is 0.\n"); exit(1);}
@@ -323,6 +201,65 @@ void parse_options(int argc, char**argv) {
 	if (alphabet_size == 0 && !instrument_branches && !instrument_functions) {fprintf(stderr, "alphabet size must be > 0, or --auto should be used."); exit(1);}
 }
 
+void remove_files() {
+	ostringstream tmp;
+	tmp << "rm -f " << AUTO_LABELS << " " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;	// we need a positives_query file because it is included from other files. 
+	system(tmp.str().c_str());
+}
+
+void init_auto_instrumentation(bool instrument_branches, bool instrument_functions)
+{
+	stringstream tmp;
+	
+	// we need to do the following conversions even if --auto is not activated, because the definition of _Learn_branch/_Learn_function_enter in learn.c won't compile otherwise.
+	convert = fopen(CONVERT, "w");
+	fprintf(convert, "@echo off\n");
+	fprintf(convert, "sed -e s/\"signed int _Learn_letter;\"// " );
+	fprintf(convert, "-e s/\"void _Learn_branch(const char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
+	fprintf(convert, "-e s/\"void _Learn_function_enter(const char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
+
+		
+	if (instrument_branches) {
+		alphabet_size += 2;		
+		rewrite_branch("not-taken", 0);
+		rewrite_branch("taken", 1);
+	}
+	if (instrument_functions) {		
+		tmp << "cmd /C \"" << GET_FUNC_NAMES  << " " << input_file_name << " " << FUNC_NAMES << "\""; // populates FUNC_NAMES with function names, according to the instrumented file generated by goto-instrument
+		cout << "running " << tmp.str() << endl;
+		system(tmp.str().c_str());
+		min_func_idx = alphabet_size;
+	
+		alphabet_size = generate_func_names(alphabet_size); // this one also updates AUTO_LABELS_FUNCTIONS
+		compute_allowed_pairs();
+	}	
+	else {
+#ifdef USE_ASSERT_LETTER	
+	alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
+#endif	
+	min_func_idx = alphabet_size; // we need to define it because it is used in answer_query
+	}	
+
+	if (instrument_branches || instrument_functions) {
+		tmp.str("");
+		tmp << "cat " << (instrument_branches ? AUTO_LABELS_BRANCHES : " ") << " " << (instrument_functions ? AUTO_LABELS_FUNCTIONS : " ") << " > " << AUTO_LABELS;
+		system(tmp.str().c_str());
+	}
+	fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
+	fclose(convert);		
+}
+
+void init_word_length_file() {
+	printf("reading from %s; word_length = %d, alphabet-size = %d\n", input_file_name_full.c_str(), word_length, alphabet_size);
+	FILE *file = fopen(WORD_LENGTH, "w");
+	fprintf(file, "#define word_length_bound %d\n", word_length);
+	fprintf(file, "#define AlphaBetSize %d", alphabet_size);
+	fclose(file);	
+	word_length_s << (word_length + 1); // we need to unroll one more than the word_length
+}
+
+/******************************* after learn *************************/
+
 void post_process() {
 	
 	system("cmd /C \"dominators.exe\"");
@@ -341,6 +278,161 @@ void show_result(conjecture *result) {
 	system("dotty a.dot");	
 }
 
+/*******************************  Learn  ****************************/
+
+list<int> get_CounterExample(int alphabetsize) {
+	list<int> ce;
+	char i;
+	int length;
+	ifstream read(MODEL);
+	cout << "Counterexamle ";
+	read >> length;
+	cout << "(length = " << length << ")";
+	while(read>>i && (length--)) 
+	{
+		cout << " " << i;
+		ce.push_back(i - '0');
+	}
+	cout << endl;
+	return ce;
+}
+
+int run_cbmc(bool membership) {
+	if (membership) system("echo \"#define membership\" > mode.c");
+	else system("echo \"#define conjecture\" > mode.c");
+	string goto_instrument_argument("");
+	if (instrument_branches) goto_instrument_argument += string("--branch _Learn_branch ");
+	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter ");
+	stringstream tmp;	
+	string tmp_file("tmpfile");
+	if (!goto_instrument_argument.empty()) {
+		tmp << "cmd /c \"goto-cl " << input_file_name_full <<"\"";
+		system(tmp.str().c_str());
+		
+		tmp.str("");
+		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"";
+		system(tmp.str().c_str());
+		
+		tmp.str("");
+		tmp << "cmd /c " << CONVERT;
+		system(tmp.str().c_str());
+		
+		tmp.str("");
+		tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui a.c learn_code.c " << " > " << tmp_file << "\"";
+		system(tmp.str().c_str());
+	}
+	else {
+			tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui " << input_file_name_full << " learn_code.c > " << tmp_file << "\"";
+			system(tmp.str().c_str());
+	}
+	string m = membership ? " m\"" : "\"";
+	string cmd = string("cmd /C \"") + CE + string(" ") + tmp_file + m;
+	system(cmd.c_str());
+	tmp.str("");
+	tmp <<  "grep -q FAILURE " << tmp_file;
+	
+	return system(tmp.str().c_str());
+}
+
+bool answer_Conjecture(conjecture * cj) {
+
+	assert(cj != NULL);
+
+	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
+	cout << endl << "Conjecture:" << endl << endl;
+	cout << a->visualize();
+	streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
+	//ofstream dot("a.dot");
+	//cout.rdbuf (dot.rdbuf());
+	//cout << a->visualize();
+	//dot.close();
+
+	ofstream candidate(CONJECTURE_DATA);    // same thing for write()
+	cout.rdbuf (candidate.rdbuf());
+	cout << a->write(); // write() is a rewrite of the original lib function. 
+	candidate.close();
+	cout.rdbuf (strm_buffer); // reverting cout to its normal behavior. 			
+	int res = run_cbmc(false);	
+	cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
+	//exit(1);
+	return (res != 0);	
+}
+
+bool answer_Membership(list<int> query) {
+
+	if (query.size() == 0) return false;
+
+	cout << "Please classify the word: ";	
+	stringstream st;		
+	st << "#include \"" << MEMBERSHIP_DATA_H << "\"\n"	<< "\nint _Learn_mq[mq_length] = {";
+	list<int>::iterator it;
+	bool saw_assert_test_letter = false;
+	int last_func_call = -1;
+	for (it = query.begin(); it != query.end(); )
+	{
+	if (instrument_functions) {
+		if (*it >= min_func_idx) // TODO: screen also first letter: only those that can be accessed through main without one of the good functions can be first. 
+		{		
+			if (last_func_call >=0 && !matrix[last_func_call - min_func_idx][*it - min_func_idx]) { cout << *it << " @! \n"; return false;}
+			last_func_call = *it;
+		}
+	}
+#ifdef USE_ASSERT_LETTER	
+	else
+	{	
+		if (*it == alphabet_size - 1) {
+			if (saw_assert_test_letter) {cout << *it << " ! \n"; return false;}
+			saw_assert_test_letter = true;
+		}
+	}
+#endif		
+		cout << *it;
+		st << *it;
+		it++;
+		if (it != query.end()) st << ", ";
+	}
+	st << "};";
+	FILE *file = fopen(MEMBERSHIP_DATA, "w");
+	fprintf(file, "%s", st.str().c_str());
+	fclose(file);
+
+	st.str("");
+	file = fopen(MEMBERSHIP_DATA_H, "w");
+	st << "#define mq_length " << query.size() << "\nextern int _Learn_mq[mq_length];";
+	fprintf(file, "%s", st.str().c_str());
+	fclose(file);
+	
+
+	cout << endl;
+
+	fflush(stdout);
+	
+	int res = run_cbmc(true);
+
+	//string cmd = string("cmd /C \"") + CE + " " + input_file_name + " " + word_length_s.str() + " "  + string(" m ") + (instrument_functions ? string("f") : instrument_branches ? string("b") : string("")) + string("\"");	
+	//int res = system(cmd.c_str());		// invoking the script. The 'm' tells the script that it is a membership query.
+	
+	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;
+	
+	// updating the positive_queries_file: this will block paths that correspond to membership that we already answered positively.
+	if (res == 0)
+	{		
+		int size = query.size();		
+		ostringstream ist;		
+		ist << "echo \"if (_Learn_idx == " << size << " && ";
+		int i = 0;
+		for (it = query.begin(); it != query.end(); ++i)			
+		{
+			ist << "_Learn_b[" << i  << "] == " << *it;			
+			it++;
+			if (it != query.end()) ist << " && "; else ist << ") __CPROVER_assume (0); \" >> " << POSITIVE_QUERIES_FILE;			
+		}
+		system (ist.str().c_str());
+	}
+
+	return (res == 0);		
+}
+
 void learn() {
 	// Create new knowledgebase. In this case, we choose bool as type for the knowledgebase.
 	knowledgebase<bool> base;
@@ -354,11 +446,10 @@ void learn() {
 	//int counter = 0;
 	do {	
 		// Advance the learning algorithm
-		conjecture *cj = algorithm.advance();
-
+		conjecture *cj = algorithm.advance();		
 		// Resolve membership queries
 		if (cj == NULL) {
-
+			//counter++;		
 			conjectured = false;
 			// retrieve queries
 			list<list<int> > queries = base.get_queries();
@@ -367,21 +458,21 @@ void learn() {
 			list<list<int> >::iterator li;
 			for (li = queries.begin(); li != queries.end(); li++) {
 
-				// Answer query
+				// Answer query				
 				bool a = answer_Membership(*li);
-								
+				//if (counter == 2) exit(1);
 				// Add answer to knowledgebase
 				base.add_knowledge(*li, a);
 			}
 		}
 		// Resolve equivalence queries
-		else {
+		else {			
 			if (conjectured) {
 				cout << "last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. " << endl;
 				exit(1);
 			}
 			conjectured = true;
-			bool is_equivalent = check_Equivalence(cj);			
+			bool is_equivalent = answer_Conjecture(cj);			
 			if (is_equivalent) {
 				result = cj;
 			} else {
@@ -406,7 +497,7 @@ void learn() {
 }
 
 
-
+/*******************************  main  ****************************/
 int main(int argc, char**argv) {		
 	parse_options(argc, argv);
 	remove_files();
