@@ -67,14 +67,28 @@ int generate_func_names(int letter) {
 //    and replaces the (char *) <func_name> with (int) index in the file a.c (the result of goto-instrument). Using int rather than strings avoids
 //    strcmp() instructions which turn into loops. 
 	char name[100];
+	map<string, int> user_func_set;
+	stringstream st;
+	st << input_file_name << ".f";
 	FILE *func_names = fopen(FUNC_NAMES, "r"),
-		 *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w");
+		 *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w"),
+		 *user_func_names = fopen(st.str().c_str() , "r");
 	if (func_names == NULL) {fprintf(stderr, "cannot open %s. ", FUNC_NAMES); exit(1);}
+	if (user_func_names != NULL) {
+		cout << "found " << st.str() << endl;
+		while (!feof(user_func_names)) {
+			if (fscanf(user_func_names, "%s", name) != 1) continue;
+			user_func_set.insert(pair<string, int>(name, 0));
+		}
+	}
+	else cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_name << ".f" << endl;
 	bool first = true;
 	while (!feof(func_names)) {
 		if (fscanf(func_names, "%s", name) != 1) continue;
-		if (!strcmp(name, "main")) // here we can add other functions we wish to ignore
+		
+		if (!strcmp(name, "main") || ((user_func_names != NULL) && user_func_set.find(name) == user_func_set.end())) // here we can add other functions we wish to ignore
 		{
+			cout << "skipping " << name << endl; 
 			rewrite_function_enter(name, -1); // -1 = remove statement
 			continue; 
 		}		
@@ -207,7 +221,7 @@ void remove_files() {
 	system(tmp.str().c_str());
 }
 
-void init_auto_instrumentation(bool instrument_branches, bool instrument_functions)
+void init_auto_instrumentation()
 {
 	stringstream tmp;
 	
@@ -325,6 +339,14 @@ int run_cbmc(bool membership) {
 			tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui " << input_file_name_full << " learn_code.c > " << tmp_file << "\"";
 			system(tmp.str().c_str());
 	}
+
+	tmp.str("");
+	tmp << "grep ERROR " << tmp_file;
+	if (!system(tmp.str().c_str())) {
+		cout << "ERROR in output of CBMC" << endl;
+		exit(1);
+	}
+
 	string m = membership ? " m\"" : "\"";
 	string cmd = string("cmd /C \"") + CE + string(" ") + tmp_file + m;
 	system(cmd.c_str());
@@ -501,7 +523,7 @@ void learn() {
 int main(int argc, char**argv) {		
 	parse_options(argc, argv);
 	remove_files();
-	init_auto_instrumentation(instrument_branches, instrument_functions);
+	init_auto_instrumentation();
     init_word_length_file();
 		
 	learn();		
