@@ -30,29 +30,17 @@ void AdjacencyMatrix();
 void printArray(int **matrix_to_print, int num_of_v);
 
 void m_n_dfs(int n, int m){
-     
-	int *pos;
+    
 
-	pos = (int *)malloc(sizeof(int));
-	pos = new int;
-    *pos = 0;
+	for( int i=0; i<m; i++){
+		for( int j = m; j< n; j++) {
+			if( matrix[i][j] == 1 ){
+				m_n_dfs_source( n, m, j, i );
+			}
+		}
+	}
 
-	// int self_loops[m];
-	// for(int i=0; i<m; i++)
-		// self_loops[i]=0;
-
-	for( int i=0; i<m; i++)
-		m_n_dfs_source( n, m, i, i );
-
-	//copying into a smaller matrix
-
-	//initializing
-	instrumented_matrix = (int **)malloc(m*m*sizeof(int));
-
-	//initializing the first_functions list
-	first_functions = (int *)malloc(m*sizeof(int));
-
-	// updating matrix and first_functions list
+	// updating instrumented matrix and first_functions list
 	for (int t = 0; t < m; ++t){
 		first_functions[t] = 1;
 		for (int j = 0; j < m; ++j){
@@ -60,10 +48,11 @@ void m_n_dfs(int n, int m){
 			if (matrix[j][t] == 1 && j != t)
 				first_functions[t] = 0;
 		}
-	}
+	} 
 
 	int *predecessors_list;
 	predecessors_list = (int *)malloc(m*sizeof(int));
+	predecessors_list = new int[m];
 
 	for( int i=0; i<m; i++){
 		for(int j=0; j<m; j++)
@@ -80,6 +69,7 @@ void m_n_dfs(int n, int m){
 			}
 		}
 	}
+	free(predecessors_list);
 }
 
 
@@ -89,9 +79,12 @@ void m_n_dfs_source(int n, int m, int current, int source ){
     
 	for(v = 0; v < n; v++)
     {
-        if( matrix[current][v] == 1 ){
-			matrix[source][v] = 1;
-			if( v >= m ){
+        if(matrix[current][v] == 1) {
+			if (v < m) {
+				matrix[source][v] = 1;
+				return;
+			}
+			if( v != current){
 				m_n_dfs_source( n, m, v, source );
 			}
 		}
@@ -115,33 +108,49 @@ void predecessors(int m, int current, int *predecessors_list){
  
 int main()
 {
-    // int *q;
+    
     printf("Enter the number of vertices\n");
     scanf("%d",&n);
 	printf("Enter the number of instrumented vertices\n");
     scanf("%d",&m);
-    // q = (int *)malloc(sizeof(int)*n);
-	//initializing
+	
+	// initializing the original matrix
 	matrix = (int **)malloc(n*n*sizeof(int));
 	for(int i = 0; i < n; ++i) {
 	     matrix[i] = new int[n];
 	}
+
+	//initializing the instrumented matrix
+	instrumented_matrix = (int **)malloc(m*m*sizeof(int));
+	for(int i = 0; i < m; ++i) {
+	      matrix[i] = new int[m];
+	}
+
+	//initializing the first_functions list
+	first_functions = (int *)malloc(m*sizeof(int));
+	first_functions = new int[m];
+
 	printf("matrix initialized\n");
     AdjacencyMatrix();
     m_n_dfs(n, m);
 	printf("siblings computed:\n");
 	printArray(instrumented_matrix, m );
+
+	free(matrix);
+	free(instrumented_matrix);
+	free(first_functions);
 return 0;
 }
 
 void AdjacencyMatrix( ){
 
     int i,j;
+
     for(i = 0;i < n; i++)
     {
-        for(j = 0;j < n; j++)
+		for(j = 0;j < n; j++)
         {
-            matrix[i][j] = rand()%2;
+			matrix[i][j] = rand()%2;
 			// matrix[i][j] = 0;
         }
     }
