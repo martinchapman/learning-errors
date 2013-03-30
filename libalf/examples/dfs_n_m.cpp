@@ -123,7 +123,7 @@ int main()
 	//initializing the instrumented matrix
 	instrumented_matrix = (int **)malloc(m*m*sizeof(int));
 	for(int i = 0; i < m; ++i) {
-	      matrix[i] = new int[m];
+	      instrumented_matrix[i] = new int[m];
 	}
 
 	//initializing the first_functions list
