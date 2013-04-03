@@ -27,8 +27,8 @@ bool **matrix; // represents the call graph
 
 struct edge {char s[100]; char t[100];};
 map<string, int> 
-	edge_index_cfg, // indices for all functions in the cfg (superset of edge_index)
-	edge_index; // indices for functions we care about.
+	edge_index_cg, // indices for all functions in the cfg (superset of node_index)
+	node_index; // indices for functions we care about.
 
 
 string input_file_name, 
@@ -61,9 +61,9 @@ void rewrite_branch(char *name, int num)
 
 int generate_func_names(int letter) {
 // reads func names from FUNC_NAMES and 
-// 1) fills the global list edge_index (to be used later in compute_allowed_pairs())
+// 1) fills the global list node_index (to be used later in compute_allowed_pairs())
 // 2) populates AUTO_LABELS_FUNCTIONS with function labels, 
-// 3) prepares the COVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjectiure, etc), 
+// 3) prepares the CONVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjectiure, etc), 
 //    and replaces the (char *) <func_name> with (int) index in the file a.c (the result of goto-instrument). Using int rather than strings avoids
 //    strcmp() instructions which turn into loops. 
 	char name[100];
@@ -93,14 +93,14 @@ int generate_func_names(int letter) {
 			continue; 
 		}		
 		first = false;
-		edge_index.insert(pair<string, int>(string(name), letter));
+		node_index.insert(pair<string, int>(string(name), letter));
 		fprintf(Labels, "%d %s\n", letter, name);
 		rewrite_function_enter(name, letter++);		
 	}
 // what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
 #ifdef USE_ASSERT_LETTER
 	fprintf(Labels, "%d %s\n", letter, "assert");
-	edge_index.insert(pair<string, int>(string("assert"), letter++));	
+	node_index.insert(pair<string, int>(string("assert"), letter++));	
 #endif	
 	
 	fclose(func_names);
@@ -153,16 +153,16 @@ void compute_allowed_pairs() {
 	FILE *cg = fopen(CG, "r");
 	if (!cg) {fprintf(stderr, "cannot open %s", CG); exit(1);}	
 	
-	edge_index_cfg.insert(edge_index.begin(), edge_index.end());
-	cout << "# of vertices = " << edge_index_cfg.size() << " " << edge_index.size() << endl;
+	edge_index_cg.insert(node_index.begin(), node_index.end());
+	cout << "# of vertices = " << edge_index_cg.size() << " " << node_index.size() << endl;
 	while (!feof(cg)) {
 		if (fscanf(cg, "%s %s\n", tmp_edge.s, tmp_edge.t) != 2) continue;
 		edge_list.push_back(tmp_edge);				
-		edge_index_cfg.insert(pair<string, int>(string(tmp_edge.s), edge_index_cfg.size() + min_func_idx ));
-		edge_index_cfg.insert(pair<string, int>(string(tmp_edge.t), edge_index_cfg.size() + min_func_idx ));
-	//	cout << tmp_edge.s << " " << tmp_edge.t << "( " << edge_index_cfg.size() << ")" << endl;
+		edge_index_cg.insert(pair<string, int>(string(tmp_edge.s), edge_index_cg.size() + min_func_idx ));
+		edge_index_cg.insert(pair<string, int>(string(tmp_edge.t), edge_index_cg.size() + min_func_idx ));
+	//	cout << tmp_edge.s << " " << tmp_edge.t << "( " << edge_index_cg.size() << ")" << endl;
 	}
-	int numOfVertices = edge_index_cfg.size();
+	int numOfVertices = edge_index_cg.size();
 	cout << "# of vertices = " << numOfVertices << endl;
 
 	// initializing matrix
@@ -179,16 +179,16 @@ void compute_allowed_pairs() {
 	// filling matrix
 	vector<edge>::iterator it;
 	for (it = edge_list.begin(); it != edge_list.end(); ++it) {
-		int src = edge_index_cfg[(*it).s] - min_func_idx;
-		int target = edge_index_cfg[(*it).t] - min_func_idx;
+		int src = edge_index_cg[(*it).s] - min_func_idx;
+		int target = edge_index_cg[(*it).t] - min_func_idx;
 		cout << "min_func_idx = " << min_func_idx << ": " << src << (*it).s << " " << target << (*it).t << endl;
 		matrix[src][target] = true;
 	}
 	
 	print_matrix(numOfVertices); 
-	print_matrix(edge_index.size()); 
-	project_matrix_to_relevant_vertices(numOfVertices, edge_index.size());
-	print_matrix(edge_index.size());	
+	print_matrix(node_index.size()); 
+	project_matrix_to_relevant_vertices(numOfVertices, node_index.size());
+	print_matrix(node_index.size());	
 }
 
 
@@ -299,7 +299,7 @@ list<int> get_CounterExample(int alphabetsize) {
 	char i;
 	int length;
 	ifstream read(MODEL);
-	cout << "Counterexamle ";
+	cout << "Counterexample ";
 	read >> length;
 	cout << "(length = " << length << ")";
 	while(read>>i && (length--)) 

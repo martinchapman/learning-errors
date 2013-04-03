@@ -15,7 +15,8 @@
 #define ROOTS "roots.data"
 #define DOMINATING_EDGES "dominating_edges.data"
 #define CG "call_graph.data"
-
+#define CFG_EDGES "cfg_edges.data"
+#define CFG_CONNECTORS "cfg_connectors.data"
 
 #define CONJECTURE_DATA "conjecture_data.c"
 #define CONJECTURE_DATA_H "conjecture_data.h" // included from learn_code.c
@@ -29,6 +30,7 @@
 // retrieves function names from a goto-instrument output: 
 #define GET_FUNC_NAMES "get_func_names.bat"
 #define CONVERT "convert.bat"
+#define CFG2GRAPH "cfg2graph.bat"
 
 // ce of cbmc; generated in CE
 #define MODEL "model.txt"

@@ -16,7 +16,9 @@ void f(int x) {
 
 void main() {
   int x = nondet_int();
-  //g(x);
-	f(x);
+  //if (x < 5) g(x);
+ //else  f(x);
+  g(x);
+  f(x);
   _Learn_trap;
 }
