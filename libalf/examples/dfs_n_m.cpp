@@ -18,16 +18,17 @@ using namespace libalf;
 int alphabet_size; 
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
-int **matrix;
-int **instrumented_matrix;
-int *first_functions;
+bool **matrix;
+bool **instrumented_matrix;
+bool *first_functions;
 int n;
 int m;
 
 void m_n_dfs_source(int n, int m, int current, int source);
+int cnt;
 void predecessors(int m, int current, int *predecessors_list);
 void AdjacencyMatrix();
-void printArray(int **matrix_to_print, int num_of_v);
+void printArray(bool **matrix_to_print, int num_of_v);
 
 void m_n_dfs(int n, int m){
     
@@ -41,6 +42,7 @@ void m_n_dfs(int n, int m){
 	}
 
 	// updating instrumented matrix and first_functions list
+	// to be replaced with dfs from main
 	for (int t = 0; t < m; ++t){
 		first_functions[t] = 1;
 		for (int j = 0; j < m; ++j){
@@ -51,25 +53,33 @@ void m_n_dfs(int n, int m){
 	} 
 
 	int *predecessors_list;
-	predecessors_list = (int *)malloc(m*sizeof(int));
+	// predecessors_list = (int *)malloc(m*sizeof(int));
 	predecessors_list = new int[m];
 
-	for( int i=0; i<m; i++){
+	for( int i=0; i<m; i++) {
 		for(int j=0; j<m; j++)
-			predecessors_list[m]=0;
-
+			predecessors_list[j]=-1;
+		cnt = 0;
+		printf(" before predecessors i = %d: ", i);
+	    for( int j=0; j<m; j++) printf("% d ", predecessors_list[j]);
+		printf("\n");
 		predecessors(m, i, predecessors_list);
+		printf(" i = %d: ", i);
+	    for( int j=0; j<m; j++) printf("% d ", predecessors_list[j]);
+		printf("\n");
 
-		for(int t = 0; t < m; t++){
-			if( predecessors_list[t] == 1){
+		int tmp;
+		for(int t = 0; (tmp = predecessors_list[t]) > -1; t++){
 				for( int r = 0; r < m; r++){
-					if ( (i != r) || (matrix[i][i] == 1) ) 
-						instrumented_matrix[i][r] = instrumented_matrix[i][r] || matrix[t][r];
-				}
-			}
+					if (!matrix[tmp][r] || instrumented_matrix[i][r]) continue;
+					for(int tt = 0; predecessors_list[tt] > -1; tt++) if (r == predecessors_list[tt]) continue; // if r id onr of i's predecessors, it cannot follow i.
+					if (i != r) 
+						instrumented_matrix[i][r] = 1;
+				}			
 		}
 	}
-	free(predecessors_list);
+	delete(predecessors_list);
+	// free( predecessors_list);
 }
 
 
@@ -93,16 +103,24 @@ void m_n_dfs_source(int n, int m, int current, int source ){
 
 
 void predecessors(int m, int current, int *predecessors_list){
+	
+	int flag = 0;
 
 	for( int i = 0; i < m; i++){
-		if( (matrix[i][current] == 1) && (predecessors_list[i] == 0) ){
-			predecessors_list[i] = 1;
+		flag = 0;
+		for(int tt = 0; predecessors_list[tt] > -1; tt++) {
+			if (i == predecessors_list[tt]){
+				flag = 1;
+				continue;
+			}
+		}
+		if( (matrix[i][current] == 1) && !flag ){
+			predecessors_list[cnt++] = i;
 			predecessors(m, i, predecessors_list);
 		}
 	}
 
 }
-
 
 // ***************** driver functions ************************************
  
@@ -115,20 +133,20 @@ int main()
     scanf("%d",&m);
 	
 	// initializing the original matrix
-	matrix = (int **)malloc(n*n*sizeof(int));
+	matrix = (bool **)malloc(n*sizeof(bool));
 	for(int i = 0; i < n; ++i) {
-	     matrix[i] = new int[n];
+	     matrix[i] = new bool[n];
 	}
 
 	//initializing the instrumented matrix
-	instrumented_matrix = (int **)malloc(m*m*sizeof(int));
+	instrumented_matrix = (bool **)malloc(m*sizeof(bool));
 	for(int i = 0; i < m; ++i) {
-	      instrumented_matrix[i] = new int[m];
+	      instrumented_matrix[i] = new bool[m];
 	}
 
 	//initializing the first_functions list
-	first_functions = (int *)malloc(m*sizeof(int));
-	first_functions = new int[m];
+	// first_functions = (bool *)malloc(sizeof(bool));
+	first_functions = new bool[m];
 
 	printf("matrix initialized\n");
     AdjacencyMatrix();
@@ -136,9 +154,9 @@ int main()
 	printf("siblings computed:\n");
 	printArray(instrumented_matrix, m );
 
-	free(matrix);
-	free(instrumented_matrix);
-	free(first_functions);
+	// free(matrix);
+	// free(instrumented_matrix);
+	// free(first_functions);
 return 0;
 }
 
@@ -154,36 +172,21 @@ void AdjacencyMatrix( ){
 			 matrix[i][j] = 0;
         }
     }
-	// matrix[0][2] = 1;
-	// matrix[0][3] = 1;
-	// matrix[2][1] = 1;
-	// matrix[3][0] = 1;
+	 matrix[0][2] = 1;
+	 matrix[0][3] = 1;
+	 matrix[2][1] = 1;
+	 matrix[3][0] = 1;
 
-	matrix[0][0] = 0;
-	matrix[0][1] = 1;
+	/*matrix[0][1] = 1;
 	matrix[0][2] = 1;
-	matrix[0][3] = 0;
+	matrix[2][3] = 1;
 
-	matrix[1][0] = 0;
-			matrix[1][1] = 0;
-			matrix[1][2] = 0;
-			matrix[1][3] = 0;
-
-			matrix[2][0] = 0;
-			matrix[2][1] = 0;
-			matrix[2][2] = 0;
-			matrix[2][3] = 1;
-
-			matrix[3][0] = 0;
-			matrix[3][1] = 0;
-			matrix[3][2] = 0;
-			matrix[3][3] = 0;
-
+	*/
 	printf("Matrix filled with randoms\n");
     printArray(matrix, n);
 }
 
-void printArray(int **matrix_to_print, int num_of_v){
+void printArray(bool **matrix_to_print, int num_of_v){
     int i,j;
     for(i=0;i< num_of_v;i++)
     {
