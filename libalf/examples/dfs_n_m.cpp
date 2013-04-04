@@ -60,9 +60,6 @@ void m_n_dfs(int n, int m){
 		for(int j=0; j<m; j++)
 			predecessors_list[j]=-1;
 		cnt = 0;
-		printf(" before predecessors i = %d: ", i);
-	    for( int j=0; j<m; j++) printf("% d ", predecessors_list[j]);
-		printf("\n");
 		predecessors(m, i, predecessors_list);
 		printf(" i = %d: ", i);
 	    for( int j=0; j<m; j++) printf("% d ", predecessors_list[j]);
@@ -71,9 +68,15 @@ void m_n_dfs(int n, int m){
 		int tmp;
 		for(int t = 0; (tmp = predecessors_list[t]) > -1; t++){
 				for( int r = 0; r < m; r++){
-					if (!matrix[tmp][r] || instrumented_matrix[i][r]) continue;
-					for(int tt = 0; predecessors_list[tt] > -1; tt++) if (r == predecessors_list[tt]) continue; // if r id onr of i's predecessors, it cannot follow i.
-					if (i != r) 
+					int flag = 0;
+					if ( (!matrix[tmp][r]) || instrumented_matrix[i][r]) continue;
+					for(int tt = 0; predecessors_list[tt] > -1; tt++){
+						if (r == predecessors_list[tt]){
+							flag = 1;
+							break; // if r id onr of i's predecessors, it cannot follow i.
+						}
+					}
+					if (i != r && !flag) 
 						instrumented_matrix[i][r] = 1;
 				}			
 		}
@@ -111,7 +114,7 @@ void predecessors(int m, int current, int *predecessors_list){
 		for(int tt = 0; predecessors_list[tt] > -1; tt++) {
 			if (i == predecessors_list[tt]){
 				flag = 1;
-				continue;
+				break;
 			}
 		}
 		if( (matrix[i][current] == 1) && !flag ){
