@@ -6,7 +6,7 @@ int g(int x) {
 
 void f(int x) {
 	if (x > 0)
-	{		
+	{
 	_Learn_assert(x <= 20); // was assert(x <= 20);	
 		return;
 	}	

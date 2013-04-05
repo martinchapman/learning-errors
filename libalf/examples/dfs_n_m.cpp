@@ -6,15 +6,15 @@
 #include <assert.h>
 #include <string.h>
 // Used to define the libalf name space.
-#include <libalf/alf.h>
+//#include <libalf/alf.h>
 // Angluin's L* algorithm
-#include <libalf/algorithm_angluin.h>
+//#include <libalf/algorithm_angluin.h>
 #include <vector>
 #include <map>
 #include "../../file_names.h" // ofer
 
 using namespace std;
-using namespace libalf;
+//using namespace libalf;
 int alphabet_size; 
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
