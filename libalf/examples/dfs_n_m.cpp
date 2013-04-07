@@ -178,7 +178,7 @@ void AdjacencyMatrix( ){
 	 matrix[0][2] = 1;
 	 matrix[0][3] = 1;
 	 matrix[2][1] = 1;
-	 matrix[3][0] = 1;
+//	 matrix[3][0] = 1;
 
 	/*matrix[0][1] = 1;
 	matrix[0][2] = 1;
