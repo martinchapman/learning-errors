@@ -24,6 +24,14 @@ int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 
 bool **matrix; // represents the call graph
+bool **instrumented_matrix; // represents the call graph for instrumented functions
+bool *first_functions; // the list of first functions - to be updated based on main
+
+// functions for computing dfs
+void project_matrix_to_relevant_vertices(int n, int m);
+void project_matrix_to_relevant_vertices_source(int n, int m, int current, int source);
+int cnt;
+void predecessors(int m, int current, int *predecessors_list);
 
 struct edge {char s[100]; char t[100];};
 map<string, int> 
@@ -108,29 +116,6 @@ int generate_func_names(int letter) {
 	return letter;
 }
 
-void project_matrix_to_relevant_vertices_source(int n, int m, int current, int source){
-	// performs dfs for a given source node
- 
-    int v;
-    
-	for(v = 0; v < n; v++)
-    {
-        if( matrix[current][v] == 1 ){
-			matrix[source][v] = 1;
-			if(v >= m) 
-				project_matrix_to_relevant_vertices_source( n, m, v, source );
-		}
-	}
-}	
-
-void project_matrix_to_relevant_vertices(int n, int m){  // performs dfs contracting edges of the non-instrumented nodes	 
-// the matrix size is n x n. Only the first m x m submatrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
-// 'assume', '_Learn_...' are not followed). This function updates the m x m submatrix such that matrix[i][j] = 1 (i,j <= m)
-// if there is a path from i to j in the n x n matrix.
-
-	for( int i=0; i<m; i++)
-		project_matrix_to_relevant_vertices_source( n, m, i, i);
-}
 
 void print_matrix(int numOfVertices) {
 	cout << " -------------------------------------------------" << endl;
@@ -141,6 +126,122 @@ void print_matrix(int numOfVertices) {
 	}
 	cout << endl;
 }
+
+
+// performs dfs contracting edges of the non-instrumented nodes	 
+// the matrix size is n x n. Only the first m x m submatrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
+// 'assume', '_Learn_...' are not followed). This function updates the m x m submatrix such that matrix[i][j] = 1 (i,j <= m)
+// if there is a path from i to j in the n x n matrix.
+
+void project_matrix_to_relevant_vertices(int n, int m){
+    
+	
+	//initializing the instrumented matrix
+	instrumented_matrix = (bool **)malloc(m*sizeof(bool));
+	for(int i = 0; i < m; ++i) {
+	      instrumented_matrix[i] = new bool[m];
+	}
+
+	for( int i=0; i<m; i++){
+		for( int j = m; j< n; j++) {
+			if( matrix[i][j] == 1 ){
+				project_matrix_to_relevant_vertices_source( n, m, j, i );
+			}
+		}
+	}
+
+	// updating instrumented matrix and first_functions list
+	// to be replaced with dfs from main
+	for (int t = 0; t < m; ++t){
+		first_functions[t] = 1;
+		for (int j = 0; j < m; ++j){
+			instrumented_matrix[j][t] = matrix[j][t];
+			if (matrix[j][t] == 1 && j != t)
+				first_functions[t] = 0;
+		}
+	} 
+
+	int *predecessors_list;
+	predecessors_list = new int[m];
+
+	for( int i=0; i<m; i++) {
+		for(int j=0; j<m; j++)
+			predecessors_list[j]=-1;
+		cnt = 0;
+		predecessors(m, i, predecessors_list);
+		// printf(" i = %d: ", i);
+	    // for( int j=0; j<m; j++) printf("% d ", predecessors_list[j]);
+		// printf("\n");
+
+		int tmp;
+		for(int t = 0; (tmp = predecessors_list[t]) > -1; t++){
+				for( int r = 0; r < m; r++){
+					int flag = 0;
+					if ( (!matrix[tmp][r]) || instrumented_matrix[i][r]) continue;
+					for(int tt = 0; predecessors_list[tt] > -1; tt++){
+						if (r == predecessors_list[tt]){
+							flag = 1;
+							break; // if r id onr of i's predecessors, it cannot follow i.
+						}
+					}
+					if (i != r && !flag) 
+						instrumented_matrix[i][r] = 1;
+				}			
+		}
+	}
+	delete(predecessors_list);
+
+	// updating the first mXm of the original matrix 
+	// with the instrumented matrix
+	for (int t = 0; t < m; ++t)
+		for (int j = 0; j < m; ++j)
+			matrix[j][t] = instrumented_matrix[j][t];
+			
+}
+
+
+void project_matrix_to_relevant_vertices_source(int n, int m, int current, int source ){
+ 
+	// performs dfs for a given source node contracting non-instrumented edges
+    int v;
+    
+	for(v = 0; v < n; v++)
+    {
+        if(matrix[current][v] == 1) {
+			if (v < m) {
+				matrix[source][v] = 1;
+				return;
+			}
+			if( v != current){
+				project_matrix_to_relevant_vertices_source( n, m, v, source );
+			}
+		}
+	}
+}
+
+
+void predecessors(int m, int current, int *predecessors_list){
+	
+	int flag = 0;
+
+	for( int i = 0; i < m; i++){
+		flag = 0;
+		for(int tt = 0; predecessors_list[tt] > -1; tt++) {
+			if (i == predecessors_list[tt]){
+				flag = 1;
+				break;
+			}
+		}
+		if( (matrix[i][current] == 1) && !flag ){
+			predecessors_list[cnt++] = i;
+			predecessors(m, i, predecessors_list);
+		}
+	}
+
+}
+	
+
+
 
 void compute_allowed_pairs() { 
 // creates the initial matrix according to the call graph. The indices are shifted by min_func_idx which is 2 if '--auto b' (branch instrumentation) is activated, and 0 otherwise.
