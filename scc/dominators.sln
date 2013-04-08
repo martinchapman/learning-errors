@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cfg", "cfg\cfg.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cg", "..\cg\cg.vcxproj", "{572FF0EC-4A35-47B6-BDE4-A61C90B0CC19}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "adjacency_list", "..\adjacency_list\adjacency_list.vcxproj", "{D16199CF-1754-41F4-928F-80987000FA74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -31,6 +33,10 @@ Global
 		{572FF0EC-4A35-47B6-BDE4-A61C90B0CC19}.Debug|Win32.Build.0 = Debug|Win32
 		{572FF0EC-4A35-47B6-BDE4-A61C90B0CC19}.Release|Win32.ActiveCfg = Release|Win32
 		{572FF0EC-4A35-47B6-BDE4-A61C90B0CC19}.Release|Win32.Build.0 = Release|Win32
+		{D16199CF-1754-41F4-928F-80987000FA74}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D16199CF-1754-41F4-928F-80987000FA74}.Debug|Win32.Build.0 = Debug|Win32
+		{D16199CF-1754-41F4-928F-80987000FA74}.Release|Win32.ActiveCfg = Release|Win32
+		{D16199CF-1754-41F4-928F-80987000FA74}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

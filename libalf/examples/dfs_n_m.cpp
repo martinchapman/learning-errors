@@ -73,7 +73,7 @@ void m_n_dfs(int n, int m){
 					for(int tt = 0; predecessors_list[tt] > -1; tt++){
 						if (r == predecessors_list[tt]){
 							flag = 1;
-							break; // if r id onr of i's predecessors, it cannot follow i.
+							break; // if r is one of i's predecessors, it cannot follow i.
 						}
 					}
 					if (i != r && !flag) 

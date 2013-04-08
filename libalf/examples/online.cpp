@@ -51,9 +51,9 @@ void rewrite_function_enter(char *name, int num) // rewriting the instrumented c
 {
 	stringstream st; 
 	if (num == -1) // remove statement
-		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"// ";
+		st << "-e s/\"_Learn_function_enter((signed char \\*)\\\"c::" << string(name) << "\\\");\"// ";
 	else
-		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";	
+		st << "-e s/\"_Learn_function_enter((signed char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";	
 	fprintf(convert, "%s", st.str().c_str());
 }
 
@@ -61,9 +61,9 @@ void rewrite_branch(char *name, int num)
 {
 	stringstream st; 
 	if (num == -1) // remove statement
-		st << "-e s/\"_Learn_branch((const char \\*)\\\"" << string(name) << "\\\");\"// ";
+		st << "-e s/\"_Learn_branch((signed char \\*)\\\"" << string(name) << "\\\");\"// ";
 	else
-		st << "-e s/\"_Learn_branch((const char \\*)\\\"" << string(name) << "\\\");\"/\"_Learn_branch(" << num << ");\"/ ";	
+		st << "-e s/\"_Learn_branch((signed char \\*)\\\"" << string(name) << "\\\");\"/\"_Learn_branch(" << num << ");\"/ ";	
 	fprintf(convert, "%s", st.str().c_str());
 }
 
@@ -333,8 +333,8 @@ void init_auto_instrumentation()
 	convert = fopen(CONVERT, "w");
 	fprintf(convert, "@echo off\n");
 	fprintf(convert, "sed -e s/\"signed int _Learn_letter;\"// " );
-	fprintf(convert, "-e s/\"void _Learn_branch(const char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
-	fprintf(convert, "-e s/\"void _Learn_function_enter(const char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
+	fprintf(convert, "-e s/\"void _Learn_branch(signed char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
+	fprintf(convert, "-e s/\"void _Learn_function_enter(signed char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
 
 		
 	if (instrument_branches) {
