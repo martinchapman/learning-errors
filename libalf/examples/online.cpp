@@ -142,6 +142,9 @@ void project_matrix_to_relevant_vertices(int n, int m){
 	      instrumented_matrix[i] = new bool[m];
 	}
 
+	//initializing first functions list
+	first_functions = new bool[m];
+
 	for( int i=0; i<m; i++){
 		for( int j = m; j< n; j++) {
 			if( matrix[i][j] == 1 ){
