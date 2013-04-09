@@ -35,7 +35,7 @@ void predecessors(int m, int current, int *predecessors_list);
 
 struct edge {char s[100]; char t[100];};
 map<string, int> 
-	edge_index_cg, // indices for all functions in the cfg (superset of node_index)
+	node_index_cg, // indices for all functions in the cfg (superset of node_index)
 	node_index; // indices for functions we care about.
 
 
@@ -129,8 +129,8 @@ void print_matrix(int numOfVertices) {
 
 
 // performs dfs contracting edges of the non-instrumented nodes	 
-// the matrix size is n x n. Only the first m x m submatrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
-// 'assume', '_Learn_...' are not followed). This function updates the m x m submatrix such that matrix[i][j] = 1 (i,j <= m)
+// the matrix size is n x n. Only the first m x m sub-matrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
+// 'assume', '_Learn_...' are not followed). This function updates the m x m sub-matrix such that matrix[i][j] = 1 (i,j <= m)
 // if there is a path from i to j in the n x n matrix.
 
 void project_matrix_to_relevant_vertices(int n, int m){
@@ -188,7 +188,7 @@ void project_matrix_to_relevant_vertices(int n, int m){
 					/* for(int tt = 0; predecessors_list[tt] > -1; tt++){
 						if (r == predecessors_list[tt]){
 							flag = 1;
-							break; // if r id onr of i's predecessors, it cannot follow i.
+							break; // if r is one of i's predecessors, it cannot follow i.
 						}  
 					// commented out the check for predecessor that omit direct predecessors from
 					// the possible siblings list, because a node can be reached via several paths
@@ -229,28 +229,25 @@ void project_matrix_to_relevant_vertices_source(int n, int m, int current, int s
 }
 
 
-void predecessors(int m, int current, int *predecessors_list){
+void predecessors(int m, int current, int *predecessors_list) {
 	
 	int flag = 0;
 
-	for( int i = 0; i < m; i++){
+	for (int i = 0; i < m; i++) {
 		flag = 0;
-		for(int tt = 0; predecessors_list[tt] > -1; tt++) {
+		for (int tt = 0; predecessors_list[tt] > -1; tt++) {
 			if (i == predecessors_list[tt]){
 				flag = 1;
 				break;
 			}
 		}
-		if( (matrix[i][current] == 1) && !flag ){
+		if( (matrix[i][current] == 1) && !flag ) {
 			predecessors_list[cnt++] = i;
 			predecessors(m, i, predecessors_list);
 		}
 	}
-
 }
 	
-
-
 
 void compute_allowed_pairs() { 
 // creates the initial matrix according to the call graph. The indices are shifted by min_func_idx which is 2 if '--auto b' (branch instrumentation) is activated, and 0 otherwise.
@@ -263,16 +260,16 @@ void compute_allowed_pairs() {
 	FILE *cg = fopen(CG, "r");
 	if (!cg) {fprintf(stderr, "cannot open %s", CG); exit(1);}	
 	
-	edge_index_cg.insert(node_index.begin(), node_index.end());
-	cout << "# of vertices = " << edge_index_cg.size() << " " << node_index.size() << endl;
+	node_index_cg.insert(node_index.begin(), node_index.end());
+	cout << "# of vertices = " << node_index_cg.size() << " " << node_index.size() << endl;
 	while (!feof(cg)) {
 		if (fscanf(cg, "%s %s\n", tmp_edge.s, tmp_edge.t) != 2) continue;
 		edge_list.push_back(tmp_edge);				
-		edge_index_cg.insert(pair<string, int>(string(tmp_edge.s), edge_index_cg.size() + min_func_idx ));
-		edge_index_cg.insert(pair<string, int>(string(tmp_edge.t), edge_index_cg.size() + min_func_idx ));
+		node_index_cg.insert(pair<string, int>(string(tmp_edge.s), node_index_cg.size() + min_func_idx ));
+		node_index_cg.insert(pair<string, int>(string(tmp_edge.t), node_index_cg.size() + min_func_idx ));
 	//	cout << tmp_edge.s << " " << tmp_edge.t << "( " << edge_index_cg.size() << ")" << endl;
 	}
-	int numOfVertices = edge_index_cg.size();
+	int numOfVertices = node_index_cg.size();
 	cout << "# of vertices = " << numOfVertices << endl;
 
 	// initializing matrix
@@ -289,8 +286,8 @@ void compute_allowed_pairs() {
 	// filling matrix
 	vector<edge>::iterator it;
 	for (it = edge_list.begin(); it != edge_list.end(); ++it) {
-		int src = edge_index_cg[(*it).s] - min_func_idx;
-		int target = edge_index_cg[(*it).t] - min_func_idx;
+		int src = node_index_cg[(*it).s] - min_func_idx;
+		int target = node_index_cg[(*it).t] - min_func_idx;
 		cout << "min_func_idx = " << min_func_idx << ": " << src << (*it).s << " " << target << (*it).t << endl;
 		matrix[src][target] = true;
 	}
@@ -298,7 +295,8 @@ void compute_allowed_pairs() {
 	print_matrix(numOfVertices); 
 	print_matrix(node_index.size()); 
 	project_matrix_to_relevant_vertices(numOfVertices, node_index.size());
-	print_matrix(node_index.size());	
+	//print_matrix(node_index.size());	
+	print_matrix(numOfVertices);	
 }
 
 
