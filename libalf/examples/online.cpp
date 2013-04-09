@@ -168,8 +168,12 @@ void project_matrix_to_relevant_vertices(int n, int m){
 	predecessors_list = new int[m];
 
 	for( int i=0; i<m; i++) {
-		for(int j=0; j<m; j++)
+		for(int j=0; j<m; j++){
 			predecessors_list[j]=-1;
+			if( first_functions[i] && first_functions[j] && (i != j) ) //first functions are siblings
+						instrumented_matrix[i][j] = 1;
+		}
+		
 		cnt = 0;
 		predecessors(m, i, predecessors_list);
 		// printf(" i = %d: ", i);
