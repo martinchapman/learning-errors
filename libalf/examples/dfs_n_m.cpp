@@ -76,12 +76,12 @@ void m_n_dfs(int n, int m){
 				for( int r = 0; r < m; r++){
 					int flag = 0;
 					if ( (!matrix[tmp][r]) || instrumented_matrix[i][r]) continue;
-					for(int tt = 0; predecessors_list[tt] > -1; tt++){
+					/* for(int tt = 0; predecessors_list[tt] > -1; tt++){
 						if (r == predecessors_list[tt]){
 							flag = 1;
 							break; // if r is one of i's predecessors, it cannot follow i.
 						}
-					}
+					} */
 					if (i != r && !flag) 
 						instrumented_matrix[i][r] = 1;
 				}			
@@ -185,8 +185,10 @@ void AdjacencyMatrix( ){
 	 //matrix[0][3] = 1;
 	 //matrix[2][1] = 1;
 
-	matrix[2][0] = 1;
-	matrix[2][1] = 1;
+	matrix[0][1] = 1;
+	matrix[1][2] = 1;
+	matrix[0][3] = 1;
+	matrix[3][2] = 1;
 
 //	 matrix[3][0] = 1;
 
