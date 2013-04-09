@@ -50,15 +50,21 @@ void m_n_dfs(int n, int m){
 			if (matrix[j][t] == 1 && j != t)
 				first_functions[t] = 0;
 		}
-	} 
+	}
+	printf(" first functions:");
+	    for( int j=0; j<m; j++) printf("% d ", first_functions[j]);
+		printf("\n");
 
 	int *predecessors_list;
 	// predecessors_list = (int *)malloc(m*sizeof(int));
 	predecessors_list = new int[m];
 
 	for( int i=0; i<m; i++) {
-		for(int j=0; j<m; j++)
+		for(int j=0; j<m; j++){
 			predecessors_list[j]=-1;
+			if( first_functions[i] && first_functions[j] && (i != j) ) //first functions are siblings
+						instrumented_matrix[i][j] = 1;
+		}
 		cnt = 0;
 		predecessors(m, i, predecessors_list);
 		printf(" i = %d: ", i);
@@ -175,9 +181,13 @@ void AdjacencyMatrix( ){
 			 matrix[i][j] = 0;
         }
     }
-	 matrix[0][2] = 1;
-	 matrix[0][3] = 1;
-	 matrix[2][1] = 1;
+	// matrix[0][2] = 1;
+	 //matrix[0][3] = 1;
+	 //matrix[2][1] = 1;
+
+	matrix[2][0] = 1;
+	matrix[2][1] = 1;
+
 //	 matrix[3][0] = 1;
 
 	/*matrix[0][1] = 1;
