@@ -7,24 +7,24 @@
 //=======================================================================
 #include <boost/test/minimal.hpp>
 #include <iostream>
-//#include <algorithm>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dominator_tree.hpp>
 #include "../file_names.h"
 #include <fstream>
 
 using namespace std;
+using namespace boost;
 
-struct DominatorCorrectnessTestSet
+
+struct myGraph_t
 {
-	typedef pair<int, int> edge;
+	typedef pair<int, int> edge;	
 
 	int numOfVertices;
-	vector<edge> edges;
-	vector<int> correctIdoms;
+	vector<edge> edges;	
 };
 
-using namespace boost;
+
 
 typedef adjacency_list<
 	listS,
@@ -32,37 +32,33 @@ typedef adjacency_list<
 	bidirectionalS,
 	property<vertex_index_t, std::size_t>, no_property> G;
 
-int test_main(int, char*[])
-{
-	typedef DominatorCorrectnessTestSet::edge edge;
-	DominatorCorrectnessTestSet testSet;
-	int current_state = 0;
+void populate(myGraph_t *myGraph, int *accepting_state){
+	typedef myGraph_t::edge edge;
 	int i1, i2;
-
 	FILE *in = fopen(AUTOMATON, "r");
 
-	fscanf(in, "%d %d", &testSet.numOfVertices, &i1); // i1 will not be used (it is the size of the alphabet, which we do not use).
+	fscanf(in, "%d %d", &(myGraph->numOfVertices), &i1); // i1 will not be used (it is the size of the alphabet, which we do not use).
 
-	
-	for (i2 = 0 ; i2 < testSet.numOfVertices; ++i2) // finding accepting state
+	for (i2 = 0 ; i2 < myGraph->numOfVertices; ++i2) // finding accepting state
 	{
 		fscanf(in, "%d", &i1);
-		if (i1) current_state = i2;   // so we're getting the last accepting state (normally there should only be 1)		  	 	  
+		if (i1) *accepting_state = i2;   // so we're getting the last accepting state (normally there should only be 1)		  	 	  
 	}
-	//cout << "accepting state = " << current_state << endl; 
+	
 	while (!feof(in)) 
 	{
 		fscanf(in, "%d %d", &i1, &i2);
-		//cout << i1 << " " << i2 << endl;
-		testSet.edges.push_back(edge(i1, i2));
+		myGraph->edges.push_back(edge(i1, i2));
 	}
+}
 
-	cout << "Finding dominators ..." << endl;
-	const int numOfVertices = testSet.numOfVertices;
+
+void find_dominators(myGraph_t myGraph, vector<int> *idom){
+	cout << "Finding dominators ..." << endl;	
 
 	G g(
-		testSet.edges.begin(), testSet.edges.end(),
-		numOfVertices);
+		myGraph.edges.begin(), myGraph.edges.end(),
+		myGraph.numOfVertices);
 
 	typedef graph_traits<G>::vertex_descriptor Vertex;
 	typedef property_map<G, vertex_index_t>::type IndexMap;
@@ -86,19 +82,21 @@ int test_main(int, char*[])
 		make_iterator_property_map(domTreePredVector.begin(), indexMap);
 
 	lengauer_tarjan_dominator_tree(g, vertex(0, g), domTreePredMap);
-
-	vector<int> idom(num_vertices(g));
+	
 	for (boost::tie(uItr, uEnd) = vertices(g); uItr != uEnd; ++uItr)
 	{
 		if (get(domTreePredMap, *uItr) != graph_traits<G>::null_vertex())
-			idom[get(indexMap, *uItr)] =
+			(*idom)[get(indexMap, *uItr)] =
 			get(indexMap, get(domTreePredMap, *uItr));
 		else
-			idom[get(indexMap, *uItr)] = (numeric_limits<int>::max)();
+			(*idom)[get(indexMap, *uItr)] = (numeric_limits<int>::max)();
 	}
 
-	copy(idom.begin(), idom.end(), ostream_iterator<int>(cout, " "));
+	copy(idom->begin(), idom->end(), ostream_iterator<int>(cout, " "));	
+}
 
+
+void print_dominators(vector<int> idom, int current_state) {
 
 	cout << endl << "dominators of " << current_state << ":" << endl;
 
@@ -111,6 +109,21 @@ int test_main(int, char*[])
 	cout << endl;
 	fclose(out);
 	cout << "Wrote list of dominators to " << DOMINATORS << endl;
+}
+
+
+int test_main(int, char*[])
+{
+	
+	myGraph_t myGraph;
+	int accepting_state = 0;
+
+	populate(&myGraph, &accepting_state);
+
+	vector<int> dom(myGraph.numOfVertices);
+	find_dominators(myGraph, &dom);
+	
+	print_dominators(dom, accepting_state);
 
 	return 0;
 }
