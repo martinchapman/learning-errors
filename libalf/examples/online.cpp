@@ -185,12 +185,14 @@ void project_matrix_to_relevant_vertices(int n, int m){
 				for( int r = 0; r < m; r++){
 					int flag = 0;
 					if ( (!matrix[tmp][r]) || instrumented_matrix[i][r]) continue;
-					for(int tt = 0; predecessors_list[tt] > -1; tt++){
+					/* for(int tt = 0; predecessors_list[tt] > -1; tt++){
 						if (r == predecessors_list[tt]){
 							flag = 1;
 							break; // if r id onr of i's predecessors, it cannot follow i.
-						}
-					}
+						}  
+					// commented out the check for predecessor that omit direct predecessors from
+					// the possible siblings list, because a node can be reached via several paths
+					} */
 					if (i != r && !flag) 
 						instrumented_matrix[i][r] = 1;
 				}			
