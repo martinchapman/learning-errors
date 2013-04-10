@@ -1,0 +1,1 @@
+cd ../libalf;make install;cd ../examples;touch online.cpp;make

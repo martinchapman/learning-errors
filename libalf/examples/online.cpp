@@ -153,6 +153,7 @@ void project_matrix_to_relevant_vertices(int n, int m){
 		}
 	}
 
+	
 	// updating instrumented matrix and first_functions list
 	// to be replaced with dfs from main
 	for (int t = 0; t < m; ++t){
@@ -163,6 +164,11 @@ void project_matrix_to_relevant_vertices(int n, int m){
 				first_functions[t] = 0;
 		}
 	} 
+
+	cout << " first functions:";
+	for (int t = 0; t < m; ++t) {
+		if (first_functions[t]) cout << t << " ";
+	}
 
 	int *predecessors_list;
 	predecessors_list = new int[m];
@@ -183,17 +189,18 @@ void project_matrix_to_relevant_vertices(int n, int m){
 		int tmp;
 		for(int t = 0; (tmp = predecessors_list[t]) > -1; t++){
 				for( int r = 0; r < m; r++){
-					int flag = 0;
-					if ( (!matrix[tmp][r]) || instrumented_matrix[i][r]) continue;
+					int is_dominating = 0;
+					if (instrumented_matrix[i][r] || i == r) continue;
+					if ((!first_functions[tmp] || !first_functions[r]) && !matrix[tmp][r])  continue; // if tmp and r are first functions, they are siblings. In that case we want to 
 					/* for(int tt = 0; predecessors_list[tt] > -1; tt++){
 						if (r == predecessors_list[tt]){
-							flag = 1;
+							is_dominating = 1;
 							break; // if r is one of i's predecessors, it cannot follow i.
 						}  
 					// commented out the check for predecessor that omit direct predecessors from
 					// the possible siblings list, because a node can be reached via several paths
 					} */
-					if (i != r && !flag) 
+					if (!is_dominating) 
 						instrumented_matrix[i][r] = 1;
 				}			
 		}
@@ -404,7 +411,7 @@ void show_result(conjecture *result) {
 
 list<int> get_CounterExample(int alphabetsize) {
 	list<int> ce;
-	char i;
+	int  i;
 	int length;
 	ifstream read(MODEL);
 	cout << "Counterexample ";
@@ -412,8 +419,8 @@ list<int> get_CounterExample(int alphabetsize) {
 	cout << "(length = " << length << ")";
 	while(read>>i && (length--)) 
 	{
-		cout << " " << i;
-		ce.push_back(i - '0');
+		cout << " read: " << i;
+		ce.push_back(i);
 	}
 	cout << endl;
 	return ce;
@@ -492,27 +499,43 @@ bool answer_Membership(list<int> query) {
 
 	if (query.size() == 0) return false;
 
+	
 	cout << "Please classify the word: ";	
 	stringstream st;		
 	st << "#include \"" << MEMBERSHIP_DATA_H << "\"\n"	<< "\nint _Learn_mq[mq_length] = {";
 	list<int>::iterator it;
+	list<int>::reverse_iterator rit;
+	
+	rit = query.rbegin();
+	if (*rit != alphabet_size - 1) {
+		for (it = query.begin(); it != query.end(); ++it ) cout << *it;
+		cout << "E!" << endl;
+		return false;
+	}
+	
+	
+	
 	bool saw_assert_test_letter = false;
+	bool last_is_assert_letter;
 	int last_func_call = -1;
 	for (it = query.begin(); it != query.end(); )
 	{
-	if (instrument_functions) {
-		if (*it >= min_func_idx) // TODO: screen also first letter: only those that can be accessed through main without one of the good functions can be first. 
-		{		
-			if (last_func_call >=0 && !matrix[last_func_call - min_func_idx][*it - min_func_idx]) { cout << *it << " @! \n"; return false;}
-			last_func_call = *it;
+		last_is_assert_letter = false;
+		if (instrument_functions) {
+			if (*it >= min_func_idx) // TODO: screen also first letter: only those that can be accessed through main without one of the good functions can be first. 
+			{		
+				if (last_func_call >=0 && !matrix[last_func_call - min_func_idx][*it - min_func_idx]) { cout << *it << " @! \n"; return false;}
+				last_func_call = *it;
+				
+			}
 		}
-	}
 #ifdef USE_ASSERT_LETTER	
 	else
 	{	
 		if (*it == alphabet_size - 1) {
 			if (saw_assert_test_letter) {cout << *it << " ! \n"; return false;}
 			saw_assert_test_letter = true;
+			last_is_assert_letter = true;
 		}
 	}
 #endif		
@@ -522,6 +545,7 @@ bool answer_Membership(list<int> query) {
 		if (it != query.end()) st << ", ";
 	}
 	st << "};";
+	
 	FILE *file = fopen(MEMBERSHIP_DATA, "w");
 	fprintf(file, "%s", st.str().c_str());
 	fclose(file);
@@ -564,7 +588,7 @@ bool answer_Membership(list<int> query) {
 }
 
 void learn() {
-	// Create new knowledgebase. In this case, we choose bool as type for the knowledgebase.
+	// Create new knowledge-base. In this case, we choose bool as type for the knowledge-base.
 	knowledgebase<bool> base;
 	conjecture *result = NULL;	
 
@@ -573,14 +597,13 @@ void learn() {
 
 
 	bool conjectured = false;
-	//int counter = 0;
+	int counter = 0;
 	do {	
 		// Advance the learning algorithm
 		conjecture *cj = algorithm.advance();		
 		// Resolve membership queries
-		if (cj == NULL) {
-			//counter++;		
-			conjectured = false;
+		if (cj == NULL) {			
+			counter++;
 			// retrieve queries
 			list<list<int> > queries = base.get_queries();
 
@@ -589,20 +612,25 @@ void learn() {
 			for (li = queries.begin(); li != queries.end(); li++) {
 
 				// Answer query				
-				bool a = answer_Membership(*li);
+				bool a = answer_Membership(*li);				
 				//if (counter == 2) exit(1);
-				// Add answer to knowledgebase
+				// Add answer to knowledge-base
 				base.add_knowledge(*li, a);
 			}
+						
+		//	if (counter > 1 && conjectured) exit(1);
+			conjectured = false;
 		}
 		// Resolve equivalence queries
 		else {			
+			//counter++;
 			if (conjectured) {
 				cout << "last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. " << endl;
 				exit(1);
 			}
 			conjectured = true;
 			bool is_equivalent = answer_Conjecture(cj);			
+			//if (counter == 1) exit(1);
 			if (is_equivalent) {
 				result = cj;
 			} else {
