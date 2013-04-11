@@ -1,63 +1,16 @@
-#include <iostream>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/dominator_tree.hpp>
+#include "dominators.hpp"
 #include "../file_names.h"
-#include <fstream>
+#include <stdio.h>
 
 using namespace std;
 using namespace boost;
 
-class dominators {
-	
-public:	
 
-	struct myGraph_t
-	{
-		typedef pair<int, int> edge;	
-
-		int numOfVertices;
-		vector<edge> edges;	
-	};
-
-
-	typedef adjacency_list<
-		listS,
-		listS,
-		bidirectionalS,
-		property<vertex_index_t, std::size_t>, no_property> G;
-
-	myGraph_t myGraph;
-	vector<int> dom;
-	int target;
-
-	dominators(){target = -1;} // constructor
-	void populate();
-	void find_dominators();
-	void print();
-};
-
-void dominators::populate(){
-	typedef myGraph_t::edge edge;
-	int i1, i2;
-	FILE *in = fopen(AUTOMATON, "r");
-
-	fscanf(in, "%d %d", &(myGraph.numOfVertices), &i1); // i1 will not be used (it is the size of the alphabet, which we do not use).
-
-	for (i2 = 0 ; i2 < myGraph.numOfVertices; ++i2) // finding accepting state
-	{
-		fscanf(in, "%d", &i1);
-		if (i1) target = i2;   // so we're getting the last accepting state (normally there should only be 1)		  	 	  
-	}
-	
-	while (!feof(in)) 
-	{
-		fscanf(in, "%d %d", &i1, &i2);
-		myGraph.edges.push_back(edge(i1, i2));
-	}
+vector<int> dominators::get_dominators() {
+	return dom;
 }
 
-
-void dominators::find_dominators(){
+void dominators::find_dominators(myGraph_t myGraph, int root_idx = 0){
 	cout << "Finding dominators ..." << endl;	
 
 	dom.resize(myGraph.numOfVertices);
@@ -83,10 +36,10 @@ void dominators::find_dominators(){
 	// Lengauer-Tarjan dominator tree algorithm
 	domTreePredVector =	vector<Vertex>(num_vertices(g), graph_traits<G>::null_vertex());
 	PredMap domTreePredMap = make_iterator_property_map(domTreePredVector.begin(), indexMap);
-	
-	Vertex root = vertex(0, g);
+
+	Vertex root = vertex(root_idx, g);
 	lengauer_tarjan_dominator_tree(g, root, domTreePredMap);
-	
+
 	for (boost::tie(uItr, uEnd) = vertices(g); uItr != uEnd; ++uItr)
 	{
 		if (get(domTreePredMap, *uItr) != graph_traits<G>::null_vertex())
@@ -99,7 +52,7 @@ void dominators::find_dominators(){
 }
 
 
-void dominators::print() {
+void dominators::print(int target) {
 	int current_state = target;
 	if (current_state < 0) return;
 	cout << endl << "dominators of " << current_state << ":" << endl;
@@ -115,16 +68,12 @@ void dominators::print() {
 	cout << "Wrote list of dominators to " << DOMINATORS << endl;
 }
 
+bool dominators::isDom(int src, int target) {
+	int current_state = target;
 
-int main()
-{
-	dominators dom;
-	
-	dom.populate();	
-	
-	dom.find_dominators();
-	
-	dom.print();
-
-	return 0;
+	while(current_state != (numeric_limits<int>::max)()) {		
+		if (current_state == src) return true;
+		current_state = dom[current_state];
+	}
+	return false;
 }

@@ -12,10 +12,7 @@
 #include <vector>
 #include <map>
 #include "../../file_names.h" // ofer
-
-// adds automatically a letter to the alphabet, representing the last 'assert'.
-#define USE_ASSERT_LETTER
-
+#include "../../scc/dominators.hpp"
 
 using namespace std;
 using namespace libalf;
@@ -33,7 +30,7 @@ void project_matrix_to_relevant_vertices_source(int n, int m, int current, int s
 int cnt;
 void predecessors(int m, int current, int *predecessors_list);
 
-struct edge {char s[100]; char t[100];};
+struct myEdge {char s[100]; char t[100];};
 map<string, int> 
 	node_index_cg, // indices for all functions in the cfg (superset of node_index)
 	node_index; // indices for functions we care about.
@@ -72,8 +69,8 @@ int generate_func_names(int letter) {
 // 1) fills the global list node_index (to be used later in compute_allowed_pairs())
 // 2) populates AUTO_LABELS_FUNCTIONS with function labels, 
 // 3) prepares the CONVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjectiure, etc), 
-//    and replaces the (char *) <func_name> with (int) index in the file a.c (the result of goto-instrument). Using int rather than strings avoids
-//    strcmp() instructions which turn into loops. 
+//    and replaces the (char *) <func_name> with (int index) in the file a.c (the result of goto-instrument). Using int rather than strings avoids
+//    strcmp() instructions which turn into loops by cbmc. 
 	char name[100];
 	map<string, int> user_func_set;
 	stringstream st;
@@ -106,16 +103,15 @@ int generate_func_names(int letter) {
 		rewrite_function_enter(name, letter++);		
 	}
 // what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
-#ifdef USE_ASSERT_LETTER
+
 	fprintf(Labels, "%d %s\n", letter, "assert");
 	node_index.insert(pair<string, int>(string("assert"), letter++));	
-#endif	
+	node_index.insert(pair<string, int>(string("main"), letter++));	// we force main to be at index m + 1 for conviniance when building matrix later on. It will not be part of the alphabet (see line).
 	
 	fclose(func_names);
 	fclose(Labels);	
-	return letter;
+	return letter - 1; // '-1' because this number is fed into alphabet_size, and we do not want main to be part of the alphabet. 
 }
-
 
 void print_matrix(int numOfVertices) {
 	cout << " -------------------------------------------------" << endl;
@@ -127,82 +123,71 @@ void print_matrix(int numOfVertices) {
 	cout << endl;
 }
 
-
-// performs dfs contracting edges of the non-instrumented nodes	 
-// the matrix size is n x n. Only the first m x m sub-matrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
-// 'assume', '_Learn_...' are not followed). This function updates the m x m sub-matrix such that matrix[i][j] = 1 (i,j <= m)
-// if there is a path from i to j in the n x n matrix.
+void populate(dominators::myGraph_t *myGraph, bool **instrumented_matrix, int m) {
+	typedef dominators::myGraph_t::edge edge;
+	for (int i = 0; i < m; ++i)
+		for (int j = 0; j < m; ++j)
+			if (instrumented_matrix[i][j]) myGraph->edges.push_back(edge(i, j));
+	myGraph->numOfVertices = m;
+}; 
 
 void project_matrix_to_relevant_vertices(int n, int m){
-    
+	// performs dfs contracting edges of the non-instrumented nodes	 
+	// the matrix size is n x n. Only the first m x m sub-matrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
+	// 'assume', '_Learn_...' are not followed). This function updates the m x m sub-matrix such that matrix[i][j] = 1 (i,j <= m)
+	// if there is a path from i to j in the n x n matrix.    
 	
-	//initializing the instrumented matrix
+	// initializing the instrumented matrix
 	instrumented_matrix = (bool **)malloc(m*sizeof(bool));
 	for(int i = 0; i < m; ++i) {
 	      instrumented_matrix[i] = new bool[m];
 	}
 
-	//initializing first functions list
-	first_functions = new bool[m];
-
-	for( int i=0; i<m; i++){
-		for( int j = m; j< n; j++) {
-			if( matrix[i][j] == 1 ){
+	for( int i=0; i < m; i++){
+		for( int j = m; j < n; j++) {
+			if( matrix[i][j] == 1 ) {
 				project_matrix_to_relevant_vertices_source( n, m, j, i );
 			}
 		}
 	}
-
-	
-	// updating instrumented matrix and first_functions list
-	// to be replaced with dfs from main
-	for (int t = 0; t < m; ++t){
-		first_functions[t] = 1;
-		for (int j = 0; j < m; ++j){
-			instrumented_matrix[j][t] = matrix[j][t];
-			if (matrix[j][t] == 1 && j != t)
-				first_functions[t] = 0;
+		
+	// updating instrumented matrix 	
+	for (int t = 0; t < m; ++t) {		
+		for (int j = 0; j < m; ++j) {
+			instrumented_matrix[j][t] = matrix[j][t];			
 		}
-	} 
-
-	cout << " first functions:";
-	for (int t = 0; t < m; ++t) {
-		if (first_functions[t]) cout << t << " ";
-	}
+	} 	
 
 	int *predecessors_list;
 	predecessors_list = new int[m];
 
-	for( int i=0; i<m; i++) {
-		for(int j=0; j<m; j++){
-			predecessors_list[j]=-1;
-			if( first_functions[i] && first_functions[j] && (i != j) ) //first functions are siblings
-						instrumented_matrix[i][j] = 1;
+	dominators::myGraph_t myGraph;		
+
+	/* see '****' below why this is turned off. 
+	populate(&myGraph, instrumented_matrix, m); // create myGraph from instrumented_matrix
+	dominators dom;
+	dom.find_dominators(myGraph, m - 1); // m - 1 is 'main', and it is the root. 		
+	*/
+
+	for (int i = 0; i < m - 2; i++) {  // -2 because we are not looking for predecessors of assert + main
+		for(int j = 0; j < m; j++){
+			predecessors_list[j]=-1;			
 		}
 		
 		cnt = 0;
-		predecessors(m, i, predecessors_list);
-		// printf(" i = %d: ", i);
-	    // for( int j=0; j<m; j++) printf("% d ", predecessors_list[j]);
-		// printf("\n");
-
+		predecessors(m, i, predecessors_list); // fill list of predecessors of i
+		
+		
 		int tmp;
-		for(int t = 0; (tmp = predecessors_list[t]) > -1; t++){
-				for( int r = 0; r < m; r++){
-					int is_dominating = 0;
-					if (instrumented_matrix[i][r] || i == r) continue;
-					if ((!first_functions[tmp] || !first_functions[r]) && !matrix[tmp][r])  continue; // if tmp and r are first functions, they are siblings. In that case we want to 
-					/* for(int tt = 0; predecessors_list[tt] > -1; tt++){
-						if (r == predecessors_list[tt]){
-							is_dominating = 1;
-							break; // if r is one of i's predecessors, it cannot follow i.
-						}  
-					// commented out the check for predecessor that omit direct predecessors from
-					// the possible siblings list, because a node can be reached via several paths
-					} */
-					if (!is_dominating) 
-						instrumented_matrix[i][r] = 1;
-				}			
+		for(int t = 0; (tmp = predecessors_list[t]) > -1; t++){  // for each predecessor tmp
+			for (int r = 0; r < m; r++){ // looking for tmp's children					
+				if (instrumented_matrix[i][r] || i == r) continue; // already marked				
+				if (!matrix[tmp][r])  continue;
+				// ***** currently turning-off domination check. The reason is that e.g.: f -> g -> h: g can be called after h although it dominates it, because g can be called twice from f.
+				// The call graph does not include this information. 
+				//if (dom.isDom(r, i)) {cout << r << " dominates " << i << endl; continue;} // if r dominates i, then it cannot follow i. 
+				instrumented_matrix[i][r] = 1;
+			}			
 		}
 	}
 	delete(predecessors_list);
@@ -211,10 +196,8 @@ void project_matrix_to_relevant_vertices(int n, int m){
 	// with the instrumented matrix
 	for (int t = 0; t < m; ++t)
 		for (int j = 0; j < m; ++j)
-			matrix[j][t] = instrumented_matrix[j][t];
-			
+			matrix[j][t] = instrumented_matrix[j][t];		
 }
-
 
 void project_matrix_to_relevant_vertices_source(int n, int m, int current, int source ){
  
@@ -235,7 +218,6 @@ void project_matrix_to_relevant_vertices_source(int n, int m, int current, int s
 	}
 }
 
-
 void predecessors(int m, int current, int *predecessors_list) {
 	
 	int flag = 0;
@@ -255,43 +237,43 @@ void predecessors(int m, int current, int *predecessors_list) {
 	}
 }
 	
-
 void compute_allowed_pairs() { 
 // creates the initial matrix according to the call graph. The indices are shifted by min_func_idx which is 2 if '--auto b' (branch instrumentation) is activated, and 0 otherwise.
 	stringstream st;	
-	vector<edge> edge_list;
-	edge tmp_edge;	
-	
+	vector<myEdge> edge_list;
+	myEdge tmp_edge;	
+	st << "echo \"#define membership\" > " << MODE;
+	system(st.str().c_str()); // we analyze the call graph under membership query
+	st.str("");
 	st << "cmd /C \"" << GENERATE_CALL_GRAPH << " " << input_file_name_full << " " << CG << "\"";
 	system(st.str().c_str());
 	FILE *cg = fopen(CG, "r");
-	if (!cg) {fprintf(stderr, "cannot open %s", CG); exit(1);}	
+	if (!cg) {fprintf(stderr, "cannot open %s", CG); exit(1);}
 	
 	node_index_cg.insert(node_index.begin(), node_index.end());
-	cout << "# of vertices = " << node_index_cg.size() << " " << node_index.size() << endl;
+	cout << "# of vertices = " << node_index_cg.size() << " " << node_index.size() << "(including 'main')" << endl;
 	while (!feof(cg)) {
 		if (fscanf(cg, "%s %s\n", tmp_edge.s, tmp_edge.t) != 2) continue;
 		edge_list.push_back(tmp_edge);				
 		node_index_cg.insert(pair<string, int>(string(tmp_edge.s), node_index_cg.size() + min_func_idx ));
 		node_index_cg.insert(pair<string, int>(string(tmp_edge.t), node_index_cg.size() + min_func_idx ));
-	//	cout << tmp_edge.s << " " << tmp_edge.t << "( " << edge_index_cg.size() << ")" << endl;
 	}
 	int numOfVertices = node_index_cg.size();
 	cout << "# of vertices = " << numOfVertices << endl;
 
-	// initializing matrix
+	// allocating matrix
 	matrix = new bool*[numOfVertices];
 	for(int i = 0; i < numOfVertices; ++i) {
 	    matrix[i] = new bool[numOfVertices];
 	}
 
-	// resetting matrix
+	// initializing matrix
 	for (int t = 0; t < numOfVertices; ++t)
 		for (int j = 0; j < numOfVertices; ++j)
 			matrix[t][j] = false;
 
 	// filling matrix
-	vector<edge>::iterator it;
+	vector<myEdge>::iterator it;
 	for (it = edge_list.begin(); it != edge_list.end(); ++it) {
 		int src = node_index_cg[(*it).s] - min_func_idx;
 		int target = node_index_cg[(*it).t] - min_func_idx;
@@ -301,7 +283,7 @@ void compute_allowed_pairs() {
 	
 	print_matrix(numOfVertices); 
 	print_matrix(node_index.size()); 
-	project_matrix_to_relevant_vertices(numOfVertices, node_index.size());
+	project_matrix_to_relevant_vertices(numOfVertices, node_index.size());  // note that we send node_index.size(), which is equal to m + 1, since it includes main.
 	//print_matrix(node_index.size());	
 	print_matrix(numOfVertices);	
 }
@@ -363,10 +345,8 @@ void init_auto_instrumentation()
 		compute_allowed_pairs();
 	}	
 	else {
-#ifdef USE_ASSERT_LETTER	
-	alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
-#endif	
-	min_func_idx = alphabet_size; // we need to define it because it is used in answer_query
+		alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
+		min_func_idx = alphabet_size; // we need to define it because it is used in answer_query
 	}	
 
 	if (instrument_branches || instrument_functions) {
@@ -427,12 +407,15 @@ list<int> get_CounterExample(int alphabetsize) {
 }
 
 int run_cbmc(bool membership) {
-	if (membership) system("echo \"#define membership\" > mode.c");
-	else system("echo \"#define conjecture\" > mode.c");
+	stringstream tmp;	
+	tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
+	system(tmp.str().c_str());
+	//if (membership) system("echo \"#define membership\" > " + MODE);
+	//else system("echo \"#define conjecture\" > " + MODE);
 	string goto_instrument_argument("");
 	if (instrument_branches) goto_instrument_argument += string("--branch _Learn_branch ");
 	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter ");
-	stringstream tmp;	
+	tmp.str("");
 	string tmp_file("tmpfile");
 	if (!goto_instrument_argument.empty()) {
 		tmp << "cmd /c \"goto-cl " << input_file_name_full <<"\"";
@@ -499,21 +482,26 @@ bool answer_Membership(list<int> query) {
 
 	if (query.size() == 0) return false;
 
-	
 	cout << "Please classify the word: ";	
 	stringstream st;		
 	st << "#include \"" << MEMBERSHIP_DATA_H << "\"\n"	<< "\nint _Learn_mq[mq_length] = {";
 	list<int>::iterator it;
 	list<int>::reverse_iterator rit;
 	
+	// last letter must be 'assert' (== alphabet_size - 1)
 	rit = query.rbegin();
 	if (*rit != alphabet_size - 1) {
 		for (it = query.begin(); it != query.end(); ++it ) cout << *it;
 		cout << "E!" << endl;
 		return false;
 	}
-	
-	
+
+	it = query.begin();
+	if (!matrix[alphabet_size][*it]) {
+		for (it = query.begin(); it != query.end(); ++it ) cout << *it;
+		cout << "B!" << endl;
+		return false;
+	}
 	
 	bool saw_assert_test_letter = false;
 	bool last_is_assert_letter;
@@ -522,23 +510,21 @@ bool answer_Membership(list<int> query) {
 	{
 		last_is_assert_letter = false;
 		if (instrument_functions) {
+			// consecutive letters in the word must be compatible with the call-graph, as represented in 'matrix'.
 			if (*it >= min_func_idx) // TODO: screen also first letter: only those that can be accessed through main without one of the good functions can be first. 
 			{		
 				if (last_func_call >=0 && !matrix[last_func_call - min_func_idx][*it - min_func_idx]) { cout << *it << " @! \n"; return false;}
 				last_func_call = *it;
-				
 			}
 		}
-#ifdef USE_ASSERT_LETTER	
-	else
-	{	
-		if (*it == alphabet_size - 1) {
-			if (saw_assert_test_letter) {cout << *it << " ! \n"; return false;}
-			saw_assert_test_letter = true;
-			last_is_assert_letter = true;
+		else
+		{	// cannot have two 'asserts' in the word
+			if (*it == alphabet_size - 1) {
+				if (saw_assert_test_letter) {cout << *it << " ! \n"; return false;}
+				saw_assert_test_letter = true;
+				last_is_assert_letter = true;
+			}
 		}
-	}
-#endif		
 		cout << *it;
 		st << *it;
 		it++;

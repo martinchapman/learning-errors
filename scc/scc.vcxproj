@@ -13,6 +13,9 @@
   <ItemGroup>
     <ClCompile Include="dominators.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dominators.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FA84E78D-C658-4884-91CB-FA90364244EC}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

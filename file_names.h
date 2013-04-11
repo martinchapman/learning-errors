@@ -23,6 +23,7 @@
 #define MEMBERSHIP_DATA "membership_data.c"
 #define MEMBERSHIP_DATA_H "membership_data.h"
 #define WORD_LENGTH "word_length.c" 
+#define MODE "mode.c"
 
 // main batch file: 
 #define CE "ce.bat" 
