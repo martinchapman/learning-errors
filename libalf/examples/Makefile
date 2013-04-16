@@ -6,6 +6,8 @@ PREFIX ?= /usr/local
 
 CPPFLAGS+=-I${PREFIX}/include -I/cygdrive/c/temp/learn_environment/trunk/scc/boost_1_53_0 -Wall -g
 
+CPPFLAGS+=-I../../scc/boost
+
 LDFLAGS+=-L${PREFIX}/lib  -g
 
 # Add winsock2 library if compiled for Windows.
