@@ -9,7 +9,8 @@ void f(int x) {
 	{
 	_Learn_assert(x <= 20); // was assert(x <= 20);	
 		return;
-	}	
+	}
+	
 }
 
 
@@ -18,7 +19,7 @@ void main() {
   int x = nondet_int();
   //if (x < 5) g(x);
  //else  f(x);
-  g(x);
+  g(x);  
   f(x);
-  _Learn_trap;
+  //_Learn_trap;
 }

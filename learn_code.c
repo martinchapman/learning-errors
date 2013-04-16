@@ -2,9 +2,22 @@
 #include "conjecture_data.h"
 #include "membership_data.h"
 
-extern int _Learn_b[word_length_bound];  
-extern int _Learn_idx;
-extern int _Learn_ce_length;
+//extern int _Learn_b[word_length_bound];  
+//extern int _Learn_idx;
+//extern int _Learn_ce_length;
+
+int _Learn_b[word_length_bound];  // an array that captures the actual path.
+int _Learn_idx = 0;
+int _Learn_ce_length;
+
+#ifdef membership				// defines the mode: membership queries or checking the conjecture
+#include "membership_data.c"
+#include "membership_query.c"
+#else
+#include "conjecture_data.c"
+#include "conjecture_query.c"
+#endif
+
 
 
 void _Learn_branch(int _Learn_letter) { _Learn(_Learn_letter);};
@@ -48,7 +61,7 @@ void check_conjecture_at_trap() {
 	}	
 }
 
-void conjecture_Assert(bool x) { 
+void Learn_Assert(bool x) { 
 	bool res = x; if (!res) {_Learn(AlphaBetSize - 1);} check_conjecture(res);
 }
 
@@ -70,8 +83,9 @@ void membership_Learn(int x) {
 	_Learn_b[_Learn_idx++] = x;
 }
 
-void membership_Assert(bool x) { 
+void Learn_Assert(bool x) { 
 	if (!x ) {  if ((_Learn_idx == mq_length - 1) &&  (_Learn_mq[mq_length-1] == AlphaBetSize - 1)) {_Learn_b[_Learn_idx++] = AlphaBetSize - 1;   assert(0);}} __CPROVER_assume(0);
 }
+void Learn_trap() {}
 #endif
 

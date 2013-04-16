@@ -186,5 +186,5 @@ main(int argc, char*argv[])
   Climb_Inhibit = 0; 
   
   _Learn_assert(alt_sep_test()==0);
-  _Learn_trap;
+//  _Learn_trap;
 }

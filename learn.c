@@ -1,21 +1,20 @@
-// determines if we are in membership or conjecture mode
-#include <string.h>
 
-#include "learn.h"
+//#include <string.h>
 
-int _Learn_b[word_length_bound];  // an array that captures the actual path.
-int _Learn_idx = 0;
-int _Learn_ce_length;
+//#include "learn.h"
+#include "cbmc_headers.c"
 
+#define _Learn_trap Learn_trap(); 
 
-#ifdef membership				// defines the mode: membership queries or checking the conjecture
-#include "membership_data.c"
-#include "membership_query.c"
-#else
-#include "conjecture_data.c"
-#include "conjecture_query.c"
-#endif
-
+#define _Learn_assert(x) Learn_Assert(x); 
+//#ifdef membership				// defines the mode: membership queries or checking the conjecture
+//#include "membership_data.c"
+//#include "membership_query.c"
+//#else
+//#include "conjecture_data.c"
+//#include "conjecture_query.c"
+//#endif
+//
 // for automatic instrumentation
 
 // do not change anything in the following 2 lines -- not even spaces. It is replaced later with sed after goto-instrument, with _Learn_function_enter(int ...)
@@ -23,7 +22,7 @@ int _Learn_ce_length;
 // check if still necessary given that it is now defined in learn_code.c
 void _Learn_branch(const char *);
 void _Learn_function_enter(const char *);
-
-
+void Learn_trap();
+void Learn_Assert(bool x); 
 
 

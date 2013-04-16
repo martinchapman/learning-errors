@@ -1,6 +1,6 @@
 #ifndef __LEARN_H
 #define __LEARN_H
-
+// determines if we are in membership or conjecture mode
 #include "mode.c"
 #include "word_length.c"
 #include "cbmc_headers.c"

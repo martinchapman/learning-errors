@@ -11,6 +11,7 @@
 #include <libalf/algorithm_angluin.h>
 #include <vector>
 #include <map>
+#include <ctime>
 #include "../../file_names.h" // ofer
 #include "../../scc/dominators.hpp"
 
@@ -19,6 +20,7 @@ using namespace libalf;
 int alphabet_size; 
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
+int mem_queries, cbmc_mem_queries;
 
 bool **matrix; // represents the call graph
 bool **instrumented_matrix; // represents the call graph for instrumented functions
@@ -29,6 +31,8 @@ void project_matrix_to_relevant_vertices(int n, int m);
 void project_matrix_to_relevant_vertices_source(int n, int m, int current, int source);
 int cnt;
 void predecessors(int m, int current, int *predecessors_list);
+void instrument();
+
 
 struct myEdge {char s[100]; char t[100];};
 map<string, int> 
@@ -138,7 +142,7 @@ void project_matrix_to_relevant_vertices(int n, int m){
 	// if there is a path from i to j in the n x n matrix.    
 	
 	// initializing the instrumented matrix
-	instrumented_matrix = (bool **)malloc(m*sizeof(bool));
+	instrumented_matrix = (bool **)malloc(m*sizeof(bool *));
 	for(int i = 0; i < m; ++i) {
 	      instrumented_matrix[i] = new bool[m];
 	}
@@ -181,7 +185,7 @@ void project_matrix_to_relevant_vertices(int n, int m){
 		int tmp;
 		for(int t = 0; (tmp = predecessors_list[t]) > -1; t++){  // for each predecessor tmp
 			for (int r = 0; r < m; r++){ // looking for tmp's children					
-				if (instrumented_matrix[i][r] || i == r) continue; // already marked				
+				if (instrumented_matrix[i][r] /*|| i == r*/) continue; // already marked				
 				if (!matrix[tmp][r])  continue;
 				// ***** currently turning-off domination check. The reason is that e.g.: f -> g -> h: g can be called after h although it dominates it, because g can be called twice from f.
 				// The call graph does not include this information. 
@@ -324,11 +328,14 @@ void init_auto_instrumentation()
 	
 	// we need to do the following conversions even if --auto is not activated, because the definition of _Learn_branch/_Learn_function_enter in learn.c won't compile otherwise.
 	convert = fopen(CONVERT, "w");
-	fprintf(convert, "@echo off\n");
-	fprintf(convert, "sed -e s/\"signed int _Learn_letter;\"// " );
+	fprintf(convert, "@echo off\nsed ");
+	// removing all Learn_function_exit other than the exists from main, which we replace with Learn_trap();
+	fprintf(convert, "-e s/\"_Learn_function_exit((signed char \\*)\\\"c::main\\\");\"/@/ -e s/\"_Learn_function_exit((signed char \\*)\\\"c::[a-z]*\\\");\"// -e s/\"@\"/\"Learn_trap();\"/ ");
+
+	fprintf(convert, "-e s/\"signed int _Learn_letter;\"// " );
 	fprintf(convert, "-e s/\"void _Learn_branch(signed char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
 	fprintf(convert, "-e s/\"void _Learn_function_enter(signed char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
-
+	
 		
 	if (instrument_branches) {
 		alphabet_size += 2;		
@@ -349,13 +356,16 @@ void init_auto_instrumentation()
 		min_func_idx = alphabet_size; // we need to define it because it is used in answer_query
 	}	
 
+	fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
+	fclose(convert);		
+
 	if (instrument_branches || instrument_functions) {
 		tmp.str("");
 		tmp << "cat " << (instrument_branches ? AUTO_LABELS_BRANCHES : " ") << " " << (instrument_functions ? AUTO_LABELS_FUNCTIONS : " ") << " > " << AUTO_LABELS;
 		system(tmp.str().c_str());
+		instrument();
 	}
-	fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
-	fclose(convert);		
+	
 }
 
 void init_word_length_file() {
@@ -406,37 +416,51 @@ list<int> get_CounterExample(int alphabetsize) {
 	return ce;
 }
 
-int run_cbmc(bool membership) {
-	stringstream tmp;	
-	tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
-	system(tmp.str().c_str());
-	//if (membership) system("echo \"#define membership\" > " + MODE);
-	//else system("echo \"#define conjecture\" > " + MODE);
+
+// script for entering learn_trap():
+// sed -e s/"_Learn_function_exit((signed char \*)\"c::main\");"/\@/ a.c -e s/"_Learn_function_exit((signed char \*)\"c::[a-z]*\");"// -e s/"\@
+// "/"Learn_trap()"/
+
+
+
+
+
+
+void instrument() {
+	// precondition: we get here only if (instrument_branches || instrument_functions)
+	// auto-instrumentation via goto-instrument	
+	stringstream tmp;		
 	string goto_instrument_argument("");
 	if (instrument_branches) goto_instrument_argument += string("--branch _Learn_branch ");
-	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter ");
+	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter ");	
+	
+	assert(!goto_instrument_argument.empty());
+	
+	goto_instrument_argument += string("--function-exit _Learn_function_exit ");
+
+	tmp << "cmd /c \"goto-cl " << input_file_name_full <<"\"";
+	system(tmp.str().c_str());
+
 	tmp.str("");
+	tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"";
+	system(tmp.str().c_str());
+
+	tmp.str("");
+	tmp << "cmd /c " << CONVERT;
+	system(tmp.str().c_str());	
+}
+
+
+
+int run_cbmc(bool membership) {
+	stringstream tmp;	
 	string tmp_file("tmpfile");
-	if (!goto_instrument_argument.empty()) {
-		tmp << "cmd /c \"goto-cl " << input_file_name_full <<"\"";
-		system(tmp.str().c_str());
-		
-		tmp.str("");
-		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"";
-		system(tmp.str().c_str());
-		
-		tmp.str("");
-		tmp << "cmd /c " << CONVERT;
-		system(tmp.str().c_str());
-		
-		tmp.str("");
-		tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui a.c learn_code.c " << " > " << tmp_file << "\"";
-		system(tmp.str().c_str());
-	}
-	else {
-			tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui " << input_file_name_full << " learn_code.c > " << tmp_file << "\"";
-			system(tmp.str().c_str());
-	}
+	tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
+	system(tmp.str().c_str());
+	string filename = (instrument_branches || instrument_functions) ? "a.c" : input_file_name_full;
+	tmp.str("");
+	tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui " << filename << " learn_code.c " << " > " << tmp_file << "\"";
+	system(tmp.str().c_str());	
 
 	tmp.str("");
 	tmp << "grep ERROR " << tmp_file;
@@ -479,7 +503,7 @@ bool answer_Conjecture(conjecture * cj) {
 }
 
 bool answer_Membership(list<int> query) {
-
+	mem_queries++;
 	if (query.size() == 0) return false;
 
 	cout << "Please classify the word: ";	
@@ -531,7 +555,7 @@ bool answer_Membership(list<int> query) {
 		if (it != query.end()) st << ", ";
 	}
 	st << "};";
-	
+	cbmc_mem_queries++;
 	FILE *file = fopen(MEMBERSHIP_DATA, "w");
 	fprintf(file, "%s", st.str().c_str());
 	fclose(file);
@@ -643,6 +667,7 @@ void learn() {
 
 /*******************************  main  ****************************/
 int main(int argc, char**argv) {		
+	clock_t begin = clock();
 	parse_options(argc, argv);
 	remove_files();
 	init_auto_instrumentation();
@@ -650,5 +675,13 @@ int main(int argc, char**argv) {
 		
 	learn();		
 
+	clock_t end = clock();
+	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries/(float)mem_queries << "\%)" << endl;
+	cout << "Time: " << elapsed_secs << endl;
+
 	return 0;
-}
+		
+	}
+
+
