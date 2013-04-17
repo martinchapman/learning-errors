@@ -1,3 +1,4 @@
+#include "learn.c" 
 
 /*  -*- Last-Edit:  Fri Jan 29 11:13:27 1993 by Tarak S. Goradia; -*- */
 /* $Log: tcas_v23_523.c,v $
@@ -7,6 +8,7 @@
  * Revision 1.2  1993/03/12  19:29:50  foster
  * Correct logic bug which didn't allow output of 2 - hf
  * */
+
 
 #include <stdio.h>
 

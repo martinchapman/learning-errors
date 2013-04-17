@@ -52,9 +52,9 @@ void rewrite_function_enter(char *name, int num) // rewriting the instrumented c
 {
 	stringstream st; 
 	if (num == -1) // remove statement
-		st << "-e s/\"_Learn_function_enter((signed char \\*)\\\"c::" << string(name) << "\\\");\"// ";
+		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"// ";
 	else
-		st << "-e s/\"_Learn_function_enter((signed char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";	
+		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";	
 	fprintf(convert, "%s", st.str().c_str());
 }
 
@@ -62,9 +62,9 @@ void rewrite_branch(char *name, int num)
 {
 	stringstream st; 
 	if (num == -1) // remove statement
-		st << "-e s/\"_Learn_branch((signed char \\*)\\\"" << string(name) << "\\\");\"// ";
+		st << "-e s/\"_Learn_branch((const char \\*)\\\"" << string(name) << "\\\");\"// ";
 	else
-		st << "-e s/\"_Learn_branch((signed char \\*)\\\"" << string(name) << "\\\");\"/\"_Learn_branch(" << num << ");\"/ ";	
+		st << "-e s/\"_Learn_branch((const char \\*)\\\"" << string(name) << "\\\");\"/\"_Learn_branch(" << num << ");\"/ ";	
 	fprintf(convert, "%s", st.str().c_str());
 }
 
@@ -308,8 +308,8 @@ void parse_options(int argc, char**argv) {
 	input_file_name_full = argv[1];
 	if ((in = fopen(input_file_name_full.c_str(),"r")) == NULL) Abort(string("file ") + input_file_name_full + string("cannot be opened"));
 	fclose(in);
-	unsigned int pos = input_file_name_full.find('.');
-	if (pos != std::string::npos) input_file_name = input_file_name_full.substr(0,pos);
+	input_file_name = input_file_name_full.substr(0,input_file_name_full.size() - 2);
+	assert(input_file_name_full[input_file_name_full.size() - 2]=='.');
 	word_length = atoi(argv[2]);
 	for (int i = 3; i < argc ; ++i) {
 		if (!strcmp(argv[i], "--auto")) {
@@ -342,11 +342,11 @@ void init_auto_instrumentation()
 	convert = fopen(CONVERT, "w");
 	fprintf(convert, "@echo off\nsed ");
 	
-	fprintf(convert, "-e s/\"_Learn_function_exit((signed char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((signed char \\*)\\\"c::[a-zA-Z]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
+	fprintf(convert, "-e s/\"_Learn_function_exit((const char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((const char \\*)\\\"c::[a-zA-Z]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
 
 	fprintf(convert, "-e s/\"signed int _Learn_letter;\"// " );
-	fprintf(convert, "-e s/\"void _Learn_branch(signed char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
-	fprintf(convert, "-e s/\"void _Learn_function_enter(signed char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
+	fprintf(convert, "-e s/\"void _Learn_branch(const char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
+	fprintf(convert, "-e s/\"void _Learn_function_enter(const char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
 	
 		
 	if (instrument_branches) {
@@ -428,14 +428,6 @@ list<int> get_CounterExample(int alphabetsize) {
 	cout << endl;
 	return ce;
 }
-
-
-// script for entering learn_trap():
-// sed -e s/"_Learn_function_exit((signed char \*)\"c::main\");"/\@/ a.c -e s/"_Learn_function_exit((signed char \*)\"c::[a-z]*\");"// -e s/"\@
-// "/"Learn_trap()"/
-
-
-
 
 
 
@@ -674,10 +666,13 @@ void learn() {
 void preprocess_source() {	
 	// adding 'include "learn.c" ' in the first line of the source file. It is necessary for goto-cl because of the Learn_Assert command. 
 	stringstream tmp;
+
 	tmp << "cmd /c sed -e '1i\\#include \\\"learn.c\\\" ' " << input_file_name_full << " > tmp "; 
 	system(tmp.str().c_str());
 	cout << tmp.str().c_str() << endl;
 	tmp.str("");
+	input_file_name_full = "_" + input_file_name_full;
+	input_file_name = "_" + input_file_name;
 	tmp << "cp tmp " << input_file_name_full;
 	system(tmp.str().c_str());	
 }
@@ -703,5 +698,3 @@ int main(int argc, char**argv) {
 	return 0;
 		
 	}
-
-
