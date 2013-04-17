@@ -1,6 +1,6 @@
 #include "cbmc_headers.c"
 
-#define _Learn_trap Learn_trap(); 
+//#define _Learn_trap Learn_trap(); 
 
 #define _Learn_assert(x) Learn_Assert(x); 
 

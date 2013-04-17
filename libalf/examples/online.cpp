@@ -78,7 +78,7 @@ int generate_func_names(int letter) {
 	char name[100];
 	map<string, int> user_func_set;
 	stringstream st;
-	st << input_file_name << ".f";
+	st << input_file_name.substr(1,string::npos) << ".f";
 	FILE *func_names = fopen(FUNC_NAMES, "r"),
 		 *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w"),
 		 *user_func_names = fopen(st.str().c_str() , "r");
@@ -342,7 +342,7 @@ void init_auto_instrumentation()
 	convert = fopen(CONVERT, "w");
 	fprintf(convert, "@echo off\nsed ");
 	
-	fprintf(convert, "-e s/\"_Learn_function_exit((const char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((const char \\*)\\\"c::[a-zA-Z]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
+	fprintf(convert, "-e s/\"_Learn_function_exit((const char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((const char \\*)\\\"c::[a-zA-Z0-9_]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
 
 	fprintf(convert, "-e s/\"signed int _Learn_letter;\"// " );
 	fprintf(convert, "-e s/\"void _Learn_branch(const char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
