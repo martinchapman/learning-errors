@@ -32,7 +32,7 @@ void project_matrix_to_relevant_vertices_source(int n, int m, int current, int s
 int cnt;
 void predecessors(int m, int current, int *predecessors_list);
 void instrument();
-
+void Abort(string msg);
 
 struct myEdge {char s[100]; char t[100];};
 map<string, int> 
@@ -82,7 +82,7 @@ int generate_func_names(int letter) {
 	FILE *func_names = fopen(FUNC_NAMES, "r"),
 		 *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w"),
 		 *user_func_names = fopen(st.str().c_str() , "r");
-	if (func_names == NULL) {fprintf(stderr, "cannot open %s. ", FUNC_NAMES); exit(1);}
+	if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
 	if (user_func_names != NULL) {
 		cout << "found " << st.str() << endl;
 		while (!feof(user_func_names)) {
@@ -252,7 +252,7 @@ void compute_allowed_pairs() {
 	st << "cmd /C \"" << GENERATE_CALL_GRAPH << " " << input_file_name_full << " " << CG << "\"";
 	system(st.str().c_str());
 	FILE *cg = fopen(CG, "r");
-	if (!cg) {fprintf(stderr, "cannot open %s", CG); exit(1);}
+	if (!cg) Abort(string("cannot open ") + string(CG));
 	
 	node_index_cg.insert(node_index.begin(), node_index.end());
 	cout << "# of vertices = " << node_index_cg.size() << " " << node_index.size() << "(including 'main')" << endl;
@@ -295,25 +295,35 @@ void compute_allowed_pairs() {
 
 /****************************** before learn *************************/
 
+
+void Abort(string msg) {
+	cerr << msg << endl;
+	exit(1);
+}
+
 void parse_options(int argc, char**argv) {		
-	if (argc < 3) {fprintf(stderr, "usage: online <file_name> <word-length> [--auto {b,f}]* [<user (manualy inserted) alphabet-size>]" "\n-- auto\tautomatic instrumentation of (f)unction entries or (b)ranch.\n\tif (f) is chosen, each function becomes a letter in the alphabet. Ignores alphabet-size if given. \n Default 'manual' alphabet-size is 0.\n"); exit(1);}
-	input_file_name_full = argv[1];	
+	FILE *in;
+
+	if (argc < 3) Abort(string("usage: online <file_name> <word-length> [--auto {b,f}]* [<user (manualy inserted) alphabet-size>]" "\n-- auto\tautomatic instrumentation of (f)unction entries or (b)ranch.\n\tif (f) is chosen, each function becomes a letter in the alphabet. Ignores alphabet-size if given. \n Default 'manual' alphabet-size is 0."));
+	input_file_name_full = argv[1];
+	if ((in = fopen(input_file_name_full.c_str(),"r")) == NULL) Abort(string("file ") + input_file_name_full + string("cannot be opened"));
+	fclose(in);
 	unsigned int pos = input_file_name_full.find('.');
 	if (pos != std::string::npos) input_file_name = input_file_name_full.substr(0,pos);
 	word_length = atoi(argv[2]);
 	for (int i = 3; i < argc ; ++i) {
 		if (!strcmp(argv[i], "--auto")) {
-			if (argc == i + 1) {fprintf(stderr, "missing argument {'b','f'}  for --auto\n"); exit(1);}
+			if (argc == i + 1) Abort("missing argument {'b','f'}  for --auto\n"); 
 			if (!strcmp(argv[i+1], "b")) instrument_branches = true;
 			else if (!strcmp(argv[i+1], "f")) instrument_functions = true;
-			else {fprintf(stderr, "argument after --auto must be in {'b','f'} \n"); exit(1);}
+			else Abort("argument after --auto must be in {'b','f'}");
 			++i;
 		}
 		else if (isdigit(argv[i][0])) alphabet_size = atoi(argv[3]); 
-		else {fprintf(stderr, "wrong argument: %s\n", argv[i]); exit(1);}
+		else Abort(string("wrong argument: ") + string(argv[i]));
 	}	
 	
-	if (alphabet_size == 0 && !instrument_branches && !instrument_functions) {fprintf(stderr, "alphabet size must be > 0, or --auto should be used."); exit(1);}
+	if (alphabet_size == 0 && !instrument_branches && !instrument_functions) Abort("alphabet size must be > 0, or --auto should be used.");
 }
 
 void remove_files() {
@@ -326,11 +336,13 @@ void init_auto_instrumentation()
 {
 	stringstream tmp;
 	
+
+	// the convert file will be activated only after goto-instrument.
 	// we need to do the following conversions even if --auto is not activated, because the definition of _Learn_branch/_Learn_function_enter in learn.c won't compile otherwise.
 	convert = fopen(CONVERT, "w");
 	fprintf(convert, "@echo off\nsed ");
-	// removing all Learn_function_exit other than the exists from main, which we replace with Learn_trap();
-	fprintf(convert, "-e s/\"_Learn_function_exit((signed char \\*)\\\"c::main\\\");\"/@/ -e s/\"_Learn_function_exit((signed char \\*)\\\"c::[a-z]*\\\");\"// -e s/\"@\"/\"Learn_trap();\"/ ");
+	
+	fprintf(convert, "-e s/\"_Learn_function_exit((signed char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((signed char \\*)\\\"c::[a-zA-Z]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
 
 	fprintf(convert, "-e s/\"signed int _Learn_letter;\"// " );
 	fprintf(convert, "-e s/\"void _Learn_branch(signed char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
@@ -342,7 +354,8 @@ void init_auto_instrumentation()
 		rewrite_branch("not-taken", 0);
 		rewrite_branch("taken", 1);
 	}
-	if (instrument_functions) {		
+	if (instrument_functions) {
+		tmp.str("");
 		tmp << "cmd /C \"" << GET_FUNC_NAMES  << " " << input_file_name << " " << FUNC_NAMES << "\""; // populates FUNC_NAMES with function names, according to the instrumented file generated by goto-instrument
 		cout << "running " << tmp.str() << endl;
 		system(tmp.str().c_str());
@@ -437,7 +450,8 @@ void instrument() {
 	assert(!goto_instrument_argument.empty());
 	
 	goto_instrument_argument += string("--function-exit _Learn_function_exit ");
-
+	
+	tmp.str("");
 	tmp << "cmd /c \"goto-cl " << input_file_name_full <<"\"";
 	system(tmp.str().c_str());
 
@@ -464,10 +478,7 @@ int run_cbmc(bool membership) {
 
 	tmp.str("");
 	tmp << "grep ERROR " << tmp_file;
-	if (!system(tmp.str().c_str())) {
-		cout << "ERROR in output of CBMC" << endl;
-		exit(1);
-	}
+	if (!system(tmp.str().c_str())) Abort(string("ERROR in output of CBMC"));
 
 	string m = membership ? " m\"" : "\"";
 	string cmd = string("cmd /C \"") + CE + string(" ") + tmp_file + m;
@@ -498,7 +509,6 @@ bool answer_Conjecture(conjecture * cj) {
 	cout.rdbuf (strm_buffer); // reverting cout to its normal behavior. 			
 	int res = run_cbmc(false);	
 	cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;		
-	//exit(1);
 	return (res != 0);	
 }
 
@@ -634,10 +644,7 @@ void learn() {
 		// Resolve equivalence queries
 		else {			
 			//counter++;
-			if (conjectured) {
-				cout << "last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. " << endl;
-				exit(1);
-			}
+			if (conjectured) Abort(string("last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. "));
 			conjectured = true;
 			bool is_equivalent = answer_Conjecture(cj);			
 			//if (counter == 1) exit(1);
@@ -664,21 +671,34 @@ void learn() {
 	delete result;	
 }
 
+void preprocess_source() {	
+	// adding 'include "learn.c" ' in the first line of the source file. It is necessary for goto-cl because of the Learn_Assert command. 
+	stringstream tmp;
+	tmp << "cmd /c sed -e '1i\\#include \\\"learn.c\\\" ' " << input_file_name_full << " > tmp "; 
+	system(tmp.str().c_str());
+	cout << tmp.str().c_str() << endl;
+	tmp.str("");
+	tmp << "cp tmp " << input_file_name_full;
+	system(tmp.str().c_str());	
+}
+
+
 
 /*******************************  main  ****************************/
 int main(int argc, char**argv) {		
-	clock_t begin = clock();
+	//clock_t begin = clock();
 	parse_options(argc, argv);
 	remove_files();
+	preprocess_source();
 	init_auto_instrumentation();
     init_word_length_file();
 		
 	learn();		
 
-	clock_t end = clock();
-	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-	cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries/(float)mem_queries << "\%)" << endl;
-	cout << "Time: " << elapsed_secs << endl;
+	//clock_t end = clock();
+	//double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << endl;
+	//cout << "Time: " << elapsed_secs << endl;
 
 	return 0;
 		
