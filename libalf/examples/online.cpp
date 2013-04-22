@@ -437,7 +437,7 @@ void instrument() {
 	stringstream tmp;		
 	string goto_instrument_argument("");
 	if (instrument_branches) goto_instrument_argument += string("--branch _Learn_branch ");
-	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter ");	
+	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter --show-call-sequences");	
 	
 	assert(!goto_instrument_argument.empty());
 	
@@ -448,8 +448,18 @@ void instrument() {
 	system(tmp.str().c_str());
 
 	tmp.str("");
-	tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"";
-	system(tmp.str().c_str());
+	if (instrument_branches)
+		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"";
+	if (instrument_functions)
+		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"" 
+		<< "| grep - | sed -e s/" << "->" << "// -e s/" << "c::" << "//  -e s/" << "c::" << "//" << " > " << CFG_EDGES;
+	 system(tmp.str().c_str());
+
+	//--show-call-sequences tcas_auto_instrumented.exe | grep - | sed -e s/"->"// -e s/"c::"//  -e s/"c::"//
+
+ 
+
+
 
 	tmp.str("");
 	tmp << "cmd /c " << CONVERT;
