@@ -35,8 +35,7 @@ void instrument();
 void Abort(string msg);
 
 struct myEdge {char s[100]; char t[100];};
-map<string, int> 
-	node_index_cg, // indices for all functions in the cfg (superset of node_index)
+map<string, int> 	
 	node_index; // indices for functions we care about.
 
 
@@ -71,7 +70,7 @@ void rewrite_branch(char *name, int num)
 int generate_func_names(int letter) {
 // reads func names from FUNC_NAMES and 
 // 1) fills the global list node_index (to be used later in compute_allowed_pairs())
-// 2) populates AUTO_LABELS_FUNCTIONS with function labels, 
+// 2) populates AUTO_LABELS_FUNCTIONS with function labels,
 // 3) prepares the CONVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjectiure, etc), 
 //    and replaces the (char *) <func_name> with (int index) in the file a.c (the result of goto-instrument). Using int rather than strings avoids
 //    strcmp() instructions which turn into loops by cbmc. 
@@ -134,6 +133,24 @@ void populate(dominators::myGraph_t *myGraph, bool **instrumented_matrix, int m)
 			if (instrumented_matrix[i][j]) myGraph->edges.push_back(edge(i, j));
 	myGraph->numOfVertices = m;
 }; 
+
+
+
+void project_matrix_to_relevant_vertices_cfg(int n, int m){
+	// performs dfs contracting edges of the non-instrumented nodes	 
+	// the matrix size is n x n. Only the first m x m sub-matrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
+	// 'assume', '_Learn_...' are not followed). This function updates the m x m sub-matrix such that matrix[i][j] = 1 (i,j <= m)
+	// if there is a path from i to j in the n x n matrix.    
+
+	for( int i=0; i < m; i++){
+		for( int j = m; j < n; j++) {
+			if( matrix[i][j] == 1 ) {
+				project_matrix_to_relevant_vertices_source( n, m, j, i );
+			}
+		}
+	}
+}
+
 
 void project_matrix_to_relevant_vertices(int n, int m){
 	// performs dfs contracting edges of the non-instrumented nodes	 
@@ -213,7 +230,7 @@ void project_matrix_to_relevant_vertices_source(int n, int m, int current, int s
         if(matrix[current][v] == 1) {
 			if (v < m) {
 				matrix[source][v] = 1;
-				return;
+				continue;
 			}
 			if( v != current){
 				project_matrix_to_relevant_vertices_source( n, m, v, source );
@@ -246,6 +263,7 @@ void compute_allowed_pairs() {
 	stringstream st;	
 	vector<myEdge> edge_list;
 	myEdge tmp_edge;	
+	map<string, int> node_index_cg; // indices for all functions in the cfg (superset of node_index)
 	st << "echo \"#define membership\" > " << MODE;
 	system(st.str().c_str()); // we analyze the call graph under membership query
 	st.str("");
@@ -290,7 +308,74 @@ void compute_allowed_pairs() {
 	project_matrix_to_relevant_vertices(numOfVertices, node_index.size());  // note that we send node_index.size(), which is equal to m + 1, since it includes main.
 	//print_matrix(node_index.size());	
 	print_matrix(numOfVertices);	
+	
 }
+
+
+
+void import_allowed_pairs() { // based on goto-instrument's list of pairs.
+	// creates the initial matrix according to the call graph. The indices are shifted by min_func_idx which is 2 if '--auto b' (branch instrumentation) is activated, and 0 otherwise.
+	cout << "import_allowed_pairs " << endl;
+	stringstream tmp;		
+
+	
+
+	tmp << "cmd /c \"goto-cl " << input_file_name_full << " " << "learn_code.c" << "\"";
+	system(tmp.str().c_str());
+	tmp.str("");
+	tmp << "cmd /c \"goto-instrument --show-call-sequences " << input_file_name << ".exe \"" << " | grep - | sed -e s/" << "\"->\"" << "// -e s/" 
+		<< "c:://  -e s/" << "c::" << "// -e s/\" Assert\"/\"assert\"/" << " > " << FUNC_PAIRS ;
+	
+	cout << "running " << tmp.str() << endl; fflush(stdout);
+	system(tmp.str().c_str());
+
+	FILE *pairs = fopen(FUNC_PAIRS, "r");
+	vector<myEdge> edge_list;
+	myEdge tmp_edge;	
+	map<string, int> node_index_cfg; // indices for all functions in the cfg (superset of node_index)
+	node_index_cfg.insert(node_index.begin(), node_index.end());
+	while (!feof(pairs)) {
+		if (fscanf(pairs, "%s %s\n", tmp_edge.s, tmp_edge.t) != 2) continue;
+		edge_list.push_back(tmp_edge);				
+		node_index_cfg.insert(pair<string, int>(string(tmp_edge.s), node_index_cfg.size() + min_func_idx ));
+		node_index_cfg.insert(pair<string, int>(string(tmp_edge.t), node_index_cfg.size() + min_func_idx ));
+	}
+	int numOfVertices = node_index_cfg.size();
+	cout << "# of vertices = " << numOfVertices << endl;
+
+	// allocating matrix
+	matrix = new bool*[numOfVertices];
+	for(int i = 0; i < numOfVertices; ++i) {
+		matrix[i] = new bool[numOfVertices];
+	}
+
+	// initializing matrix
+	for (int t = 0; t < numOfVertices; ++t)
+		for (int j = 0; j < numOfVertices; ++j)
+			matrix[t][j] = false;
+
+	// filling matrix
+	vector<myEdge>::iterator it;
+	for (it = edge_list.begin(); it != edge_list.end(); ++it) {
+		int src = node_index_cfg[(*it).s] - min_func_idx;
+		int target = node_index_cfg[(*it).t] - min_func_idx;
+		cout << "min_func_idx = " << min_func_idx << ": " << src << " " <<  (*it).s << " " << target << " " << (*it).t << endl;
+		matrix[src][target] = true;
+	}
+
+	print_matrix(numOfVertices); 
+	print_matrix(node_index.size()); 
+	
+	//project_matrix_to_relevant_vertices_cfg(numOfVertices, node_index.size());  // note that we send node_index.size(), which is equal to m + 1, since it includes main.
+		
+	
+	// %%%%%%%%%%%%%%%%%%%%   for experiment only. Use the _cfg version when goto-instrument bug is fixed.  %%%%%%%%%%%%%%%%%%%/
+	project_matrix_to_relevant_vertices(numOfVertices, node_index.size());  // note that we send node_index.size(), which is equal to m + 1, since it includes main.
+		  
+	print_matrix(numOfVertices);	
+	
+	}
+
 
 
 /****************************** before learn *************************/
@@ -362,7 +447,8 @@ void init_auto_instrumentation()
 		min_func_idx = alphabet_size;
 	
 		alphabet_size = generate_func_names(alphabet_size); // this one also updates AUTO_LABELS_FUNCTIONS
-		compute_allowed_pairs();
+		//compute_allowed_pairs();
+		import_allowed_pairs();
 	}	
 	else {
 		alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
@@ -376,6 +462,7 @@ void init_auto_instrumentation()
 		tmp.str("");
 		tmp << "cat " << (instrument_branches ? AUTO_LABELS_BRANCHES : " ") << " " << (instrument_functions ? AUTO_LABELS_FUNCTIONS : " ") << " > " << AUTO_LABELS;
 		system(tmp.str().c_str());
+				
 		instrument();
 	}
 	
@@ -437,7 +524,7 @@ void instrument() {
 	stringstream tmp;		
 	string goto_instrument_argument("");
 	if (instrument_branches) goto_instrument_argument += string("--branch _Learn_branch ");
-	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter --show-call-sequences");	
+	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter ");	
 	
 	assert(!goto_instrument_argument.empty());
 	
@@ -451,14 +538,11 @@ void instrument() {
 	if (instrument_branches)
 		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"";
 	if (instrument_functions)
-		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"" 
-		<< "| grep - | sed -e s/" << "->" << "// -e s/" << "c::" << "//  -e s/" << "c::" << "//" << " > " << CFG_EDGES;
+		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \""; 		
+	cout << "running: " << tmp.str() << endl;
 	 system(tmp.str().c_str());
 
-	//--show-call-sequences tcas_auto_instrumented.exe | grep - | sed -e s/"->"// -e s/"c::"//  -e s/"c::"//
-
- 
-
+	 
 
 
 	tmp.str("");

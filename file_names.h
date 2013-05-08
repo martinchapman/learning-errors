@@ -17,6 +17,8 @@
 #define CG "call_graph.data"
 #define CFG_EDGES "cfg_edges.data"
 #define CFG_CONNECTORS "cfg_connectors.data"
+#define FUNC_PAIRS "func_pairs.data"
+
 
 #define CONJECTURE_DATA "conjecture_data.c"
 #define CONJECTURE_DATA_H "conjecture_data.h" // included from learn_code.c
