@@ -1,10 +1,8 @@
 #include "learn.h"
 #include "conjecture_data.h"
-#include "membership_data.h"
+//#include "membership_data.h"  // included from membeship_data.c anyway
 
-//extern int _Learn_b[word_length_bound];  
-//extern int _Learn_idx;
-//extern int _Learn_ce_length;
+#define assert_letter AlphaBetSize - 1
 
 int _Learn_b[word_length_bound];  // an array that captures the actual path.
 int _Learn_idx = 0;
@@ -32,21 +30,12 @@ void check_conjecture(bool assert_condition) {
 	int sim_idx = 0;
 	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
 		state = A[state][_Learn_b[sim_idx++]];
-	if (assert_condition)
-	{
-		if (accept[state]) {
-			_Learn_ce_length = _Learn_idx;
-			Assert(0); // negative feedback: trace accepted, although it satisfies assertion.  
-		}
-	}
-	else
-	{
-		if (!accept[state]) {
-			_Learn_ce_length = _Learn_idx;
-			Assert(0); // positive feedback: trace rejected, although it does not satisfy assertion.
-		}
-	}
-	if (_Learn_idx  == word_length_bound) __CPROVER_assume(0); // paths that go through the assertion and do not invoke the assertion, still get here. They will skip the for loop below and jump to check_conjecture(1), which will wrongly fail them.
+	if (assert_condition == accept[state]) { // Both true: negative feedback. Both false: positive feedback.
+		_Learn_ce_length = _Learn_idx;
+		Assert(0); // !! can change to assert(0, assert_condition). Then from the ce we will know if it is a positive or negative feedback, which will save us checking membership of the first query.
+	}	
+	
+	if (_Learn_idx  == word_length_bound) __CPROVER_assume(0); // do we still need this ? !!! // paths that go through the assertion and do not invoke the assertion, still get here. They will skip the for loop below and jump to check_conjecture(1), which will wrongly fail them.
 }
 	
 // called from _Learn_trap. At the trap we are only interested in negative feedbacks (everything that gets here is not in the language).
@@ -64,8 +53,9 @@ void check_conjecture_at_trap() {
 	}	
 }
 
-void Learn_Assert(bool x) { 
-	bool res = x; if (!res) {_Learn(AlphaBetSize - 1);} check_conjecture(res);
+void Learn_Assert(bool assert_condition) { 
+	bool res = assert_condition; if (!res) {_Learn(assert_letter);} check_conjecture(res); // !! we had a separate variable res to prevent side effects of assert_condition to fire twice. But this was relevant when this was a macro. 
+	// !! why do we call _Learn only when !res ?	
 }
 
 // Learn_trap: every suffix beyond the end of the program is supposed to be rejected. Here we complete it with a nondeterministic suffix (up to length word_length_bound) and fail an assertion if it leads to an aacepting state.
@@ -83,11 +73,17 @@ void Learn_trap() {
 #else
 void membership_Learn(int x) { 
 	if (_Learn_idx >= mq_length || _Learn_mq[_Learn_idx] != x) __CPROVER_assume(0); 
-	_Learn_b[_Learn_idx++] = x;
+	_Learn_b[_Learn_idx++] = x;  // why do we keep track of Learn_b in membership ? !!!
 }
 
 void Learn_Assert(bool x) { 
-	if (!x ) {  if ((_Learn_idx == mq_length - 1) &&  (_Learn_mq[mq_length-1] == AlphaBetSize - 1)) {_Learn_b[_Learn_idx++] = AlphaBetSize - 1;   Assert(0);} __CPROVER_assume(0);} 
+	if (!x ) {  
+		if ((_Learn_idx == mq_length - 1) &&  (_Learn_mq[mq_length-1] == assert_letter)) { // since we screen out words that do not end with assertion, the 2nd check is redundant. 
+			_Learn_b[_Learn_idx++] = assert_letter;   // why do we keep track of Learn_b in membership ? !!!
+			Assert(0);
+		} 
+		__CPROVER_assume(0);
+	} 
 }
 void Learn_trap() {}
 #endif

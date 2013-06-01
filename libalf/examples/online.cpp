@@ -90,7 +90,7 @@ int generate_func_names(int letter) {
 		}
 	}
 	else cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_name << ".f" << endl;
-	bool first = true;
+	
 	while (!feof(func_names)) {
 		if (fscanf(func_names, "%s", name) != 1) continue;
 		
@@ -99,8 +99,7 @@ int generate_func_names(int letter) {
 			cout << "skipping " << name << endl; 
 			rewrite_function_enter(name, -1); // -1 = remove statement
 			continue; 
-		}		
-		first = false;
+		}			
 		node_index.insert(pair<string, int>(string(name), letter));
 		fprintf(Labels, "%d %s\n", letter, name);
 		rewrite_function_enter(name, letter++);		
@@ -447,8 +446,8 @@ void init_auto_instrumentation()
 		min_func_idx = alphabet_size;
 	
 		alphabet_size = generate_func_names(alphabet_size); // this one also updates AUTO_LABELS_FUNCTIONS
-		//compute_allowed_pairs();
-		import_allowed_pairs();
+		compute_allowed_pairs();
+		// import_allowed_pairs();  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%  this is the one after cfg bug is fixed. 
 	}	
 	else {
 		alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
@@ -599,26 +598,28 @@ bool answer_Conjecture(conjecture * cj) {
 }
 
 bool answer_Membership(list<int> query) {
+	list<int>::iterator it;
+	list<int>::reverse_iterator rit;
+
 	mem_queries++;
 	if (query.size() == 0) return false;
 
 	cout << "Please classify the word: ";	
+	for (it = query.begin(); it != query.end(); ++it ) cout << *it;
 	stringstream st;		
 	st << "#include \"" << MEMBERSHIP_DATA_H << "\"\n"	<< "\nint _Learn_mq[mq_length] = {";
-	list<int>::iterator it;
-	list<int>::reverse_iterator rit;
+	
+	
 	
 	// last letter must be 'assert' (== alphabet_size - 1)
 	rit = query.rbegin();
-	if (*rit != alphabet_size - 1) {
-		for (it = query.begin(); it != query.end(); ++it ) cout << *it;
+	if (*rit != alphabet_size - 1) {		
 		cout << "E!" << endl;
 		return false;
 	}
-
+	// first letter must be accessible from 'main'
 	it = query.begin();
-	if (!matrix[alphabet_size][*it]) {
-		for (it = query.begin(); it != query.end(); ++it ) cout << *it;
+	if (!matrix[alphabet_size][*it]) {	
 		cout << "B!" << endl;
 		return false;
 	}
@@ -626,6 +627,7 @@ bool answer_Membership(list<int> query) {
 	bool saw_assert_test_letter = false;
 	bool last_is_assert_letter;
 	int last_func_call = -1;
+	cout << " | ";
 	for (it = query.begin(); it != query.end(); )
 	{
 		last_is_assert_letter = false;
@@ -775,7 +777,7 @@ void preprocess_source() {
 
 /*******************************  main  ****************************/
 int main(int argc, char**argv) {		
-	//clock_t begin = clock();
+	clock_t begin = clock();
 	parse_options(argc, argv);
 	remove_files();
 	preprocess_source();
@@ -784,10 +786,10 @@ int main(int argc, char**argv) {
 		
 	learn();		
 
-	//clock_t end = clock();
-	//double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	clock_t end = clock();
+	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 	cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << endl;
-	//cout << "Time: " << elapsed_secs << endl;
+	cout << "Time: " << elapsed_secs << endl;
 
 	return 0;
 		

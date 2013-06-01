@@ -18,15 +18,14 @@
 #include <functional>
 #include <string>
 #include <set>
-#define inter 6
 
 using namespace std;
 
 set<int> interesting;
 struct edge {char s[100]; char t[100];};
-string input_file_name("try_nondet");
+string input_file_name("try1");
 map<string, int> node_index, func_index;
-
+int numInteresting;
 
 bool *visited;
 
@@ -37,19 +36,24 @@ int numOfVertices;
 
 
 void print_cfg_matrix() {
-	cout << " -------------------------------------------------" << endl;
+	cout << " -------------------------------------------------" << endl << "   ";
+		for (int t = 0; t < numOfVertices; ++t) printf("%2d", t ); cout << endl;
 	for (int t = 0; t < numOfVertices; ++t){
-		for (int j = 0; j < numOfVertices; ++j)
-			cout << cfg_matrix[t][j] << " ";
+		{
+			printf("%2d:", t) ;		
+			for (int j = 0; j < numOfVertices; ++j)
+				printf("%2d", cfg_matrix[t][j]);
+		}
 		cout << endl;
 	}
 	cout << endl;
 }
 
 void print_matrix() {
+	
 	cout << " -------------------------------------------------" << endl;
-	for (int t = 0; t < inter; ++t){
-		for (int j = 0; j < inter; ++j)
+	for (int t = 0; t < numInteresting; ++t){
+		for (int j = 0; j < numInteresting; ++j)
 			cout << matrix[t][j] << " ";
 		cout << endl;
 	}
@@ -67,13 +71,16 @@ inline unsigned CountWords( const string& s ) {
 }
 
 
-void reachable (int src, int current) {
+void reachable (int src, int current, bool initCall) {
 
 	if (visited[current]) return;
-	visited[current] = true;
-	if ((src != current) && interesting.find(current) != interesting.end()) { matrix[src][current] = 1; return;}
+	if (!initCall) 
+	{ 
+		visited[current] = true;
+		if (interesting.find(current) != interesting.end()) { matrix[src][current] = 1; return;}
+	}
 	for (int i = 0 ; i < numOfVertices; ++i ) 
-		if (cfg_matrix[current][i]) reachable(src, i);
+		if (cfg_matrix[current][i]) reachable(src, i, false);
 }
 
 void compute_reachable() {
@@ -81,11 +88,26 @@ void compute_reachable() {
 	
 	for (it = interesting.begin(); it != interesting.end(); ++it) {
 		for (int i = 0; i < numOfVertices; ++i) visited[i] = false;
-		reachable(*it, *it);
+		reachable(*it, *it, true);
 	}
 	print_matrix();
 }
 
+
+
+void print_edges(vector<edge> edge_list) {
+	vector<edge>::iterator it;
+	cout << "Edge list = " << endl;
+	for (it = edge_list.begin(); it < edge_list.end(); ++it)
+	{
+		cout << (*it).s << " " << (*it).t << endl;
+	}
+
+}
+
+// cfg_edges.dat contains 2 types of lines:
+// n1 n2   -- these are edges between non-function nodes 
+// n1 n2 func_name -- these are edges to functions
 int read_cfg_edges( vector<edge> *edge_list) {
 	edge tmp_edge;	
 	char line[200],func_name[100];
@@ -126,52 +148,24 @@ void read_cfg_connectors(vector<edge> *edge_list) {
 }
 
 int generate_func_names(int letter) {
-	// reads func names from FUNC_NAMES and 
-	// 1) fills the global list node_index (to be used later in compute_allowed_pairs())
-	// 2) populates AUTO_LABELS_FUNCTIONS with function labels, 
-	// 3) prepares the CONVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjectiure, etc), 
-	//    and replaces the (char *) <func_name> with (int) index in the file a.c (the result of goto-instrument). Using int rather than strings avoids
-	//    strcmp() instructions which turn into loops. 
+	// 1) fills the global list node_index with interesting nodes (from input_file_name.f)	
+	
 	char name[100];
-	map<string, int> user_func_set;
+	
 	stringstream st;
 	st << input_file_name << ".f";
-	FILE *func_names = fopen(FUNC_NAMES, "r"),
-		*Labels = fopen(AUTO_LABELS_FUNCTIONS, "w"),
-		*user_func_names = fopen(st.str().c_str() , "r");
-	if (func_names == NULL) {fprintf(stderr, "cannot open %s. ", FUNC_NAMES); exit(1);}
+	FILE 		*user_func_names = fopen(st.str().c_str() , "r");
+	
+	// populating user_func_names with function names from input_file_name.f
 	if (user_func_names != NULL) {
 		cout << "found " << st.str() << endl;
 		while (!feof(user_func_names)) {
-			if (fscanf(user_func_names, "%s", name) != 1) continue;
-			user_func_set.insert(pair<string, int>(name, 0));
+			if (fscanf(user_func_names, "%s", name) != 1) continue;	
+			node_index.insert(pair<string, int>(string(name), letter++));
 		}
 	}
 	else cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_name << ".f" << endl;
-	bool first = true;
-	while (!feof(func_names)) {
-		if (fscanf(func_names, "%s", name) != 1) continue;
-
-		if (!strcmp(name, "main") || ((user_func_names != NULL) && user_func_set.find(name) == user_func_set.end())) // here we can add other functions we wish to ignore
-		{
-			//cout << "skipping " << name << endl; 
-			//rewrite_function_enter(name, -1); // -1 = remove statement
-			continue; 
-		}		
-		first = false;
-		node_index.insert(pair<string, int>(string(name), letter));
-		fprintf(Labels, "%d %s\n", letter, name);
-		letter ++;
-		//rewrite_function_enter(name, letter++);		
-	}
-	// what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
-#ifdef USE_ASSERT_LETTER
-	fprintf(Labels, "%d %s\n", letter, "assert");
-	node_index.insert(pair<string, int>(string("assert"), letter++));	
-#endif	
-
-	fclose(func_names);
-	fclose(Labels);	
+	
 	return letter;
 }
 
@@ -181,24 +175,31 @@ void main() {
 	vector<edge> edge_list;
 	stringstream st;
 	
-	//st << "cmd /c \"goto-cl " << input_file_name <<".c\"";
-	//system(st.str().c_str());
-
+	// necessary because we need vs prompt to run goto-cl
+	st << "cmd /c \"\"C:\\Program Files\ (x86)\\Microsoft\ Visual\ Studio\ 10.0\\VC\\vcvarsall.bat\" & goto-cl " << input_file_name <<".c\"";
+	cout << st.str() << endl;
+	system(st.str().c_str());
+	
 	string cmd(CFG2GRAPH + string(" ") + input_file_name + string(" ") + CFG_EDGES + string(" ") + CFG_CONNECTORS);
 	
 	system(cmd.c_str());
 
+	// reading interesting nodes (supposed to be all function names)
 	generate_func_names(0);
 	map<string, int>::iterator func_it;
 
 	for (func_it = node_index.begin(); func_it != node_index.end(); ++func_it) {
 		cout << func_it -> first << " " << func_it -> second << endl;
-		interesting.insert(func_it -> second);  // to be replaced with the interesting edges.
+		interesting.insert(func_it -> second);  
 	}
-
+	numInteresting = interesting.size();
 	numOfVertices = read_cfg_edges(&edge_list);
+	// cout << "After reading cfg_edges:"<< endl;
+	// print_edges(edge_list);
 	read_cfg_connectors(&edge_list);
-
+	//  cout << "After connectors:"<< endl;
+	// print_edges(edge_list);
+		
 	visited = new bool[numOfVertices];
 	cout << "# of vertices = " << numOfVertices << endl;
 
@@ -214,13 +215,13 @@ void main() {
 			cfg_matrix[t][j] = false;
 
 
-	matrix = new bool*[inter]; // to be replaced
-	for(int i = 0; i < inter; ++i) {
-	    matrix[i] = new bool[inter];
+	matrix = new bool*[numInteresting]; // to be replaced
+	for(int i = 0; i < numInteresting; ++i) {
+	    matrix[i] = new bool[numInteresting];
 	}
 	// resetting matrix
-	for (int t = 0; t < inter; ++t)
-		for (int j = 0; j < inter; ++j)
+	for (int t = 0; t < numInteresting; ++t)
+		for (int j = 0; j < numInteresting; ++j)
 			matrix[t][j] = false;
 	
 
@@ -236,7 +237,7 @@ void main() {
 	
 
 
-	print_cfg_matrix(); 
+//	print_cfg_matrix(); 
 	compute_reachable();
 
 	
