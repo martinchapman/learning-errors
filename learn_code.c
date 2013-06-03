@@ -35,7 +35,7 @@ void check_conjecture(bool assert_condition) {
 		Assert(0); // !! can change to assert(0, assert_condition). Then from the ce we will know if it is a positive or negative feedback, which will save us checking membership of the first query.
 	}	
 	
-	if (_Learn_idx  == word_length_bound) __CPROVER_assume(0); // do we still need this ? !!! // paths that go through the assertion and do not invoke the assertion, still get here. They will skip the for loop below and jump to check_conjecture(1), which will wrongly fail them.
+	if (_Learn_idx  == word_length_bound) __CPROVER_assume(0); // it is possible that we continue beyond word_length_bound (e.g. cbmc has nested loops, hence the internal loop with the assert will be hit more than word_length_bound times). With this line, we truncate these paths. Without it, we may improve the automaton beyond the word_length. But we cannot activate it as long as we use arrays with size word_length_bound (we should use a bigger number / infinite arrays).
 }
 	
 // called from _Learn_trap. At the trap we are only interested in negative feedbacks (everything that gets here is not in the language).
@@ -53,9 +53,9 @@ void check_conjecture_at_trap() {
 	}	
 }
 
-void Learn_Assert(bool assert_condition) { 
-	bool res = assert_condition; if (!res) {_Learn(assert_letter);} check_conjecture(res); // !! we had a separate variable res to prevent side effects of assert_condition to fire twice. But this was relevant when this was a macro. 
-	// !! why do we call _Learn only when !res ?	
+void Learn_Assert(bool assert_condition) { 	 
+	if (!assert_condition) {_Learn(assert_letter);} // we call _Learn only when !res because our queries never include 'assert' more than once, hence we do not count asserts that pass.
+	check_conjecture(assert_condition); 
 }
 
 // Learn_trap: every suffix beyond the end of the program is supposed to be rejected. Here we complete it with a nondeterministic suffix (up to length word_length_bound) and fail an assertion if it leads to an aacepting state.
@@ -73,13 +73,13 @@ void Learn_trap() {
 #else
 void membership_Learn(int x) { 
 	if (_Learn_idx >= mq_length || _Learn_mq[_Learn_idx] != x) __CPROVER_assume(0); 
-	_Learn_b[_Learn_idx++] = x;  // why do we keep track of Learn_b in membership ? !!!
+	_Learn_idx++;
 }
 
 void Learn_Assert(bool x) { 
 	if (!x ) {  
 		if ((_Learn_idx == mq_length - 1) &&  (_Learn_mq[mq_length-1] == assert_letter)) { // since we screen out words that do not end with assertion, the 2nd check is redundant. 
-			_Learn_b[_Learn_idx++] = assert_letter;   // why do we keep track of Learn_b in membership ? !!!
+			_Learn_idx++;
 			Assert(0);
 		} 
 		__CPROVER_assume(0);
