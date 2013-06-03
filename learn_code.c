@@ -27,11 +27,11 @@ void Assert(bool x) { // we need to wrap 'assert' because goto-instrument --show
 #ifdef conjecture
 void check_conjecture(bool assert_condition) {  
 	char state = 0;
-	int sim_idx = 0;
+	int sim_idx = 0;	
 	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
 		state = A[state][_Learn_b[sim_idx++]];
 	if (assert_condition == accept[state]) { // Both true: negative feedback. Both false: positive feedback.
-		_Learn_ce_length = _Learn_idx;
+		_Learn_ce_length = _Learn_idx;		
 		Assert(0); // !! can change to assert(0, assert_condition). Then from the ce we will know if it is a positive or negative feedback, which will save us checking membership of the first query.
 	}	
 	

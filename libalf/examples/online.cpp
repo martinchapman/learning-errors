@@ -499,11 +499,14 @@ void show_result(conjecture *result) {
 
 /*******************************  Learn  ****************************/
 
-list<int> get_CounterExample(int alphabetsize) {
+list<int> get_CounterExample(int alphabetsize, bool *feedback) {
 	list<int> ce;
 	int  i;
 	int length;
 	ifstream read(MODEL);
+
+	read >> *feedback;
+	cout << ((*feedback) ? "Positive " : "Negative ") << "feedback" << endl;
 	cout << "Counterexample ";
 	read >> length;
 	cout << "(length = " << length << ")";
@@ -552,7 +555,8 @@ void instrument() {
 
 
 int run(const char* cmd) {
-	cout << cmd << endl;
+	bool verbose = false; // to be made a command-line argument
+	if (verbose) cout << cmd << endl;
 	return system(cmd);
 }
 
@@ -614,10 +618,14 @@ bool answer_Membership(list<int> query) {
 	cout << "Please classify the word: ";	
 	for (it = query.begin(); it != query.end(); ++it ) cout << *it;
 	stringstream st;		
-	st << "#include \"" << MEMBERSHIP_DATA_H << "\"\n"	<< "\nint _Learn_mq[mq_length] = {";
 	
-	
-	
+	// query longer than word_length. It will be rejected anyway. 
+	if (query.size() > word_length) 
+	{
+		cout << "L!" << endl;
+		return false;
+	}
+
 	// last letter must be 'assert' (== alphabet_size - 1)
 	rit = query.rbegin();
 	if (*rit != alphabet_size - 1) {		
@@ -635,12 +643,13 @@ bool answer_Membership(list<int> query) {
 	bool last_is_assert_letter;
 	int last_func_call = -1;
 	cout << " | ";
+	st << "#include \"" << MEMBERSHIP_DATA_H << "\"\n"	<< "\nint _Learn_mq[mq_length] = {";
 	for (it = query.begin(); it != query.end(); )
 	{
 		last_is_assert_letter = false;
 		if (instrument_functions) {
 			// consecutive letters in the word must be compatible with the call-graph, as represented in 'matrix'.
-			if (*it >= min_func_idx) // TODO: screen also first letter: only those that can be accessed through main without one of the good functions can be first. 
+			if (*it >= min_func_idx) 
 			{		
 				if (last_func_call >=0 && !matrix[last_func_call - min_func_idx][*it - min_func_idx]) { cout << *it << " @! \n"; return false;}
 				last_func_call = *it;
@@ -710,7 +719,7 @@ void learn() {
 	// Create learning algorithm (Angluin L*) without a logger (2nd argument is NULL) and alphabet size alphabet_size
 	angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
 
-
+	bool feedback;
 	bool conjectured = false;
 	int counter = 0;
 	do {	
@@ -748,7 +757,7 @@ void learn() {
 				result = cj;
 			} else {
 				// Get a counter-example
-				list<int> ce = get_CounterExample(alphabet_size);			
+				list<int> ce = get_CounterExample(alphabet_size, &feedback);			
 				// Add counter-example to algorithm
 				algorithm.add_counterexample(ce);
 				
