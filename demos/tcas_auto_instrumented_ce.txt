@@ -1,0 +1,542 @@
+file _tcas_auto_instrumented.c: Parsing
+file learn_code.c: Parsing
+Converting
+Type-checking _tcas_auto_instrumented
+Type-checking learn_code
+Generating GOTO Program
+Adding CPROVER library
+Function Pointer Removal
+Partial Inlining
+Generic Property Instrumentation
+Starting Bounded Model Checking
+Unwinding loop c::check_conjecture.0 iteration 1 file learn_code.c line 33 function check_conjecture thread 0
+Unwinding loop c::check_conjecture.0 iteration 2 file learn_code.c line 33 function check_conjecture thread 0
+Unwinding loop c::check_conjecture.0 iteration 3 file learn_code.c line 33 function check_conjecture thread 0
+Unwinding loop c::check_conjecture.0 iteration 4 file learn_code.c line 33 function check_conjecture thread 0
+Unwinding loop c::check_conjecture.0 iteration 5 file learn_code.c line 33 function check_conjecture thread 0
+Unwinding loop c::check_conjecture.0 iteration 6 file learn_code.c line 33 function check_conjecture thread 0
+Unwinding loop c::check_conjecture.0 iteration 7 file learn_code.c line 33 function check_conjecture thread 0
+Unwinding loop c::check_conjecture.0 iteration 8 file learn_code.c line 33 function check_conjecture thread 0
+size of program expression: 567 assignments
+simple slicing removed 11 assignments
+Generated 3 VCC(s), 3 remaining after simplification
+Passing problem to propositional reduction
+Running propositional reduction
+Solving with MiniSAT2 with simplifier
+7963 variables, 25381 clauses
+SAT checker: negated claim is SATISFIABLE, i.e., does not hold
+Runtime decision procedure: 0.115s
+Building error trace
+
+Counterexample:
+
+State 3 file _tcas_auto_instrumented.c line 28 thread 0
+----------------------------------------------------
+  Own_Tracked_Alt=0 (00000000000000000000000000000000)
+
+State 4 file <built-in-additions> line 21 thread 0
+----------------------------------------------------
+  __CPROVER_threads_exited=0 (0000000000000000000000000000000000000000000000000000000000000000)
+
+State 5 file <built-in-additions> line 22 thread 0
+----------------------------------------------------
+  __CPROVER_next_thread_id=0 (00000000000000000000000000000000)
+
+State 6 file _tcas_auto_instrumented.c line 24 thread 0
+----------------------------------------------------
+  Cur_Vertical_Sep=0 (00000000000000000000000000000000)
+
+State 7 file _tcas_auto_instrumented.c line 36 thread 0
+----------------------------------------------------
+  Down_Separation=0 (00000000000000000000000000000000)
+
+State 8 file _tcas_auto_instrumented.c line 48 thread 0
+----------------------------------------------------
+  Climb_Inhibit=0 (00000000000000000000000000000000)
+
+State 9 file <built-in-additions> line 29 thread 0
+----------------------------------------------------
+  __CPROVER_deallocated=NULL (00000000000000000000000000000000)
+
+State 10 file <built-in-additions> line 30 thread 0
+----------------------------------------------------
+  __CPROVER_malloc_object=NULL (00000000000000000000000000000000)
+
+State 11 file <built-in-additions> line 31 thread 0
+----------------------------------------------------
+  __CPROVER_malloc_size=0 (00000000000000000000000000000000)
+
+State 12 file <built-in-additions> line 32 thread 0
+----------------------------------------------------
+  __CPROVER_malloc_is_new_array=FALSE (0)
+
+State 13 file <built-in-additions> line 44 thread 0
+----------------------------------------------------
+  __CPROVER_rounding_mode=0 (00000000000000000000000000000000)
+
+State 14 file _tcas_auto_instrumented.c line 25 thread 0
+----------------------------------------------------
+  High_Confidence=FALSE (00000000)
+
+State 15 file _tcas_auto_instrumented.c line 26 thread 0
+----------------------------------------------------
+  Two_of_Three_Reports_Valid=FALSE (00000000)
+
+State 16 file _tcas_auto_instrumented.c line 29 thread 0
+----------------------------------------------------
+  Own_Tracked_Alt_Rate=0 (00000000000000000000000000000000)
+
+State 17 file _tcas_auto_instrumented.c line 30 thread 0
+----------------------------------------------------
+  Other_Tracked_Alt=0 (00000000000000000000000000000000)
+
+State 18 file _tcas_auto_instrumented.c line 32 thread 0
+----------------------------------------------------
+  Alt_Layer_Value=0 (00000000000000000000000000000000)
+
+State 19 file _tcas_auto_instrumented.c line 33 thread 0
+----------------------------------------------------
+  Positive_RA_Alt_Thresh={ 0, 0, 0, 0 } ({ 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000 })
+
+State 20 file _tcas_auto_instrumented.c line 35 thread 0
+----------------------------------------------------
+  Up_Separation=0 (00000000000000000000000000000000)
+
+State 21 file _tcas_auto_instrumented.c line 39 thread 0
+----------------------------------------------------
+  Other_RAC=0 (00000000000000000000000000000000)
+
+State 22 file _tcas_auto_instrumented.c line 44 thread 0
+----------------------------------------------------
+  Other_Capability=0 (00000000000000000000000000000000)
+
+State 23 file d:\my documents\research\learning\trunk\conjecture_data.h line 2 thread 0
+----------------------------------------------------
+  accept={ FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE } ({ 00000000, 00000001, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 })
+
+State 24 file d:\my documents\research\learning\trunk\conjecture_data.h line 3 thread 0
+----------------------------------------------------
+  A={ { 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, { 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0 }, { 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0 }, { 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0 }, { 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0 }, { 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0 }, { 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0 } } ({ { 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00001100, 00000000 }, { 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000001 }, { 00000000, 00000000, 00000000, 00000000, 00000010, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000011, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000100, 00000000, 00000000 }, { 00000000, 00000000, 00000000, 00000000, 00000000, 00000101, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000000, 00000000, 00000000, 00000110, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000111, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000000, 00000000, 00000000, 00000000, 00001000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000000, 00001001, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000000, 00000000, 00001010, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00000000 }, { 00000000, 00000000, 00000000, 00000000, 00000000, 00000000, 00001011, 00000000, 00000000, 00000000, 00000000 } })
+
+State 25 file learn_code.c line 9 thread 0
+----------------------------------------------------
+  _Learn_b={ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ({ 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000, 00000000000000000000000000000000 })
+
+State 26 file learn_code.c line 10 thread 0
+----------------------------------------------------
+  _Learn_idx=0 (00000000000000000000000000000000)
+
+State 27 file learn_code.c line 11 thread 0
+----------------------------------------------------
+  _Learn_ce_length=0 (00000000000000000000000000000000)
+
+State 31  thread 0
+----------------------------------------------------
+  argv'[134217728]=irep("(\"nil\")")[134217728] (?)
+
+State 34  thread 0
+----------------------------------------------------
+  argc=134217728 (00001000000000000000000000000000)
+
+State 35  thread 0
+----------------------------------------------------
+  argv=argv' (00000010000000000000000000000000)
+
+State 38 file _tcas_auto_instrumented.c line 63 function initialize thread 0
+----------------------------------------------------
+  Positive_RA_Alt_Thresh[0]=400 (00000000000000000000000110010000)
+
+State 39 file _tcas_auto_instrumented.c line 64 function initialize thread 0
+----------------------------------------------------
+  Positive_RA_Alt_Thresh[1]=500 (00000000000000000000000111110100)
+
+State 40 file _tcas_auto_instrumented.c line 65 function initialize thread 0
+----------------------------------------------------
+  Positive_RA_Alt_Thresh[2]=640 (00000000000000000000001010000000)
+
+State 41 file _tcas_auto_instrumented.c line 66 function initialize thread 0
+----------------------------------------------------
+  Positive_RA_Alt_Thresh[3]=740 (00000000000000000000001011100100)
+
+State 43 file _tcas_auto_instrumented.c line 178 function main thread 0
+----------------------------------------------------
+  Cur_Vertical_Sep=33368 (00000000000000001000001001011000)
+
+State 44 file _tcas_auto_instrumented.c line 179 function main thread 0
+----------------------------------------------------
+  High_Confidence=TRUE (00000001)
+
+State 45 file _tcas_auto_instrumented.c line 180 function main thread 0
+----------------------------------------------------
+  Two_of_Three_Reports_Valid=TRUE (00000001)
+
+State 46 file _tcas_auto_instrumented.c line 181 function main thread 0
+----------------------------------------------------
+  Own_Tracked_Alt=1426904694 (01010101000011001101011001110110)
+
+State 47 file _tcas_auto_instrumented.c line 182 function main thread 0
+----------------------------------------------------
+  Own_Tracked_Alt_Rate=600 (00000000000000000000001001011000)
+
+State 48 file _tcas_auto_instrumented.c line 183 function main thread 0
+----------------------------------------------------
+  Other_Tracked_Alt=-636660105 (11011010000011010101011001110111)
+
+State 49 file _tcas_auto_instrumented.c line 184 function main thread 0
+----------------------------------------------------
+  Alt_Layer_Value=3 (00000000000000000000000000000011)
+
+State 50 file _tcas_auto_instrumented.c line 185 function main thread 0
+----------------------------------------------------
+  Up_Separation=2147483585 (01111111111111111111111111000001)
+
+State 51 file _tcas_auto_instrumented.c line 186 function main thread 0
+----------------------------------------------------
+  Down_Separation=-2147483612 (10000000000000000000000000100100)
+
+State 52 file _tcas_auto_instrumented.c line 187 function main thread 0
+----------------------------------------------------
+  Other_RAC=0 (00000000000000000000000000000000)
+
+State 53 file _tcas_auto_instrumented.c line 188 function main thread 0
+----------------------------------------------------
+  Other_Capability=2 (00000000000000000000000000000010)
+
+State 54 file _tcas_auto_instrumented.c line 189 function main thread 0
+----------------------------------------------------
+  Climb_Inhibit=0 (00000000000000000000000000000000)
+
+State 55 file _tcas_auto_instrumented.c line 191 function main thread 0
+----------------------------------------------------
+  return_value_alt_sep_test$1=0 (00000000000000000000000000000000)
+
+State 58 file _tcas_auto_instrumented.c line 138 function alt_sep_test thread 0
+----------------------------------------------------
+  enabled=FALSE (00000000)
+
+State 59 file _tcas_auto_instrumented.c line 138 function alt_sep_test thread 0
+----------------------------------------------------
+  tcas_equipped=FALSE (00000000)
+
+State 60 file _tcas_auto_instrumented.c line 138 function alt_sep_test thread 0
+----------------------------------------------------
+  intent_not_known=FALSE (00000000)
+
+State 61 file _tcas_auto_instrumented.c line 139 function alt_sep_test thread 0
+----------------------------------------------------
+  need_upward_RA=FALSE (00000000)
+
+State 62 file _tcas_auto_instrumented.c line 139 function alt_sep_test thread 0
+----------------------------------------------------
+  need_downward_RA=FALSE (00000000)
+
+State 63 file _tcas_auto_instrumented.c line 140 function alt_sep_test thread 0
+----------------------------------------------------
+  alt_sep=0 (00000000000000000000000000000000)
+
+State 64 file _tcas_auto_instrumented.c line 142 function alt_sep_test thread 0
+----------------------------------------------------
+  enabled=TRUE (00000001)
+
+State 65 file _tcas_auto_instrumented.c line 143 function alt_sep_test thread 0
+----------------------------------------------------
+  tcas_equipped=FALSE (00000000)
+
+State 66 file _tcas_auto_instrumented.c line 144 function alt_sep_test thread 0
+----------------------------------------------------
+  intent_not_known=TRUE (00000001)
+
+State 67 file _tcas_auto_instrumented.c line 146 function alt_sep_test thread 0
+----------------------------------------------------
+  alt_sep=0 (00000000000000000000000000000000)
+
+State 71 file _tcas_auto_instrumented.c line 149 function alt_sep_test thread 0
+----------------------------------------------------
+  return_value_Non_Crossing_Biased_Climb$1=FALSE (00000000)
+
+State 74 file _tcas_auto_instrumented.c line 81 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  upward_preferred=0 (00000000000000000000000000000000)
+
+State 75 file _tcas_auto_instrumented.c line 82 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  upward_crossing_situation=0 (00000000000000000000000000000000)
+
+State 76 file _tcas_auto_instrumented.c line 83 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  result=FALSE (00000000)
+
+State 77 file _tcas_auto_instrumented.c line 85 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  return_value_Inhibit_Biased_Climb$1=0 (00000000000000000000000000000000)
+
+State 81 file _tcas_auto_instrumented.c line 76 function Inhibit_Biased_Climb thread 0
+----------------------------------------------------
+  return_value_Inhibit_Biased_Climb$1=2147483585 (01111111111111111111111111000001)
+
+State 83 file _tcas_auto_instrumented.c line 85 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  upward_preferred=1 (00000000000000000000000000000001)
+
+State 85 file _tcas_auto_instrumented.c line 88 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  return_value_Own_Below_Threat$2=FALSE (00000000)
+
+State 89 file _tcas_auto_instrumented.c line 127 function Own_Below_Threat thread 0
+----------------------------------------------------
+  return_value_fake1$2=0 (00000000000000000000000000000000)
+
+State 93 file _tcas_auto_instrumented.c line 120 function fake1 thread 0
+----------------------------------------------------
+  return_value_fake1$2=1 (00000000000000000000000000000001)
+
+State 96 file _tcas_auto_instrumented.c line 127 function Own_Below_Threat thread 0
+----------------------------------------------------
+  return_value_Own_Below_Threat$2=TRUE (00000001)
+
+State 98 file _tcas_auto_instrumented.c line 88 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  tmp_if_expr$6=FALSE (0)
+
+State 100 file _tcas_auto_instrumented.c line 88 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  return_value_Own_Below_Threat$3=FALSE (00000000)
+
+State 104 file _tcas_auto_instrumented.c line 127 function Own_Below_Threat thread 0
+----------------------------------------------------
+  return_value_fake1$2=0 (00000000000000000000000000000000)
+
+State 108 file _tcas_auto_instrumented.c line 120 function fake1 thread 0
+----------------------------------------------------
+  return_value_fake1$2=1 (00000000000000000000000000000001)
+
+State 111 file _tcas_auto_instrumented.c line 127 function Own_Below_Threat thread 0
+----------------------------------------------------
+  return_value_Own_Below_Threat$3=TRUE (00000001)
+
+State 113 file _tcas_auto_instrumented.c line 88 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  tmp_if_expr$5=FALSE (0)
+
+State 115 file _tcas_auto_instrumented.c line 88 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  return_value_ALIM$4=0 (00000000000000000000000000000000)
+
+State 119 file _tcas_auto_instrumented.c line 71 function ALIM thread 0
+----------------------------------------------------
+  return_value_ALIM$4=740 (00000000000000000000001011100100)
+
+State 121 file _tcas_auto_instrumented.c line 88 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  tmp_if_expr$5=TRUE (1)
+
+State 123 file _tcas_auto_instrumented.c line 88 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  tmp_if_expr$6=TRUE (1)
+
+State 124 file _tcas_auto_instrumented.c line 88 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  result=TRUE (00000001)
+
+State 127 file _tcas_auto_instrumented.c line 94 function Non_Crossing_Biased_Climb thread 0
+----------------------------------------------------
+  return_value_Non_Crossing_Biased_Climb$1=TRUE (00000001)
+
+State 129 file _tcas_auto_instrumented.c line 149 function alt_sep_test thread 0
+----------------------------------------------------
+  tmp_if_expr$3=FALSE (0)
+
+State 131 file _tcas_auto_instrumented.c line 149 function alt_sep_test thread 0
+----------------------------------------------------
+  return_value_Own_Below_Threat$2=FALSE (00000000)
+
+State 135 file _tcas_auto_instrumented.c line 127 function Own_Below_Threat thread 0
+----------------------------------------------------
+  return_value_fake1$2=0 (00000000000000000000000000000000)
+
+State 139 file _tcas_auto_instrumented.c line 120 function fake1 thread 0
+----------------------------------------------------
+  return_value_fake1$2=1 (00000000000000000000000000000001)
+
+State 142 file _tcas_auto_instrumented.c line 127 function Own_Below_Threat thread 0
+----------------------------------------------------
+  return_value_Own_Below_Threat$2=TRUE (00000001)
+
+State 144 file _tcas_auto_instrumented.c line 149 function alt_sep_test thread 0
+----------------------------------------------------
+  tmp_if_expr$3=TRUE (1)
+
+State 146 file _tcas_auto_instrumented.c line 149 function alt_sep_test thread 0
+----------------------------------------------------
+  need_upward_RA=TRUE (00000001)
+
+State 147 file _tcas_auto_instrumented.c line 150 function alt_sep_test thread 0
+----------------------------------------------------
+  return_value_Non_Crossing_Biased_Descend$4=FALSE (00000000)
+
+State 150 file _tcas_auto_instrumented.c line 99 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  upward_preferred=0 (00000000000000000000000000000000)
+
+State 151 file _tcas_auto_instrumented.c line 100 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  upward_crossing_situation=0 (00000000000000000000000000000000)
+
+State 152 file _tcas_auto_instrumented.c line 101 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  result=FALSE (00000000)
+
+State 153 file _tcas_auto_instrumented.c line 103 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  upward_preferred=1 (00000000000000000000000000000001)
+
+State 155 file _tcas_auto_instrumented.c line 106 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  return_value_Own_Below_Threat$1=FALSE (00000000)
+
+State 159 file _tcas_auto_instrumented.c line 127 function Own_Below_Threat thread 0
+----------------------------------------------------
+  return_value_fake1$2=0 (00000000000000000000000000000000)
+
+State 163 file _tcas_auto_instrumented.c line 120 function fake1 thread 0
+----------------------------------------------------
+  return_value_fake1$2=1 (00000000000000000000000000000001)
+
+State 166 file _tcas_auto_instrumented.c line 127 function Own_Below_Threat thread 0
+----------------------------------------------------
+  return_value_Own_Below_Threat$1=TRUE (00000001)
+
+State 168 file _tcas_auto_instrumented.c line 106 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  tmp_if_expr$3=FALSE (0)
+
+State 170 file _tcas_auto_instrumented.c line 106 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  return_value_ALIM$2=0 (00000000000000000000000000000000)
+
+State 174 file _tcas_auto_instrumented.c line 71 function ALIM thread 0
+----------------------------------------------------
+  return_value_ALIM$2=740 (00000000000000000000001011100100)
+
+State 176 file _tcas_auto_instrumented.c line 106 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  tmp_if_expr$3=FALSE (0)
+
+State 178 file _tcas_auto_instrumented.c line 106 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  result=FALSE (00000000)
+
+State 181 file _tcas_auto_instrumented.c line 112 function Non_Crossing_Biased_Descend thread 0
+----------------------------------------------------
+  return_value_Non_Crossing_Biased_Descend$4=FALSE (00000000)
+
+State 183 file _tcas_auto_instrumented.c line 150 function alt_sep_test thread 0
+----------------------------------------------------
+  tmp_if_expr$6=FALSE (0)
+
+State 185 file _tcas_auto_instrumented.c line 150 function alt_sep_test thread 0
+----------------------------------------------------
+  tmp_if_expr$6=FALSE (0)
+
+State 186 file _tcas_auto_instrumented.c line 150 function alt_sep_test thread 0
+----------------------------------------------------
+  need_downward_RA=FALSE (00000000)
+
+State 190 file _tcas_auto_instrumented.c line 159 function alt_sep_test thread 0
+----------------------------------------------------
+  alt_sep=1 (00000000000000000000000000000001)
+
+State 193 file _tcas_auto_instrumented.c line 172 function alt_sep_test thread 0
+----------------------------------------------------
+  return_value_alt_sep_test$1=1 (00000000000000000000000000000001)
+
+State 197 file _tcas_auto_instrumented.c line 191 function main thread 0
+----------------------------------------------------
+  x=FALSE (00000000)
+
+State 198 file learn_code.c line 68 function Learn_Assert thread 0
+----------------------------------------------------
+  res=FALSE (00000000)
+
+State 199 file learn_code.c line 68 function Learn_Assert thread 0
+----------------------------------------------------
+  res=FALSE (00000000)
+
+State 201 file learn_code.c line 68 function Learn_Assert thread 0
+----------------------------------------------------
+  tmp_post$1=0 (00000000000000000000000000000000)
+
+State 202 file learn_code.c line 68 function Learn_Assert thread 0
+----------------------------------------------------
+  tmp_post$1=0 (00000000000000000000000000000000)
+
+State 203 file learn_code.c line 68 function Learn_Assert thread 0
+----------------------------------------------------
+  _Learn_idx=1 (00000000000000000000000000000001)
+
+State 204 file learn_code.c line 68 function Learn_Assert thread 0
+----------------------------------------------------
+  _Learn_b[0]=10 (00000000000000000000000000001010)
+
+State 207 file learn_code.c line 68 function Learn_Assert thread 0
+----------------------------------------------------
+  assert_condition=FALSE (00000000)
+
+State 208 file learn_code.c line 31 function check_conjecture thread 0
+----------------------------------------------------
+  state=0 (00000000)
+
+State 209 file learn_code.c line 31 function check_conjecture thread 0
+----------------------------------------------------
+  state=0 (00000000)
+
+State 210 file learn_code.c line 32 function check_conjecture thread 0
+----------------------------------------------------
+  sim_idx=0 (00000000000000000000000000000000)
+
+State 211 file learn_code.c line 32 function check_conjecture thread 0
+----------------------------------------------------
+  sim_idx=0 (00000000000000000000000000000000)
+
+State 212 file learn_code.c line 33 function check_conjecture thread 0
+----------------------------------------------------
+  i=0 (00000000000000000000000000000000)
+
+State 213 file learn_code.c line 33 function check_conjecture thread 0
+----------------------------------------------------
+  i=0 (00000000000000000000000000000000)
+
+State 215 file learn_code.c line 34 function check_conjecture thread 0
+----------------------------------------------------
+  tmp_post$1=0 (00000000000000000000000000000000)
+
+State 216 file learn_code.c line 34 function check_conjecture thread 0
+----------------------------------------------------
+  tmp_post$1=0 (00000000000000000000000000000000)
+
+State 217 file learn_code.c line 34 function check_conjecture thread 0
+----------------------------------------------------
+  sim_idx=1 (00000000000000000000000000000001)
+
+State 218 file learn_code.c line 34 function check_conjecture thread 0
+----------------------------------------------------
+  state=0 (00000000)
+
+State 219 file learn_code.c line 33 function check_conjecture thread 0
+----------------------------------------------------
+  i=1 (00000000000000000000000000000001)
+
+State 224 file learn_code.c line 45 function check_conjecture thread 0
+----------------------------------------------------
+  _Learn_ce_length=1 (00000000000000000000000000000001)
+
+State 227 file learn_code.c line 46 function check_conjecture thread 0
+----------------------------------------------------
+  x=FALSE (00000000)
+
+Violated property:
+  file learn_code.c line 26 function Assert
+  assertion
+  x
+
+VERIFICATION FAILED
