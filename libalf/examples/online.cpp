@@ -21,7 +21,7 @@ int alphabet_size;
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 int mem_queries, cbmc_mem_queries;
-
+int feedback = -1;
 bool **matrix; // represents the call graph
 bool **instrumented_matrix; // represents the call graph for instrumented functions
 bool *first_functions; // the list of first functions - to be updated based on main
@@ -499,7 +499,7 @@ void show_result(conjecture *result) {
 
 /*******************************  Learn  ****************************/
 
-list<int> get_CounterExample(int alphabetsize, bool *feedback) {
+list<int> get_CounterExample(int alphabetsize, int *feedback) {
 	list<int> ce;
 	int  i;
 	int length;
@@ -608,34 +608,70 @@ bool answer_Conjecture(conjecture * cj) {
 	return (res != 0);	
 }
 
+void positive_queries(list<int> query) {
+	list<int>::iterator it;
+	int size = query.size();		
+	ostringstream ist;		
+	ist << "echo \"if (_Learn_idx == " << size << " && ";
+	int i = 0;
+	for (it = query.begin(); it != query.end(); ++i)			
+	{
+		ist << "_Learn_b[" << i  << "] == " << *it;			
+		it++;
+		if (it != query.end()) ist << " && "; else ist << ") __CPROVER_assume (0); \" >> " << POSITIVE_QUERIES_FILE;			
+	}
+	run (ist.str().c_str());
+}
+
+
+
 bool answer_Membership(list<int> query) {
 	list<int>::iterator it;
 	list<int>::reverse_iterator rit;
 
 	mem_queries++;
-	if (query.size() == 0) return false;
-
 	cout << "Please classify the word: ";	
 	for (it = query.begin(); it != query.end(); ++it ) cout << *it;
+	cout << " ";
+	
+	if (query.size() == 0) 
+	{
+		cout << "Zero-size!" << endl;
+		return false;
+	}
+	if (feedback == 0) 
+	{		
+		cout << "Feedback!" << endl;
+		feedback = -1;
+		return false;		
+	}
+	else if (feedback == 1)
+	{
+		positive_queries(query);	
+		cout << "Feedback!" << endl;
+		feedback = -1;
+		return true;
+	}
+	
 	stringstream st;		
 	
 	// query longer than word_length. It will be rejected anyway. 
 	if (query.size() > word_length) 
 	{
-		cout << "L!" << endl;
+		cout << "Long!" << endl;
 		return false;
 	}
 
 	// last letter must be 'assert' (== alphabet_size - 1)
 	rit = query.rbegin();
 	if (*rit != alphabet_size - 1) {		
-		cout << "E!" << endl;
+		cout << "End!" << endl;
 		return false;
 	}
 	// first letter must be accessible from 'main'
 	it = query.begin();
 	if (!matrix[alphabet_size][*it]) {	
-		cout << "B!" << endl;
+		cout << "Begin!" << endl;
 		return false;
 	}
 	
@@ -693,20 +729,7 @@ bool answer_Membership(list<int> query) {
 	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;
 	
 	// updating the positive_queries_file: this will block paths that correspond to membership that we already answered positively.
-	if (res == 0)
-	{		
-		int size = query.size();		
-		ostringstream ist;		
-		ist << "echo \"if (_Learn_idx == " << size << " && ";
-		int i = 0;
-		for (it = query.begin(); it != query.end(); ++i)			
-		{
-			ist << "_Learn_b[" << i  << "] == " << *it;			
-			it++;
-			if (it != query.end()) ist << " && "; else ist << ") __CPROVER_assume (0); \" >> " << POSITIVE_QUERIES_FILE;			
-		}
-		run (ist.str().c_str());
-	}
+	if (res == 0) positive_queries(query);	
 
 	return (res == 0);		
 }
@@ -718,8 +741,7 @@ void learn() {
 
 	// Create learning algorithm (Angluin L*) without a logger (2nd argument is NULL) and alphabet size alphabet_size
 	angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
-
-	bool feedback;
+		
 	bool conjectured = false;
 	int counter = 0;
 	do {	
@@ -737,6 +759,8 @@ void learn() {
 
 				// Answer query				
 				bool a = answer_Membership(*li);				
+				cout << a;
+				
 				//if (counter == 2) exit(1);
 			//	if (conjectured) exit(1);
 				// Add answer to knowledge-base
