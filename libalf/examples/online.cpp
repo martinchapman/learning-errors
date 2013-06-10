@@ -506,6 +506,9 @@ list<int> get_CounterExample(int alphabetsize, int *feedback) {
 	ifstream read(MODEL);
 
 	read >> *feedback;
+
+	//*feedback = -1; // !!!! disabling temporarily feedback
+	assert(*feedback == 0 || *feedback == 1);
 	cout << ((*feedback) ? "Positive " : "Negative ") << "feedback" << endl;
 	cout << "Counterexample ";
 	read >> length;
@@ -749,7 +752,7 @@ void learn() {
 		conjecture *cj = algorithm.advance();		
 		// Resolve membership queries
 		if (cj == NULL) {			
-			counter++;
+			//counter++;
 			// retrieve queries
 			list<list<int> > queries = base.get_queries();
 
@@ -759,7 +762,7 @@ void learn() {
 
 				// Answer query				
 				bool a = answer_Membership(*li);				
-				cout << a;
+				//cout << a;
 				
 				//if (counter == 2) exit(1);
 			//	if (conjectured) exit(1);
@@ -782,6 +785,9 @@ void learn() {
 			} else {
 				// Get a counter-example
 				list<int> ce = get_CounterExample(alphabet_size, &feedback);			
+				//++counter;
+				//if (counter == 1) exit(1);
+				
 				// Add counter-example to algorithm
 				algorithm.add_counterexample(ce);
 				
