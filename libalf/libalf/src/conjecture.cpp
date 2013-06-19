@@ -597,8 +597,8 @@ string finite_automaton::visualize() const  // ofer
 	stringstream str, tmp, dom_edges;
 	int v;
 	set<int> dominator_set, doomed_set, roots_set, dominating_edges_set;	
-#define MaxAlphabet 100
-	char * label[MaxAlphabet]; // 100 = max alphabet size. // should replace this with a map
+#define MaxAlphabet 200
+	char * label[MaxAlphabet]; // 200 = max alphabet size. // should replace this with a map
 
 	if(valid) {
 		FILE *dominators = fopen(DOMINATORS, "r");
@@ -753,7 +753,10 @@ string finite_automaton::visualize() const  // ofer
 				for(si = msi->second.begin(); si != msi->second.end(); ++si)
 				{
 					if (roots_set.find(mmsi->first)  == roots_set.end() && roots_set.find(*si)  == roots_set.end()) // edge is not from/to a root (root = sink unaccepting state)
-						str << "\tq" << mmsi->first << " -> q" << *si << " [label=\"" << label[msi->first] << "\"];\n";
+					{
+						string color = (dominating_edges_set.find(msi->first) != dominating_edges_set.end()) ? ", color = green": "";
+						str << "\tq" << mmsi->first << " -> q" << *si << " [label=\"" << label[msi->first] << "\"" << color << "];\n";
+					}
 				}
 
 		// end
