@@ -13,7 +13,7 @@
 #include <map>
 #include <ctime>
 #include "../../file_names.h" // ofer
-#include "../../scc/dominators.hpp"
+
 
 using namespace std;
 using namespace libalf;
@@ -22,23 +22,15 @@ int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 int mem_queries, cbmc_mem_queries;
 int feedback = -1;
-bool **matrix; // represents the call graph
-bool **instrumented_matrix; // represents the call graph for instrumented functions
-bool *first_functions; // the list of first functions - to be updated based on main
 
-// functions for computing dfs
-void project_matrix_to_relevant_vertices(int n, int m);
-void project_matrix_to_relevant_vertices_source(int n, int m, int current, int source);
-int cnt;
 void predecessors(int m, int current, int *predecessors_list);
 void instrument();
 void Abort(string msg);
 int run(const char* cmd);
 
 struct myEdge {char s[100]; char t[100];};
-map<string, int> 	
-	node_index; // indices for functions we care about.
 
+map<int, string> func_name; // maps index to a function name
 
 string input_file_name, 
 	input_file_name_full; // with extension (e.g. file.c)
@@ -101,290 +93,39 @@ int generate_func_names(int letter) {
 			rewrite_function_enter(name, -1); // -1 = remove statement
 			continue; 
 		}			
-		node_index.insert(pair<string, int>(string(name), letter));
+		//node_index.insert(pair<string, int>(string(name), letter));
+		func_name.insert(pair<int, string>(letter, string(name)));
 		fprintf(Labels, "%d %s\n", letter, name);
 		rewrite_function_enter(name, letter++);		
 	}
 // what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
 
-	fprintf(Labels, "%d %s\n", letter, "assert");
-	node_index.insert(pair<string, int>(string("assert"), letter++));	
-	node_index.insert(pair<string, int>(string("main"), letter++));	// we force main to be at index m + 1 for conviniance when building matrix later on. It will not be part of the alphabet (see line).
+	fprintf(Labels, "%d %s\n", letter, "Learn_Assert"); // changed from assert
+	//node_index.insert(pair<string, int>(string("assert"), letter++));	
+	//node_index.insert(pair<string, int>(string("main"), letter++));	// we force main to be at index m + 1 for conviniance when building matrix later on. It will not be part of the alphabet (see line).
+
+	func_name.insert(pair<int, string>(letter++, string("Learn_Assert")));	// changed from assert
+	func_name.insert(pair<int, string>(letter++, string("main")));	// we force main to be at index m + 1 for conviniance when building matrix later on. It will not be part of the alphabet (see line).
+	//map<int,string>::iterator it;
+	cout << "func_name:" << endl;
+	for (int i = 0; i < func_name.size(); ++i) cout << func_name[i] << endl;
+
+
 	
 	fclose(func_names);
 	fclose(Labels);	
 	return letter - 1; // '-1' because this number is fed into alphabet_size, and we do not want main to be part of the alphabet. 
 }
 
-void print_matrix(int numOfVertices) {
-	cout << " -------------------------------------------------" << endl;
-	for (int t = 0; t < numOfVertices; ++t){
-		for (int j = 0; j < numOfVertices; ++j)
-			cout << matrix[t][j] << " ";
-		cout << endl;
-	}
-	cout << endl;
-}
 
-void populate(dominators::myGraph_t *myGraph, bool **instrumented_matrix, int m) {
-	typedef dominators::myGraph_t::edge edge;
-	for (int i = 0; i < m; ++i)
-		for (int j = 0; j < m; ++j)
-			if (instrumented_matrix[i][j]) myGraph->edges.push_back(edge(i, j));
-	myGraph->numOfVertices = m;
-}; 
-
-
-
-void project_matrix_to_relevant_vertices_cfg(int n, int m){
-	// performs dfs contracting edges of the non-instrumented nodes	 
-	// the matrix size is n x n. Only the first m x m sub-matrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
-	// 'assume', '_Learn_...' are not followed). This function updates the m x m sub-matrix such that matrix[i][j] = 1 (i,j <= m)
-	// if there is a path from i to j in the n x n matrix.    
-
-	for( int i=0; i < m; i++){
-		for( int j = m; j < n; j++) {
-			if( matrix[i][j] == 1 ) {
-				project_matrix_to_relevant_vertices_source( n, m, j, i );
-			}
-		}
-	}
-}
-
-
-void project_matrix_to_relevant_vertices(int n, int m){
-	// performs dfs contracting edges of the non-instrumented nodes	 
-	// the matrix size is n x n. Only the first m x m sub-matrix (m <= n) relates to the vertices which we follow (i.e. nodes like 'main', 
-	// 'assume', '_Learn_...' are not followed). This function updates the m x m sub-matrix such that matrix[i][j] = 1 (i,j <= m)
-	// if there is a path from i to j in the n x n matrix.    
-	
-	// initializing the instrumented matrix
-	instrumented_matrix = (bool **)malloc(m*sizeof(bool *));
-	for(int i = 0; i < m; ++i) {
-	      instrumented_matrix[i] = new bool[m];
-	}
-
-	for( int i=0; i < m; i++){
-		for( int j = m; j < n; j++) {
-			if( matrix[i][j] == 1 ) {
-				project_matrix_to_relevant_vertices_source( n, m, j, i );
-			}
-		}
-	}
-		
-	// updating instrumented matrix 	
-	for (int t = 0; t < m; ++t) {		
-		for (int j = 0; j < m; ++j) {
-			instrumented_matrix[j][t] = matrix[j][t];			
-		}
-	} 	
-
-	int *predecessors_list;
-	predecessors_list = new int[m];
-
-	dominators::myGraph_t myGraph;		
-
-	/* see '****' below why this is turned off. 
-	populate(&myGraph, instrumented_matrix, m); // create myGraph from instrumented_matrix
-	dominators dom;
-	dom.find_dominators(myGraph, m - 1); // m - 1 is 'main', and it is the root. 		
-	*/
-
-	for (int i = 0; i < m - 2; i++) {  // -2 because we are not looking for predecessors of assert + main
-		for(int j = 0; j < m; j++){
-			predecessors_list[j]=-1;			
-		}
-		
-		cnt = 0;
-		predecessors(m, i, predecessors_list); // fill list of predecessors of i
-		
-		
-		int tmp;
-		for(int t = 0; (tmp = predecessors_list[t]) > -1; t++){  // for each predecessor tmp
-			for (int r = 0; r < m; r++){ // looking for tmp's children					
-				if (instrumented_matrix[i][r] /*|| i == r*/) continue; // already marked				
-				if (!matrix[tmp][r])  continue;
-				// ***** currently turning-off domination check. The reason is that e.g.: f -> g -> h: g can be called after h although it dominates it, because g can be called twice from f.
-				// The call graph does not include this information. 
-				//if (dom.isDom(r, i)) {cout << r << " dominates " << i << endl; continue;} // if r dominates i, then it cannot follow i. 
-				instrumented_matrix[i][r] = 1;
-			}			
-		}
-	}
-	delete(predecessors_list);
-
-	// updating the first mXm of the original matrix 
-	// with the instrumented matrix
-	for (int t = 0; t < m; ++t)
-		for (int j = 0; j < m; ++j)
-			matrix[j][t] = instrumented_matrix[j][t];		
-}
-
-void project_matrix_to_relevant_vertices_source(int n, int m, int current, int source ){
- 
-	// performs dfs for a given source node contracting non-instrumented edges
-    int v;
-    
-	for(v = 0; v < n; v++)
-    {
-        if(matrix[current][v] == 1) {
-			if (v < m) {
-				matrix[source][v] = 1;
-				continue;
-			}
-			if( v != current){
-				project_matrix_to_relevant_vertices_source( n, m, v, source );
-			}
-		}
-	}
-}
-
-void predecessors(int m, int current, int *predecessors_list) {
-	
-	int flag = 0;
-
-	for (int i = 0; i < m; i++) {
-		flag = 0;
-		for (int tt = 0; predecessors_list[tt] > -1; tt++) {
-			if (i == predecessors_list[tt]){
-				flag = 1;
-				break;
-			}
-		}
-		if( (matrix[i][current] == 1) && !flag ) {
-			predecessors_list[cnt++] = i;
-			predecessors(m, i, predecessors_list);
-		}
-	}
-}
-	
-void compute_allowed_pairs() { 
-// creates the initial matrix according to the call graph. The indices are shifted by min_func_idx which is 2 if '--auto b' (branch instrumentation) is activated, and 0 otherwise.
-	stringstream st;	
-	vector<myEdge> edge_list;
-	myEdge tmp_edge;	
-	map<string, int> node_index_cg; // indices for all functions in the cfg (superset of node_index)
-	st << "echo \"#define membership\" > " << MODE;
-	run(st.str().c_str()); // we analyze the call graph under membership query
-	st.str("");
-	st << "cmd /C \"" << GENERATE_CALL_GRAPH << " " << input_file_name_full << " " << CG << "\"";
-	run(st.str().c_str());
-	FILE *cg = fopen(CG, "r");
-	if (!cg) Abort(string("cannot open ") + string(CG));
-	
-	node_index_cg.insert(node_index.begin(), node_index.end());
-	cout << "# of vertices = " << node_index_cg.size() << " " << node_index.size() << "(including 'main')" << endl;
-	while (!feof(cg)) {
-		if (fscanf(cg, "%s %s\n", tmp_edge.s, tmp_edge.t) != 2) continue;
-		edge_list.push_back(tmp_edge);				
-		node_index_cg.insert(pair<string, int>(string(tmp_edge.s), node_index_cg.size() + min_func_idx ));
-		node_index_cg.insert(pair<string, int>(string(tmp_edge.t), node_index_cg.size() + min_func_idx ));
-	}
-	int numOfVertices = node_index_cg.size();
-	cout << "# of vertices = " << numOfVertices << endl;
-
-	// allocating matrix
-	matrix = new bool*[numOfVertices];
-	for(int i = 0; i < numOfVertices; ++i) {
-	    matrix[i] = new bool[numOfVertices];
-	}
-
-	// initializing matrix
-	for (int t = 0; t < numOfVertices; ++t)
-		for (int j = 0; j < numOfVertices; ++j)
-			matrix[t][j] = false;
-
-	// filling matrix
-	vector<myEdge>::iterator it;
-	for (it = edge_list.begin(); it != edge_list.end(); ++it) {
-		int src = node_index_cg[(*it).s] - min_func_idx;
-		int target = node_index_cg[(*it).t] - min_func_idx;
-		cout << "min_func_idx = " << min_func_idx << ": " << src << (*it).s << " " << target << (*it).t << endl;
-		matrix[src][target] = true;
-	}
-	
-	print_matrix(numOfVertices); 
-	print_matrix(node_index.size()); 
-	project_matrix_to_relevant_vertices(numOfVertices, node_index.size());  // note that we send node_index.size(), which is equal to m + 1, since it includes main.
-	//print_matrix(node_index.size());	
-	print_matrix(numOfVertices);	
-	
-}
-
-
-
-void import_allowed_pairs() { // based on goto-instrument's list of pairs.
-	// creates the initial matrix according to the call graph. The indices are shifted by min_func_idx which is 2 if '--auto b' (branch instrumentation) is activated, and 0 otherwise.
-	cout << "import_allowed_pairs " << endl;
-	stringstream tmp;		
-
-	
-
-	tmp << "cmd /c \"goto-cl " << input_file_name_full << " " << "learn_code.c" << "\"";
-	run(tmp.str().c_str());
-	tmp.str("");
-	tmp << "cmd /c \"goto-instrument --show-call-sequences " << input_file_name << ".exe \"" << " | grep - | sed -e s/" << "\"->\"" << "// -e s/" 
-		<< "c:://  -e s/" << "c::" << "// -e s/\" Assert\"/\"assert\"/" << " > " << FUNC_PAIRS ;
-	
-	cout << "running " << tmp.str() << endl; fflush(stdout);
-	run(tmp.str().c_str());
-
-	FILE *pairs = fopen(FUNC_PAIRS, "r");
-	vector<myEdge> edge_list;
-	myEdge tmp_edge;	
-	map<string, int> node_index_cfg; // indices for all functions in the cfg (superset of node_index)
-	node_index_cfg.insert(node_index.begin(), node_index.end());
-	while (!feof(pairs)) {
-		if (fscanf(pairs, "%s %s\n", tmp_edge.s, tmp_edge.t) != 2) continue;
-		edge_list.push_back(tmp_edge);				
-		node_index_cfg.insert(pair<string, int>(string(tmp_edge.s), node_index_cfg.size() + min_func_idx ));
-		node_index_cfg.insert(pair<string, int>(string(tmp_edge.t), node_index_cfg.size() + min_func_idx ));
-	}
-	int numOfVertices = node_index_cfg.size();
-	cout << "# of vertices = " << numOfVertices << endl;
-
-	// allocating matrix
-	matrix = new bool*[numOfVertices];
-	for(int i = 0; i < numOfVertices; ++i) {
-		matrix[i] = new bool[numOfVertices];
-	}
-
-	// initializing matrix
-	for (int t = 0; t < numOfVertices; ++t)
-		for (int j = 0; j < numOfVertices; ++j)
-			matrix[t][j] = false;
-
-	// filling matrix
-	vector<myEdge>::iterator it;
-	for (it = edge_list.begin(); it != edge_list.end(); ++it) {
-		int src = node_index_cfg[(*it).s] - min_func_idx;
-		int target = node_index_cfg[(*it).t] - min_func_idx;
-		cout << "min_func_idx = " << min_func_idx << ": " << src << " " <<  (*it).s << " " << target << " " << (*it).t << endl;
-		matrix[src][target] = true;
-	}
-
-	print_matrix(numOfVertices); 
-	print_matrix(node_index.size()); 
-	
-	//project_matrix_to_relevant_vertices_cfg(numOfVertices, node_index.size());  // note that we send node_index.size(), which is equal to m + 1, since it includes main.
-		
-	
-	// %%%%%%%%%%%%%%%%%%%%   for experiment only. Use the _cfg version when goto-instrument bug is fixed.  %%%%%%%%%%%%%%%%%%%/
-	project_matrix_to_relevant_vertices(numOfVertices, node_index.size());  // note that we send node_index.size(), which is equal to m + 1, since it includes main.
-		  
-	print_matrix(numOfVertices);	
-	
-	}
-
-
-
-/****************************** before learn *************************/
-
+/********************************** Misc. ****************************/
 
 void Abort(string msg) {
 	cerr << msg << endl;
 	exit(1);
 }
+
+/****************************** before learn *************************/
 
 void parse_options(int argc, char**argv) {		
 	FILE *in;
@@ -417,6 +158,20 @@ void remove_files() {
 	run(tmp.str().c_str());
 }
 
+void preprocess_source() {	
+	// adding 'include "learn.c" ' in the first line of the source file. It is necessary for goto-cl because of the Learn_Assert command. 
+	stringstream tmp;
+
+	tmp << "cmd /c sed -e '1i\\#include \\\"learn.c\\\" ' " << input_file_name_full << " > tmp "; 
+	run(tmp.str().c_str());
+	cout << tmp.str().c_str() << endl;
+	tmp.str("");
+	input_file_name_full = "_" + input_file_name_full;
+	input_file_name = "_" + input_file_name;
+	tmp << "cp tmp " << input_file_name_full;
+	run(tmp.str().c_str());	
+}
+
 void init_auto_instrumentation()
 {
 	stringstream tmp;
@@ -446,9 +201,7 @@ void init_auto_instrumentation()
 		run(tmp.str().c_str());
 		min_func_idx = alphabet_size;
 	
-		alphabet_size = generate_func_names(alphabet_size); // this one also updates AUTO_LABELS_FUNCTIONS
-		compute_allowed_pairs();
-		// import_allowed_pairs();  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%  this is the one after cfg bug is fixed. 
+		alphabet_size = generate_func_names(alphabet_size); // this one also updates AUTO_LABELS_FUNCTIONS		
 	}	
 	else {
 		alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
@@ -507,7 +260,6 @@ list<int> get_CounterExample(int alphabetsize, int *feedback) {
 
 	read >> *feedback;
 
-	//*feedback = -1; // !!!! disabling temporarily feedback
 	assert(*feedback == 0 || *feedback == 1);
 	cout << ((*feedback) ? "Positive " : "Negative ") << "feedback" << endl;
 	cout << "Counterexample ";
@@ -521,8 +273,6 @@ list<int> get_CounterExample(int alphabetsize, int *feedback) {
 	cout << endl;
 	return ce;
 }
-
-
 
 void instrument() {
 	// precondition: we get here only if (instrument_branches || instrument_functions)
@@ -556,13 +306,11 @@ void instrument() {
 	run(tmp.str().c_str());	
 }
 
-
 int run(const char* cmd) {
 	bool verbose = false; // to be made a command-line argument
 	if (verbose) cout << cmd << endl;
 	return system(cmd);
 }
-
 
 int run_cbmc(bool membership) {
 	stringstream tmp;	
@@ -626,8 +374,6 @@ void positive_queries(list<int> query) {
 	run (ist.str().c_str());
 }
 
-
-
 bool answer_Membership(list<int> query) {
 	list<int>::iterator it;
 	list<int>::reverse_iterator rit;
@@ -642,6 +388,7 @@ bool answer_Membership(list<int> query) {
 		cout << "Zero-size!" << endl;
 		return false;
 	}
+	
 	if (feedback == 0) 
 	{		
 		cout << "Feedback!" << endl;
@@ -671,30 +418,47 @@ bool answer_Membership(list<int> query) {
 		cout << "End!" << endl;
 		return false;
 	}
-	// first letter must be accessible from 'main'
-	it = query.begin();
-	if (!matrix[alphabet_size][*it]) {	
-		cout << "Begin!" << endl;
-		return false;
-	}
 	
+	
+	stringstream cfg_st;
+	cout.flush();
+	// word has to be compatible with the cfg
+	if (instrument_functions) 
+	{
+		
+		for (it = query.begin(); it != query.end(); ++it) // TODO: check if has the same prefix as a previously failed one; if yes skip cfg check and return false. 
+			if (*it >= min_func_idx) cfg_st << "c::" << func_name[*it] << endl;
+		stringstream tmp;
+		tmp << input_file_name << ".seq";
+		FILE *seq = fopen(tmp.str().c_str(), "w");
+		fprintf(seq, "c::main\n%s", cfg_st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
+		fclose(seq);
+		tmp.str("");
+		tmp << "goto-instrument " << input_file_name << ".exe --check-call-sequence < " << input_file_name << ".seq | grep -c \"not\" > seq.res";
+		run(tmp.str().c_str());
+		FILE *seq_res = fopen ("seq.res", "r");
+		int res;
+		if (fscanf(seq_res, "%d", &res) != 1) Abort("cannot read seq.res");
+		fclose(seq_res);	
+		if (res == 1) {
+			cout << "cfg!" << endl; return false;
+		}
+	}
+
+
+
+	// all pre-tests failed. Going into a cbmc call.
+
 	bool saw_assert_test_letter = false;
 	bool last_is_assert_letter;
-	int last_func_call = -1;
+	
 	cout << " | ";
 	st << "#include \"" << MEMBERSHIP_DATA_H << "\"\n"	<< "\nint _Learn_mq[mq_length] = {";
 	for (it = query.begin(); it != query.end(); )
 	{
 		last_is_assert_letter = false;
-		if (instrument_functions) {
-			// consecutive letters in the word must be compatible with the call-graph, as represented in 'matrix'.
-			if (*it >= min_func_idx) 
-			{		
-				if (last_func_call >=0 && !matrix[last_func_call - min_func_idx][*it - min_func_idx]) { cout << *it << " @! \n"; return false;}
-				last_func_call = *it;
-			}
-		}
-		else
+		
+		if (!instrument_functions) 
 		{	// cannot have two 'asserts' in the word
 			if (*it == alphabet_size - 1) {
 				if (saw_assert_test_letter) {cout << *it << " ! \n"; return false;}
@@ -724,10 +488,7 @@ bool answer_Membership(list<int> query) {
 
 	fflush(stdout);
 	
-	int res = run_cbmc(true);
-
-	//string cmd = string("cmd /C \"") + CE + " " + input_file_name + " " + word_length_s.str() + " "  + string(" m ") + (instrument_functions ? string("f") : instrument_branches ? string("b") : string("")) + string("\"");	
-	//int res = run(cmd.c_str());		// invoking the script. The 'm' tells the script that it is a membership query.
+	int res = run_cbmc(true);	
 	
 	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;
 	
@@ -746,7 +507,7 @@ void learn() {
 	angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
 		
 	bool conjectured = false;
-	int counter = 0;
+	//int counter = 0;
 	do {	
 		// Advance the learning algorithm
 		conjecture *cj = algorithm.advance();		
@@ -762,10 +523,7 @@ void learn() {
 
 				// Answer query				
 				bool a = answer_Membership(*li);				
-				//cout << a;
-				
-				//if (counter == 2) exit(1);
-			//	if (conjectured) exit(1);
+
 				// Add answer to knowledge-base
 				base.add_knowledge(*li, a);
 			}
@@ -805,22 +563,6 @@ void learn() {
 	
 	delete result;	
 }
-
-void preprocess_source() {	
-	// adding 'include "learn.c" ' in the first line of the source file. It is necessary for goto-cl because of the Learn_Assert command. 
-	stringstream tmp;
-
-	tmp << "cmd /c sed -e '1i\\#include \\\"learn.c\\\" ' " << input_file_name_full << " > tmp "; 
-	run(tmp.str().c_str());
-	cout << tmp.str().c_str() << endl;
-	tmp.str("");
-	input_file_name_full = "_" + input_file_name_full;
-	input_file_name = "_" + input_file_name;
-	tmp << "cp tmp " << input_file_name_full;
-	run(tmp.str().c_str());	
-}
-
-
 
 /*******************************  main  ****************************/
 int main(int argc, char**argv) {		
