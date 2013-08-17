@@ -20,7 +20,7 @@ using namespace libalf;
 int alphabet_size; 
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
-int mem_queries, cbmc_mem_queries;
+int mem_queries, cbmc_mem_queries, cfg_queries, cfg_prefix;
 int feedback = -1;
 
 void predecessors(int m, int current, int *predecessors_list);
@@ -32,8 +32,9 @@ struct myEdge {char s[100]; char t[100];};
 
 map<int, string> func_name; // maps index to a function name
 
-string input_file_name, 
-	input_file_name_full; // with extension (e.g. file.c)
+string input_file_name, // no extension, but after instrumentation will have "_" prefix, e.g. "_file"
+	input_file_name_orig, // no extension, e.g., "file"
+	input_file_name_full; // with extension (e.g. "file.c")
 int word_length; 
 ostringstream word_length_s;
 FILE *convert;	
@@ -69,20 +70,28 @@ int generate_func_names(int letter) {
 //    strcmp() instructions which turn into loops by cbmc. 
 	char name[100];
 	map<string, int> user_func_set;
-	stringstream st;
-	st << input_file_name.substr(1,string::npos) << ".f";
+	stringstream st, st1;
+	st << input_file_name_orig << ".f";
 	FILE *func_names = fopen(FUNC_NAMES, "r"),
 		 *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w"),
 		 *user_func_names = fopen(st.str().c_str() , "r");
+	st.str("");	
+	st << input_file_name_orig << ".is";
+	st1 << "rm " << st.str();
+	run(st1.str().c_str()); // remove old .is file, even if we do not create a new one. 
 	if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
 	if (user_func_names != NULL) {
 		cout << "found " << st.str() << endl;
+		
+		FILE *func_names_for_goto_inst = fopen(st.str().c_str(), "w");  // we duplicate file.f to file.is where the latter has "c::" prefix before each function name, because 1) we want the user to enter natural names, 2) goto-instrument must have the c:: prefix, 3) func_names is produced by another tool that also generates natural names. So some conversion is necessary in any case. 
 		while (!feof(user_func_names)) {
 			if (fscanf(user_func_names, "%s", name) != 1) continue;
 			user_func_set.insert(pair<string, int>(name, 0));
+			fprintf(func_names_for_goto_inst, "c::%s\n", name);
 		}
+		fclose(func_names_for_goto_inst);
 	}
-	else cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_name << ".f" << endl;
+	else cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_name_orig << ".f" << endl;
 	
 	while (!feof(func_names)) {
 		if (fscanf(func_names, "%s", name) != 1) continue;
@@ -93,20 +102,18 @@ int generate_func_names(int letter) {
 			rewrite_function_enter(name, -1); // -1 = remove statement
 			continue; 
 		}			
-		//node_index.insert(pair<string, int>(string(name), letter));
+		
 		func_name.insert(pair<int, string>(letter, string(name)));
 		fprintf(Labels, "%d %s\n", letter, name);
 		rewrite_function_enter(name, letter++);		
 	}
-// what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
+	// what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
 
 	fprintf(Labels, "%d %s\n", letter, "Learn_Assert"); // changed from assert
-	//node_index.insert(pair<string, int>(string("assert"), letter++));	
-	//node_index.insert(pair<string, int>(string("main"), letter++));	// we force main to be at index m + 1 for conviniance when building matrix later on. It will not be part of the alphabet (see line).
 
 	func_name.insert(pair<int, string>(letter++, string("Learn_Assert")));	// changed from assert
-	func_name.insert(pair<int, string>(letter++, string("main")));	// we force main to be at index m + 1 for conviniance when building matrix later on. It will not be part of the alphabet (see line).
-	//map<int,string>::iterator it;
+	func_name.insert(pair<int, string>(letter++, string("main")));	// we force main to be at index m + 1 for convenience when building matrix later on. It will not be part of the alphabet (see line).
+
 	cout << "func_name:" << endl;
 	for (int i = 0; i < func_name.size(); ++i) cout << func_name[i] << endl;
 
@@ -134,7 +141,7 @@ void parse_options(int argc, char**argv) {
 	input_file_name_full = argv[1];
 	if ((in = fopen(input_file_name_full.c_str(),"r")) == NULL) Abort(string("file ") + input_file_name_full + string("cannot be opened"));
 	fclose(in);
-	input_file_name = input_file_name_full.substr(0,input_file_name_full.size() - 2);
+	input_file_name = input_file_name_orig = input_file_name_full.substr(0,input_file_name_full.size() - 2); 
 	assert(input_file_name_full[input_file_name_full.size() - 2]=='.');
 	word_length = atoi(argv[2]);
 	for (int i = 3; i < argc ; ++i) {
@@ -321,7 +328,7 @@ int run_cbmc(bool membership) {
 	tmp.str("");
 	tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui " << filename << " learn_code.c " << " > " << tmp_file << "\"";
 	run(tmp.str().c_str());	
-	
+	cout << tmp.str() << endl;
 	tmp.str("");
 	tmp << "grep ERROR " << tmp_file;
 	if (!run(tmp.str().c_str())) Abort(string("ERROR in output of CBMC (see " + tmp_file = ")"));
@@ -375,6 +382,8 @@ void positive_queries(list<int> query) {
 }
 
 bool answer_Membership(list<int> query) {
+	static list<int> bad_prefix(1,-1);	
+	static int failure_point = -1;
 	list<int>::iterator it;
 	list<int>::reverse_iterator rit;
 
@@ -383,12 +392,14 @@ bool answer_Membership(list<int> query) {
 	for (it = query.begin(); it != query.end(); ++it ) cout << *it;
 	cout << " ";
 	
+	// empty query
 	if (query.size() == 0) 
 	{
 		cout << "Zero-size!" << endl;
 		return false;
 	}
 	
+	// the query is right after conjecture. We know the answer anyway. 
 	if (feedback == 0) 
 	{		
 		cout << "Feedback!" << endl;
@@ -424,24 +435,51 @@ bool answer_Membership(list<int> query) {
 	cout.flush();
 	// word has to be compatible with the cfg
 	if (instrument_functions) 
-	{
-		
+	{				
+		bool same_prefix = true;
+		list<int>::iterator bad_prefix_it = bad_prefix.begin();
 		for (it = query.begin(); it != query.end(); ++it) // TODO: check if has the same prefix as a previously failed one; if yes skip cfg check and return false. 
-			if (*it >= min_func_idx) cfg_st << "c::" << func_name[*it] << endl;
+			if (*it >= min_func_idx) 
+			{
+				if (same_prefix && failure_point >=0 ) {
+					if (bad_prefix_it == bad_prefix.end()) {cout << "cfg (prefix)" << endl; ++cfg_prefix; return false;}
+					if (*bad_prefix_it != *it) same_prefix = false;
+					++bad_prefix_it;
+				}
+				cfg_st << "c::" << func_name[*it] << endl;
+			}
 		stringstream tmp;
-		tmp << input_file_name << ".seq";
+		tmp << input_file_name_orig << ".seq";
 		FILE *seq = fopen(tmp.str().c_str(), "w");
 		fprintf(seq, "c::main\n%s", cfg_st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
 		fclose(seq);
 		tmp.str("");
-		tmp << "goto-instrument " << input_file_name << ".exe --check-call-sequence < " << input_file_name << ".seq | grep -c \"not\" > seq.res";
+		tmp << "goto-instrument " << input_file_name << ".exe --check-call-sequence " << input_file_name_orig << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > seq.res"; // TODO: change '20' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions. 
 		run(tmp.str().c_str());
+		++cfg_queries;
 		FILE *seq_res = fopen ("seq.res", "r");
 		int res;
 		if (fscanf(seq_res, "%d", &res) != 1) Abort("cannot read seq.res");
 		fclose(seq_res);	
 		if (res == 1) {
-			cout << "cfg!" << endl; return false;
+			cout << "cfg! "; 
+			// now we find where the point of failure was
+			tmp.str("");
+			tmp << "tail -n 1 tmp1 > seq_failure.res";
+			run(tmp.str().c_str());
+			seq_res = fopen ("seq_failure.res", "r");
+			if (fscanf(seq_res, "%d", &failure_point) != 1) Abort("cannot read seq_failure.res");
+			bad_prefix.clear();
+			list<int>::iterator tmp_it = query.begin();
+			cout << "bad prefix = ";
+			for (int i = 0; i < failure_point; ++i) 
+			{ 
+				bad_prefix.push_back(*tmp_it);
+				cout << *tmp_it << " ";
+				++tmp_it;
+			}
+			cout << endl;
+			return false;
 		}
 	}
 
@@ -529,6 +567,7 @@ void learn() {
 			}
 						
 		//	if (counter > 1 && conjectured) exit(1);
+	//		if (conjectured) exit(1);
 			conjectured = false;
 		}
 		// Resolve equivalence queries
@@ -577,7 +616,7 @@ int main(int argc, char**argv) {
 
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-	cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << endl;
+	cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << endl;
 	cout << "Time: " << elapsed_secs << endl;
 
 	return 0;
