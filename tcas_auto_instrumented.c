@@ -1,4 +1,4 @@
-#include "learn.c" 
+//#include "learn.c" 
 
 /*  -*- Last-Edit:  Fri Jan 29 11:13:27 1993 by Tarak S. Goradia; -*- */
 /* $Log: tcas_v23_523.c,v $

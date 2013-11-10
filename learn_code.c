@@ -1,6 +1,5 @@
 #include "learn.h"
 #include "conjecture_data.h"
-//#include "membership_data.h"  // included from membeship_data.c anyway
 
 #define assert_letter AlphaBetSize - 1
 

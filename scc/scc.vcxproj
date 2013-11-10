@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="automaton_domination.cpp" />
     <ClCompile Include="dominators.cpp" />
   </ItemGroup>
   <ItemGroup>

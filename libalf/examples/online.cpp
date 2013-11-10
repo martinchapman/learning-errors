@@ -27,6 +27,7 @@ void predecessors(int m, int current, int *predecessors_list);
 void instrument();
 void Abort(string msg);
 int run(const char* cmd);
+bool verbose = false; // to be made a command-line argument
 
 struct myEdge {char s[100]; char t[100];};
 
@@ -39,16 +40,23 @@ int word_length;
 ostringstream word_length_s;
 FILE *convert;	
 
-/*********************** building 'matrix' (the allowed consecutive function calls) based on the call-graph  ******************/
 
-void rewrite_function_enter(char *name, int num) // rewriting the instrumented calls: either erase or change to reporting an int.
+bool rewrite_function_enter(char *name, int num) // rewriting the instrumented calls: either erase or change to reporting an int.
 {
+	static int counter = 0;
 	stringstream st; 
 	if (num == -1) // remove statement
 		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"// ";
 	else
 		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";	
 	fprintf(convert, "%s", st.str().c_str());
+	++counter;
+	if (counter == 50) { // need to break the sed command (beyond certain -e expressions it fails)
+		fprintf(convert, "a.c > tmp.c\ncp tmp.c a.c\n");
+		counter = 0;
+		return true;
+	}
+	return false;
 }
 
 void rewrite_branch(char *name, int num) 
@@ -65,7 +73,7 @@ int generate_func_names(int letter) {
 // reads func names from FUNC_NAMES and 
 // 1) fills the global list node_index (to be used later in compute_allowed_pairs())
 // 2) populates AUTO_LABELS_FUNCTIONS with function labels,
-// 3) prepares the CONVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjectiure, etc), 
+// 3) prepares the CONVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjecture, etc), 
 //    and replaces the (char *) <func_name> with (int index) in the file a.c (the result of goto-instrument). Using int rather than strings avoids
 //    strcmp() instructions which turn into loops by cbmc. 
 	char name[100];
@@ -93,20 +101,24 @@ int generate_func_names(int letter) {
 	}
 	else cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_name_orig << ".f" << endl;
 	
+	bool closed = true;
 	while (!feof(func_names)) {
 		if (fscanf(func_names, "%s", name) != 1) continue;
 		
 		if (!strcmp(name, "main") || ((user_func_names != NULL) && user_func_set.find(name) == user_func_set.end())) // here we can add other functions we wish to ignore
 		{
 			cout << "skipping " << name << endl; 
-			rewrite_function_enter(name, -1); // -1 = remove statement
+			if (closed) fprintf(convert, "sed ");
+			closed = rewrite_function_enter(name, -1); // -1 = remove statement
 			continue; 
 		}			
 		
 		func_name.insert(pair<int, string>(letter, string(name)));
 		fprintf(Labels, "%d %s\n", letter, name);
-		rewrite_function_enter(name, letter++);		
+		if (closed) fprintf(convert, "sed ");
+		closed = rewrite_function_enter(name, letter++);		
 	}
+	if (!closed) fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
 	// what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
 
 	fprintf(Labels, "%d %s\n", letter, "Learn_Assert"); // changed from assert
@@ -137,7 +149,13 @@ void Abort(string msg) {
 void parse_options(int argc, char**argv) {		
 	FILE *in;
 
-	if (argc < 3) Abort(string("usage: online <file_name> <word-length> [--auto {b,f}]* [<user (manualy inserted) alphabet-size>]" "\n-- auto\tautomatic instrumentation of (f)unction entries or (b)ranch.\n\tif (f) is chosen, each function becomes a letter in the alphabet. Ignores alphabet-size if given. \n Default 'manual' alphabet-size is 0."));
+	if (argc < 3) Abort(string(
+		"usage: online <file_name> <word-length> [--auto {b,f}]* [--v] [<user (manualy inserted) alphabet-size>]\n" 
+		"\t -- auto\tautomatic instrumentation of (f)unction entries or (b)ranch.\n"
+		"\t\t\t if (f) is chosen, each function becomes a letter in the alphabet. Ignores alphabet-size if given. \n"
+		"\t --v: \tverbose\n"
+		"\t Default 'manual' alphabet-size is 0.\n"
+));
 	input_file_name_full = argv[1];
 	if ((in = fopen(input_file_name_full.c_str(),"r")) == NULL) Abort(string("file ") + input_file_name_full + string("cannot be opened"));
 	fclose(in);
@@ -153,6 +171,7 @@ void parse_options(int argc, char**argv) {
 			++i;
 		}
 		else if (isdigit(argv[i][0])) alphabet_size = atoi(argv[3]); 
+		else if (!strcmp(argv[i], "--v")) verbose = true;
 		else Abort(string("wrong argument: ") + string(argv[i]));
 	}	
 	
@@ -170,8 +189,7 @@ void preprocess_source() {
 	stringstream tmp;
 
 	tmp << "cmd /c sed -e '1i\\#include \\\"learn.c\\\" ' " << input_file_name_full << " > tmp "; 
-	run(tmp.str().c_str());
-	cout << tmp.str().c_str() << endl;
+	run(tmp.str().c_str());	
 	tmp.str("");
 	input_file_name_full = "_" + input_file_name_full;
 	input_file_name = "_" + input_file_name;
@@ -194,7 +212,7 @@ void init_auto_instrumentation()
 	fprintf(convert, "-e s/\"signed int _Learn_letter;\"// " );
 	fprintf(convert, "-e s/\"void _Learn_branch(const char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
 	fprintf(convert, "-e s/\"void _Learn_function_enter(const char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
-	
+	fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
 		
 	if (instrument_branches) {
 		alphabet_size += 2;		
@@ -203,8 +221,7 @@ void init_auto_instrumentation()
 	}
 	if (instrument_functions) {
 		tmp.str("");
-		tmp << "cmd /C \"" << GET_FUNC_NAMES  << " " << input_file_name << " " << FUNC_NAMES << "\""; // populates FUNC_NAMES with function names, according to the instrumented file generated by goto-instrument
-		cout << "running " << tmp.str() << endl;
+		tmp << "cmd /C \"" << GET_FUNC_NAMES  << " " << input_file_name << " " << FUNC_NAMES << "\""; // populates FUNC_NAMES with function names, according to the instrumented file generated by goto-instrument		
 		run(tmp.str().c_str());
 		min_func_idx = alphabet_size;
 	
@@ -214,8 +231,7 @@ void init_auto_instrumentation()
 		alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
 		min_func_idx = alphabet_size; // we need to define it because it is used in answer_query
 	}	
-
-	fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
+	
 	fclose(convert);		
 
 	if (instrument_branches || instrument_functions) {
@@ -301,8 +317,7 @@ void instrument() {
 	if (instrument_branches)
 		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \"";
 	if (instrument_functions)
-		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \""; 		
-	cout << "running: " << tmp.str() << endl;
+		tmp << "cmd /c \"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_name << ".exe a.c \""; 			
 	 run(tmp.str().c_str());
 
 	 
@@ -313,10 +328,13 @@ void instrument() {
 	run(tmp.str().c_str());	
 }
 
-int run(const char* cmd) {
-	bool verbose = false; // to be made a command-line argument
-	if (verbose) cout << cmd << endl;
-	return system(cmd);
+int run(const char* cmd) {	
+	int res;
+	if (verbose) {cout << endl << "---------- external command -----------" << endl << cmd << endl;}
+	res = system(cmd);
+	if (verbose) {cout << endl << "---------------------------------------" << endl;}
+	cout.flush();
+	return res;
 }
 
 int run_cbmc(bool membership) {
@@ -327,8 +345,7 @@ int run_cbmc(bool membership) {
 	string filename = (instrument_branches || instrument_functions) ? "a.c" : input_file_name_full;
 	tmp.str("");
 	tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui " << filename << " learn_code.c " << " > " << tmp_file << "\"";
-	run(tmp.str().c_str());	
-	cout << tmp.str() << endl;
+	run(tmp.str().c_str());		
 	tmp.str("");
 	tmp << "grep ERROR " << tmp_file;
 	if (!run(tmp.str().c_str())) Abort(string("ERROR in output of CBMC (see " + tmp_file = ")"));
@@ -339,8 +356,14 @@ int run_cbmc(bool membership) {
 	}
 	tmp.str("");
 	tmp <<  "grep -q FAILURE " << tmp_file;
+	int res = run(tmp.str().c_str());
+	if (res == 0) return 0;
 	
-	return run(tmp.str().c_str()); // 0 if there is CE, > 0 otherwise.  
+	tmp.str("");
+	tmp <<  "grep -q SUCCESS " << tmp_file;
+	res = run(tmp.str().c_str());
+	if (res == 0) return 1;
+	Abort("CBMC FAILURE");	
 }
 
 bool answer_Conjecture(conjecture * cj) {
@@ -381,22 +404,14 @@ void positive_queries(list<int> query) {
 	run (ist.str().c_str());
 }
 
-bool answer_Membership(list<int> query) {
-	static list<int> bad_prefix(1,-1);	
-	static int failure_point = -1;
-	list<int>::iterator it;
-	list<int>::reverse_iterator rit;
-
-	mem_queries++;
-	cout << "Please classify the word: ";	
-	for (it = query.begin(); it != query.end(); ++it ) cout << *it;
-	cout << " ";
+char membership_pre_checks(list<int> query) {
 	
 	// empty query
+	
 	if (query.size() == 0) 
 	{
 		cout << "Zero-size!" << endl;
-		return false;
+		return 0;
 	}
 	
 	// the query is right after conjecture. We know the answer anyway. 
@@ -404,54 +419,58 @@ bool answer_Membership(list<int> query) {
 	{		
 		cout << "Feedback!" << endl;
 		feedback = -1;
-		return false;		
+		return 0;		
 	}
 	else if (feedback == 1)
 	{
 		positive_queries(query);	
 		cout << "Feedback!" << endl;
 		feedback = -1;
-		return true;
+		return 1;
 	}
 	
-	stringstream st;		
-	
+
 	// query longer than word_length. It will be rejected anyway. 
 	if (query.size() > word_length) 
 	{
 		cout << "Long!" << endl;
-		return false;
+		return 0;
 	}
-
+	
 	// last letter must be 'assert' (== alphabet_size - 1)
-	rit = query.rbegin();
+	list<int>::reverse_iterator rit = query.rbegin();
 	if (*rit != alphabet_size - 1) {		
 		cout << "End!" << endl;
-		return false;
+		return 0;
 	}
-	
-	
-	stringstream cfg_st;
-	cout.flush();
-	// word has to be compatible with the cfg
-	if (instrument_functions) 
-	{				
-		bool same_prefix = true;
-		list<int>::iterator bad_prefix_it = bad_prefix.begin();
-		for (it = query.begin(); it != query.end(); ++it) // TODO: check if has the same prefix as a previously failed one; if yes skip cfg check and return false. 
-			if (*it >= min_func_idx) 
-			{
-				if (same_prefix && failure_point >=0 ) {
-					if (bad_prefix_it == bad_prefix.end()) {cout << "cfg (prefix)" << endl; ++cfg_prefix; return false;}
-					if (*bad_prefix_it != *it) same_prefix = false;
-					++bad_prefix_it;
+	return 2;
+}
+
+bool membership_cfg_checks(list<int> query) {
+	static list<int> bad_prefix(1,-1);	
+	static int failure_point = -1;
+	list<int>::iterator it;
+	stringstream st;	
+	bool same_prefix = true;
+	list<int>::iterator bad_prefix_it = bad_prefix.begin();
+	for (it = query.begin(); it != query.end(); ++it) 
+		if (*it >= min_func_idx) 
+		{
+			if (same_prefix && failure_point >=0 ) {
+				if (bad_prefix_it == bad_prefix.end()) {  // same prefix as the previous failed one; we skip cfg check and return false. 
+					cout << "cfg (prefix)" << endl; 
+					++cfg_prefix; 
+					return false;
 				}
-				cfg_st << "c::" << func_name[*it] << endl;
+				if (*bad_prefix_it != *it) same_prefix = false;
+				++bad_prefix_it;
 			}
+			st << "c::" << func_name[*it] << endl;
+		}
 		stringstream tmp;
 		tmp << input_file_name_orig << ".seq";
 		FILE *seq = fopen(tmp.str().c_str(), "w");
-		fprintf(seq, "c::main\n%s", cfg_st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
+		fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
 		fclose(seq);
 		tmp.str("");
 		tmp << "goto-instrument " << input_file_name << ".exe --check-call-sequence " << input_file_name_orig << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > seq.res"; // TODO: change '20' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions. 
@@ -481,10 +500,27 @@ bool answer_Membership(list<int> query) {
 			cout << endl;
 			return false;
 		}
-	}
+		return true;
+}
 
+bool answer_Membership(list<int> query) {
+	
+	list<int>::iterator it;
+	stringstream st;	
 
-
+	mem_queries++;
+	cout << "Please classify the word: ";	
+	for (it = query.begin(); it != query.end(); ++it ) cout << *it;
+	cout << " ";
+	
+	// cheap pre-checks
+	char pre_res = membership_pre_checks(query);  // 0 - false, 1 - true, 2 - no finding
+	 if (pre_res != 2) return (bool) pre_res; 
+		
+	// if instrumenting function calls, word has to be compatible with the cfg
+	if (instrument_functions && !membership_cfg_checks(query)) return false;
+		
+	cout.flush();
 	// all pre-tests failed. Going into a cbmc call.
 
 	bool saw_assert_test_letter = false;

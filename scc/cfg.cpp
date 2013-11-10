@@ -154,7 +154,7 @@ int generate_func_names(int letter) {
 	
 	stringstream st;
 	st << input_file_name << ".f";
-	FILE 		*user_func_names = fopen(st.str().c_str() , "r");
+	FILE *user_func_names = fopen(st.str().c_str() , "r");
 	
 	// populating user_func_names with function names from input_file_name.f
 	if (user_func_names != NULL) {
