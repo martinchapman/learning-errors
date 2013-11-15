@@ -36,8 +36,8 @@ map<int, string> func_name; // maps index to a function name
 string input_file_name, // no extension, but after instrumentation will have "_" prefix, e.g. "_file"
 	input_file_name_orig, // no extension, e.g., "file"
 	input_file_name_full; // with extension (e.g. "file.c")
-int word_length; 
-ostringstream word_length_s;
+int word_length, unwind = 0; 
+ostringstream unwind_s;
 FILE *convert;	
 
 
@@ -48,7 +48,7 @@ bool rewrite_function_enter(char *name, int num) // rewriting the instrumented c
 	if (num == -1) // remove statement
 		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"// ";
 	else
-		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";	
+		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";		
 	fprintf(convert, "%s", st.str().c_str());
 	++counter;
 	if (counter == 50) { // need to break the sed command (beyond certain -e expressions it fails)
@@ -69,6 +69,21 @@ void rewrite_branch(char *name, int num)
 	fprintf(convert, "%s", st.str().c_str());
 }
 
+// we duplicate file.f to file.is where the latter has "c::" prefix before each function name, because 1) we want the user to enter natural names, 2) goto-instrument must have the c:: prefix, 3) func_names is produced by another tool that also generates natural names. So some conversion is necessary in any case. 
+void create_interesting_set(FILE *f) {
+	char name[100];
+	stringstream st, st1;	
+	st << input_file_name_orig << ".is";  // is = interesting set
+	st1 << "rm " << st.str();
+	run(st1.str().c_str()); // remove old .is file, even if we do not create a new one. 
+	FILE *func_names_for_goto_inst = fopen(st.str().c_str(), "w");  // we duplicate file.f to file.is where the latter has "c::" prefix before each function name, because 1) we want the user to enter natural names, 2) goto-instrument must have the c:: prefix, 3) func_names is produced by another tool that also generates natural names. So some conversion is necessary in any case. 
+	while (!feof(f)) {
+		if (fscanf(f, "%s", name) != 1) continue;		
+		fprintf(func_names_for_goto_inst, "c::%s\n", name);
+	}
+	fclose(func_names_for_goto_inst);
+}
+
 int generate_func_names(int letter) {
 // reads func names from FUNC_NAMES and 
 // 1) fills the global list node_index (to be used later in compute_allowed_pairs())
@@ -83,28 +98,26 @@ int generate_func_names(int letter) {
 	FILE *func_names = fopen(FUNC_NAMES, "r"),
 		 *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w"),
 		 *user_func_names = fopen(st.str().c_str() , "r");
-	st.str("");	
-	st << input_file_name_orig << ".is";
-	st1 << "rm " << st.str();
-	run(st1.str().c_str()); // remove old .is file, even if we do not create a new one. 
+	
 	if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
 	if (user_func_names != NULL) {
 		cout << "found " << st.str() << endl;
-		
-		FILE *func_names_for_goto_inst = fopen(st.str().c_str(), "w");  // we duplicate file.f to file.is where the latter has "c::" prefix before each function name, because 1) we want the user to enter natural names, 2) goto-instrument must have the c:: prefix, 3) func_names is produced by another tool that also generates natural names. So some conversion is necessary in any case. 
+		create_interesting_set(user_func_names);	
 		while (!feof(user_func_names)) {
 			if (fscanf(user_func_names, "%s", name) != 1) continue;
-			user_func_set.insert(pair<string, int>(name, 0));
-			fprintf(func_names_for_goto_inst, "c::%s\n", name);
-		}
-		fclose(func_names_for_goto_inst);
+			user_func_set.insert(pair<string, int>(name, 0));			
+		}		
 	}
-	else cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_name_orig << ".f" << endl;
+	else {
+		cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_name_orig << ".f" << endl;
+		create_interesting_set(func_names);	
+		rewind(func_names);
+	}
 	
 	bool closed = true;
-	while (!feof(func_names)) {
-		if (fscanf(func_names, "%s", name) != 1) continue;
 		
+	while (!feof(func_names)) {
+		if (fscanf(func_names, "%s", name) != 1) continue;	
 		if (!strcmp(name, "main") || ((user_func_names != NULL) && user_func_set.find(name) == user_func_set.end())) // here we can add other functions we wish to ignore
 		{
 			cout << "skipping " << name << endl; 
@@ -115,7 +128,7 @@ int generate_func_names(int letter) {
 		
 		func_name.insert(pair<int, string>(letter, string(name)));
 		fprintf(Labels, "%d %s\n", letter, name);
-		if (closed) fprintf(convert, "sed ");
+		if (closed) fprintf(convert, "sed ");		
 		closed = rewrite_function_enter(name, letter++);		
 	}
 	if (!closed) fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
@@ -150,10 +163,11 @@ void parse_options(int argc, char**argv) {
 	FILE *in;
 
 	if (argc < 3) Abort(string(
-		"usage: online <file_name> <word-length> [--auto {b,f}]* [--v] [<user (manualy inserted) alphabet-size>]\n" 
+		"usage: online <file_name> <word-length> [--auto {b,f}]* [--v] [--unwind #] [<user (manualy inserted) alphabet-size>]\n" 
 		"\t -- auto\tautomatic instrumentation of (f)unction entries or (b)ranch.\n"
 		"\t\t\t if (f) is chosen, each function becomes a letter in the alphabet. Ignores alphabet-size if given. \n"
 		"\t --v: \tverbose\n"
+		"\t --unwind <k>: \tcbmc's unwinding = max(k, alphabet-size+1).\n"
 		"\t Default 'manual' alphabet-size is 0.\n"
 ));
 	input_file_name_full = argv[1];
@@ -172,6 +186,11 @@ void parse_options(int argc, char**argv) {
 		}
 		else if (isdigit(argv[i][0])) alphabet_size = atoi(argv[3]); 
 		else if (!strcmp(argv[i], "--v")) verbose = true;
+		else if (!strcmp(argv[i], "--unwind")) {
+			++i;
+			if (argc == i || !isdigit(argv[i][0])) Abort("missing number after --unwind\n"); 
+			unwind = atoi(argv[i]);
+		}
 		else Abort(string("wrong argument: ") + string(argv[i]));
 	}	
 	
@@ -207,8 +226,13 @@ void init_auto_instrumentation()
 	convert = fopen(CONVERT, "w");
 	fprintf(convert, "@echo off\nsed ");
 	
-	fprintf(convert, "-e s/\"_Learn_function_exit((const char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((const char \\*)\\\"c::[a-zA-Z0-9_]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
-
+	fprintf(convert, "-e s/\"_Learn_function_exit((const char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((const char \\*)\\\"c::[a-zA-Z0-9_\$]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
+	
+	// adding learn_trap before exit statements
+	fprintf(convert, "-e s/\"int exit\"/\"@@\"/ ");  // because exit is sometimes declared. So we do not want the next line to add a Learn_trap before it. 
+	fprintf(convert, "-e s/\"\\(exit([a-zA-Z0-9_\$]*)\\)\"/\"Learn_trap\\(\\); \\n &\"/ ");  // adding Learn_trap before exit() statements.
+	fprintf(convert, "-e s/\"@@\"/\"int exit\"/ ");  // replacing @@ back to the declaration of exit
+	
 	fprintf(convert, "-e s/\"signed int _Learn_letter;\"// " );
 	fprintf(convert, "-e s/\"void _Learn_branch(const char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
 	fprintf(convert, "-e s/\"void _Learn_function_enter(const char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
@@ -250,7 +274,7 @@ void init_word_length_file() {
 	fprintf(file, "#define word_length_bound %d\n", word_length);
 	fprintf(file, "#define AlphaBetSize %d", alphabet_size);
 	fclose(file);	
-	word_length_s << (word_length + 1); // we need to unroll one more than the word_length
+	unwind_s << max(word_length + 1, unwind); // we need to unroll one more than the word_length
 }
 
 /******************************* after learn *************************/
@@ -344,8 +368,8 @@ int run_cbmc(bool membership) {
 	run(tmp.str().c_str());
 	string filename = (instrument_branches || instrument_functions) ? "a.c" : input_file_name_full;
 	tmp.str("");
-	tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << word_length_s.str() << " --no-unwinding-assertions --xml-ui " << filename << " learn_code.c " << " > " << tmp_file << "\"";
-	run(tmp.str().c_str());		
+	tmp << "cmd /c \"cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --no-unwinding-assertions --xml-ui " << filename << " learn_code.c " << " > " << tmp_file << "\"";
+	run(tmp.str().c_str());
 	tmp.str("");
 	tmp << "grep ERROR " << tmp_file;
 	if (!run(tmp.str().c_str())) Abort(string("ERROR in output of CBMC (see " + tmp_file = ")"));
@@ -473,7 +497,7 @@ bool membership_cfg_checks(list<int> query) {
 		fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
 		fclose(seq);
 		tmp.str("");
-		tmp << "goto-instrument " << input_file_name << ".exe --check-call-sequence " << input_file_name_orig << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > seq.res"; // TODO: change '20' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions. 
+		tmp << "goto-instrument " << input_file_name << ".exe --check-call-sequence " << input_file_name_orig << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > seq.res";  // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions. 
 		run(tmp.str().c_str());
 		++cfg_queries;
 		FILE *seq_res = fopen ("seq.res", "r");

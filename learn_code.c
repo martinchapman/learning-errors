@@ -39,7 +39,10 @@ void check_conjecture(bool assert_condition) {
 		Assert(0, assert_condition ? 0 : 1); 
 	}	
 	
-	if (_Learn_idx  == word_length_bound) __CPROVER_assume(0); // it is possible that we continue beyond word_length_bound (e.g. cbmc has nested loops, hence the internal loop with the assert will be hit more than word_length_bound times). With this line, we truncate these paths. Without it, we may improve the automaton beyond the word_length. But we cannot activate it as long as we use arrays with size word_length_bound (we should use a bigger number / infinite arrays).
+	if (_Learn_idx  == word_length_bound) __CPROVER_assume(0); // it is possible that we continue beyond word_length_bound (e.g. cbmc has nested loops, hence the internal loop 
+															   // with the assert will be hit more than word_length_bound times). With this line, we truncate these paths. 
+															   // Without it, we may improve the automaton beyond the word_length. But we cannot activate it as long as we use arrays 
+															   // with size word_length_bound (we should use a bigger number / infinite arrays).
 }
 	
 // called from _Learn_trap. At the trap we are only interested in negative feedbacks (everything that gets here is not in the language).
