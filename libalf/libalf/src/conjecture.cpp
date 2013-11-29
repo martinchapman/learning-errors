@@ -682,7 +682,7 @@ string finite_automaton::visualize() const  // ofer
 			"\tsize=8;\n\n";
 
 		// dominating_edges_set
-		dom_edges << "node [shape=rectengle, color = green, label= \"Dominating edges: ";
+		dom_edges << "node [shape=rectangle, color = green, label= \"Dominating edges: ";
 		bool first = true;
 		for (set<int>::iterator it = dominating_edges_set.begin(); it != dominating_edges_set.end(); ++it)
 		{

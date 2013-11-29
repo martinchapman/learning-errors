@@ -27,13 +27,21 @@
 #define WORD_LENGTH "word_length.c" 
 #define MODE "mode.c"
 
-// main batch file: 
-#define CE "ce.bat" 
-#define GENERATE_CALL_GRAPH "generate_call_graph.bat"
-// retrieves function names from a goto-instrument output: 
-#define GET_FUNC_NAMES "get_func_names.bat"
-#define CONVERT "convert.bat"
-#define CFG2GRAPH "cfg2graph.bat"
+#ifdef _WIN32
+ // main batch file: 
+ #define CE "ce.bat" 
+ #define GENERATE_CALL_GRAPH "generate_call_graph.bat"
+ // retrieves function names from a goto-instrument output: 
+ #define GET_FUNC_NAMES "get_func_names.bat"
+ #define CONVERT "convert.bat"
+ #define CFG2GRAPH "cfg2graph.bat"
+#else
+ #define CE "./ce.sh" 
+ #define GENERATE_CALL_GRAPH "./generate_call_graph.sh"
+ #define GET_FUNC_NAMES "./get_func_names.sh"
+ #define CONVERT "./convert.sh"
+ #define CFG2GRAPH "./cfg2graph.sh"
+#endif
 
 // ce of cbmc; generated in CE
 #define MODEL "model.txt"

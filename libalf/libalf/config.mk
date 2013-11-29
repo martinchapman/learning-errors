@@ -3,10 +3,13 @@
 #
 # directory definitions for Makefile
 
+CXX = g++
+PREFIX = $(PROG)/libalf
+
 CFLAGS += -O3
 CPPFLAGS += -O3
 
-PREFIX?=/usr/local
+#PREFIX?=/usr/local
 LIBDIR?=${PREFIX}/lib
 INCLUDEDIR?=${PREFIX}/include
 BINDIR?=${PREFIX}/bin

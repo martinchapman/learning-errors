@@ -48,7 +48,7 @@ void reset_visited() {
 	for (int t = 0; t < numOfVertices; ++t) visited[t] = false;
 }
 
-void main() {
+int main(int argc, char** argv) {
 	int s = 0, j, alphabetSize;
 	FILE *out, *in = fopen(AUTOMATON, "r");  
 	fscanf(in, "%d %d", &numOfVertices, &alphabetSize );
