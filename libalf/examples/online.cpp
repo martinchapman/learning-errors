@@ -13,7 +13,7 @@
 #include <map>
 #include <ctime>
 #include "../../file_names.h" // ofer
-#define _WIN32
+//#define _WIN32
 
 using namespace std;
 using namespace libalf;
@@ -593,7 +593,7 @@ bool membership_cfg_checks(list<int> query) {
 		FILE *seq = fopen(input_file_seq.c_str(), "w");
 		fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
 		fclose(seq);				
-		tmp << "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > _seq.res";  // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions. 
+		tmp << "cat " << input_file_prefix << ".seq | goto-instrument " << input_file_exe << " --check-call-sequence | tee tmp1 | grep -c \"not\" > _seq.res";  // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions. 
 
 		run(tmp.str().c_str());
 		++cfg_queries;
