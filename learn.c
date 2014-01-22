@@ -1,3 +1,5 @@
+#ifndef __LEARN_INCLUDED__
+#define __LEARN_INCLUDED__
 #include "cbmc_headers.c"
 
 //#define _Learn_trap Learn_trap(); 
@@ -13,5 +15,5 @@
 //void _Learn_function_enter(const char *);
 void Learn_trap();
 void Learn_Assert(bool x); 
-
+#endif
 
