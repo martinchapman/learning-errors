@@ -84,6 +84,9 @@ namespace libalf {
 
 template <class answer>
 class knowledgebase {
+  public:
+  class iterator;
+
 	public: // types
 		class node {
 			friend class knowledgebase<answer>;
