@@ -1,10 +1,16 @@
 SRC = automaton_domination dominators
 
-CLAGS = -Wall
+CFLAGS = -I/sw/opt/boost-1_55/include -Wall
+
+all: dominators dfs
 
 dominators: $(SRC:%=%.o)
 	g++ $^ -o $@ $(CFLAGS)
 	cp dominators ../
 
-%.o: %.c
+dfs: $(SRC:%=%.o)
+	g++ $^ -o $@ $(CFLAGS)
+	cp dfs ../
+
+%.o: %.cpp
 	g++ $< -c -o $@ $(CFLAGS)
