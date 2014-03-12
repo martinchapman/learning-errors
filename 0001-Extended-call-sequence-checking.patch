@@ -1,0 +1,205 @@
+From 61a9b970ce05776faa1682d5ee71f02301490597 Mon Sep 17 00:00:00 2001
+From: Michael Tautschnig <mt@debian.org>
+Date: Wed, 12 Mar 2014 11:15:46 +0000
+Subject: [PATCH] Extended call sequence checking
+
+---
+ src/goto-instrument/call_sequences.cpp             | 72 ++++++++++++++++++----
+ src/goto-instrument/call_sequences.h               |  5 +-
+ .../goto_instrument_parseoptions.cpp               |  8 ++-
+ src/goto-instrument/goto_instrument_parseoptions.h |  2 +-
+ 4 files changed, 72 insertions(+), 15 deletions(-)
+
+diff --git a/src/goto-instrument/call_sequences.cpp b/src/goto-instrument/call_sequences.cpp
+index 6c5a578..190cd49 100644
+--- a/src/goto-instrument/call_sequences.cpp
++++ b/src/goto-instrument/call_sequences.cpp
+@@ -10,6 +10,8 @@ Date: April 2013
+ 
+ #include <stack>
+ #include <iostream>
++#include <fstream>
++#include <algorithm>
+ 
+ #include <util/std_expr.h>
+ 
+@@ -156,9 +158,12 @@ class check_call_sequencet
+ public:
+   explicit check_call_sequencet(
+     const goto_functionst &_goto_functions,
+-    const std::vector<irep_idt> &_sequence):
++    const std::vector<irep_idt> &_sequence,
++    const std::set<irep_idt> &_interesting_set,
++    int _bound):
+     goto_functions(_goto_functions),
+-    sequence(_sequence)
++    sequence(_sequence),
++    interesting_set(_interesting_set), bound(_bound)
+   {
+   }  
+ 
+@@ -167,6 +172,8 @@ public:
+ protected:
+   const goto_functionst &goto_functions;
+   const std::vector<irep_idt> &sequence;
++  const std::set<irep_idt> &interesting_set;
++  int bound;
+ 
+   struct call_stack_entryt
+   {
+@@ -239,10 +246,15 @@ void check_call_sequencet::operator()()
+     queue.top().index=1;
+   }
+   
++  bool all_interesting = interesting_set.empty();
++  bool is_bounded = (bound > -1);
++  unsigned ending_index = 0;
++  int non_interesting_counter = 0;
++
+   while(!queue.empty())
+   {
+     statet &e=queue.top();
+-    
++    if (e.index > ending_index) ending_index = e.index;
+     // seen already?
+     if(states.find(e)!=states.end())
+     {
+@@ -280,11 +292,21 @@ void check_call_sequencet::operator()()
+       if(function.id()==ID_symbol)
+       {
+         irep_idt identifier=to_symbol_expr(function).get_identifier();
+-        
+-        if(sequence[e.index]==identifier)
++
++        if (sequence[e.index]==identifier ||   // found it
++            // the other option is to counter a case in which a
++            // non-interesting function is recursive and hence we may diverge
++            (!all_interesting &&
++             interesting_set.find(identifier) == interesting_set.end() && // it is not an interesting function
++             !(is_bounded && non_interesting_counter > bound))) // we did not yet cross the bound
+         {
+-          e.index++; // yes, we have seen it
+-        
++
++          if(sequence[e.index]==identifier) {
++            e.index++; // yes, we have seen it
++            non_interesting_counter = 0;
++          }
++          else non_interesting_counter++;
++
+           goto_functionst::function_mapt::const_iterator f_call_it=
+             goto_functions.function_map.find(identifier);
+           
+@@ -323,7 +345,7 @@ void check_call_sequencet::operator()()
+     }
+   }
+ 
+-  std::cout << "sequence not feasible\n";
++  std::cout << "sequence not feasible\n"<< ending_index << "\n";
+ }
+ 
+ /*******************************************************************\
+@@ -338,14 +360,19 @@ Function: check_call_sequence
+ 
+ \*******************************************************************/
+ 
+-void check_call_sequence(const goto_functionst &goto_functions)
++void check_call_sequence(
++  const goto_functionst &goto_functions,
++  const std::string &in_file_prefix,
++  int bound)
+ {
+-  // read the sequence from stdin
++  std::ifstream in_file;
++  std::string in_file_name = in_file_prefix + ".seq";
++  in_file.open(in_file_name.c_str());
+   
+   std::vector<irep_idt> sequence;
+   
+   std::string line;
+-  while(std::getline(std::cin, line))
++  while(std::getline(in_file, line))
+   {
+     if(line!="" && line[line.size()-1]=='\r')
+       line.resize(line.size()-1);
+@@ -353,7 +380,28 @@ void check_call_sequence(const goto_functionst &goto_functions)
+     if(line!="")
+       sequence.push_back(line);
+   }
++  in_file.close();
++  // read the 'interesting set', i.e., set of function names that we want to
++  // follow (others cause an \epsilon transition). It is assumed (but not
++  // checked) that (name \in sequence ==> name \in interesting_set)
++  in_file_name = in_file_prefix + ".is";
++  in_file.open(in_file_name.c_str());
++
++  std::set<irep_idt> interesting_set;
++
++  if (in_file.is_open())
++  {
++    //std::cerr << "Reading set of interesting functions from " << in_file_name << " \n";
++    while(std::getline(in_file, line))
++    {
++      if(line!="" && line[line.size()-1]=='\r')
++        line.resize(line.size()-1);
++
++      if(line!="")
++        interesting_set.insert(line);
++    }
++  }
+ 
+-  check_call_sequencet(goto_functions, sequence)();
++  check_call_sequencet(goto_functions, sequence, interesting_set, bound)();
+ }
+ 
+diff --git a/src/goto-instrument/call_sequences.h b/src/goto-instrument/call_sequences.h
+index 73d7d7e..bb0a316 100644
+--- a/src/goto-instrument/call_sequences.h
++++ b/src/goto-instrument/call_sequences.h
+@@ -14,6 +14,9 @@ Date: September 2011
+ #include <goto-programs/goto_functions.h>
+ 
+ void show_call_sequences(const goto_functionst &goto_functions);
+-void check_call_sequence(const goto_functionst &goto_functions);
++void check_call_sequence(
++  const goto_functionst &goto_functions,
++  const std::string &in_file_prefix,
++  int bound);
+ 
+ #endif
+diff --git a/src/goto-instrument/goto_instrument_parseoptions.cpp b/src/goto-instrument/goto_instrument_parseoptions.cpp
+index b0605ab..46827f4 100644
+--- a/src/goto-instrument/goto_instrument_parseoptions.cpp
++++ b/src/goto-instrument/goto_instrument_parseoptions.cpp
+@@ -244,8 +244,14 @@ int goto_instrument_parseoptionst::doit()
+ 
+     if(cmdline.isset("check-call-sequence"))
+     {
++      int bound = -1;
++      if (cmdline.isset("call-sequence-bound"))
++        bound=unsafe_string2int(cmdline.getval("call-sequence-bound"));
+       remove_returns(symbol_table, goto_functions);
+-      check_call_sequence(goto_functions);
++      check_call_sequence(
++        goto_functions,
++        cmdline.getval("check-call-sequence"),
++        bound);
+       return 0;
+     }
+ 
+diff --git a/src/goto-instrument/goto_instrument_parseoptions.h b/src/goto-instrument/goto_instrument_parseoptions.h
+index 862c8f1..a5a6038 100644
+--- a/src/goto-instrument/goto_instrument_parseoptions.h
++++ b/src/goto-instrument/goto_instrument_parseoptions.h
+@@ -54,7 +54,7 @@ Author: Daniel Kroening, kroening@kroening.com
+   "(verbosity):(version)(xml-ui)(show-loops)" \
+   "(accelerate)" \
+   "(k-induction):(step-case)(base-case)" \
+-  "(show-call-sequences)(check-call-sequence)" \
++  "(show-call-sequences)(check-call-sequence):(call-sequence-bound):" \
+   "(interpreter)(show-reaching-definitions)(count-eloc)" \
+   "(list-symbols)(list-undefined-functions)"
+ 
+-- 
+1.9.0
+

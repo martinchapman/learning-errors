@@ -116,6 +116,7 @@ int generate_func_names(int letter) {
 			if (fscanf(user_func_names, "%s", name) != 1) continue;
 			user_func_set.insert(pair<string, int>(name, 0));			
 		}		
+    fclose(user_func_names);
 	}
 	else {
 		cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_no_extention << ".f" << endl;
@@ -593,7 +594,7 @@ bool membership_cfg_checks(list<int> query) {
 		FILE *seq = fopen(input_file_seq.c_str(), "w");
 		fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
 		fclose(seq);				
-		tmp << "cat " << input_file_prefix << ".seq | goto-instrument " << input_file_exe << " --check-call-sequence | tee tmp1 | grep -c \"not\" > _seq.res";  // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions. 
+		tmp << "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > _seq.res";  // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
 
 		run(tmp.str().c_str());
 		++cfg_queries;
@@ -609,6 +610,7 @@ bool membership_cfg_checks(list<int> query) {
 			run(tmp.str().c_str());
 			seq_res = fopen ("_seq_failure.res", "r");
 			if (fscanf(seq_res, "%d", &failure_point) != 1) Abort("cannot read _seq_failure.res");
+      fclose(seq_res);
 			bad_prefix.clear();
 			list<int>::iterator tmp_it = query.begin();
 			cout << "bad prefix = ";
