@@ -8,7 +8,7 @@ dominators: $(SRC:%=%.o)
 	g++ $^ -o $@ $(CFLAGS)
 	cp dominators ../
 
-dfs: $(SRC:%=%.o)
+dfs: dfs.o
 	g++ $^ -o $@ $(CFLAGS)
 	cp dfs ../
 
