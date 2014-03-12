@@ -5,6 +5,7 @@
 //#define _Learn_trap Learn_trap(); 
 
 #define _Learn_assert(x) Learn_Assert(x); 
+void _Learn(int);
 
 // for automatic instrumentation
 
