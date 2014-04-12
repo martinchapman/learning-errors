@@ -27,7 +27,7 @@
 #define WORD_LENGTH "word_length.c" 
 #define MODE "mode.c"
 
-#ifdef _WIN32
+#ifdef _MYWIN32
  // main batch file: 
  #define CE "ce.bat" 
  #define GENERATE_CALL_GRAPH "generate_call_graph.bat"

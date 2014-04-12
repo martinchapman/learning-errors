@@ -14,7 +14,6 @@ int _Learn_ce_length;
 #endif
 
 char msg[3];
-_Bool Learn_Assert_seen = 0;
 
 
 void _Learn_branch(int _Learn_letter) { _Learn(_Learn_letter);};
@@ -62,19 +61,18 @@ void check_conjecture_at_trap() {
 }
 
 void Learn_Assert(bool assert_condition) { 	 
-  Learn_Assert_seen=1;
+  
 	if (!assert_condition) {_Learn(assert_letter);} // we call _Learn only when !res because our queries never include 'assert' more than once, hence we do not count asserts that pass.
 	check_conjecture(assert_condition); 
 }
 
-// Learn_trap: every suffix beyond the end of the program is supposed to be rejected. Here we complete it with a nondeterministic suffix (up to length word_length_bound) and fail an assertion if it leads to an aacepting state.
+// Learn_trap: every suffix beyond the end of the program is supposed to be rejected. Here we complete it with a nondeterministic suffix (up to length word_length_bound) and fail an assertion if it leads to an accepting state.
 // 1st line below: nondet completion of the path.
 // 2nd line below: we invoke check_conjecture_at_trap at each step.
-void Learn_trap() {
-  __CPROVER_assume(Learn_Assert_seen);
+void Learn_trap() {  
 	for (;_Learn_idx < word_length_bound; ) {
 		_Learn_b[_Learn_idx] =  nondet_int(); 
-		__CPROVER_assume(_Learn_b[_Learn_idx ] >= 0 && _Learn_b[_Learn_idx ] < AlphaBetSize ); 
+		__CPROVER_assume(_Learn_b[_Learn_idx ] >= 0 && _Learn_b[_Learn_idx ] < AlphaBetSize  ); 
 		_Learn_idx++; check_conjecture_at_trap(); 
 	} 
 }

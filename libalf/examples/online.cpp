@@ -13,8 +13,9 @@
 #include <map>
 #include <ctime>
 #include "../../file_names.h" // ofer
-//#define _WIN32
 
+
+int Assert_letter;
 using namespace std;
 using namespace libalf;
 int alphabet_size; 
@@ -191,7 +192,7 @@ void define_file_prefixes(string file_name)
 	string base_without_extension = input_file_name_base.substr(0,input_file_name_base.size() - 2);
 	input_file_prefix		= "_" + base_without_extension;
 	input_file_working_copy = input_file_prefix + ".c";
-#ifdef _WIN32
+#ifdef _MYWIN32	
 	input_file_exe			= input_file_prefix + ".exe";		
 #else
 	input_file_exe			= input_file_prefix + ".o";		
@@ -248,7 +249,7 @@ void preprocess_source() {
 	stringstream tmp;
 
 	tmp << 
-#ifdef _WIN32
+#ifdef _MYWIN32
 	  "cmd /c " <<
           "sed -e '1i\\#include \\\"learn.c\\\"' " << input_file_name_full << " > "  << input_file_working_copy; 
 #else
@@ -269,7 +270,7 @@ void init_auto_instrumentation()
 	// the convert file will be activated only after goto-instrument.
 	// we need to do the following conversions even if --auto is not activated, because the definition of _Learn_branch/_Learn_function_enter in learn.c won't compile otherwise.
 	convert = fopen(CONVERT, "w");
-#ifdef _WIN32
+#ifdef _MYWIN32
 	fprintf(convert, "@echo off\n");
 
 	fprintf(convert, "sed -e s/\"_Learn_function_exit((const char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((const char \\*)\\\"c::[a-zA-Z0-9_$]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
@@ -280,11 +281,11 @@ void init_auto_instrumentation()
 	// adding learn_trap before exit statements
 	fprintf(convert, "-e s/\"int exit\"/\"@@\"/ ");  // because exit is sometimes declared. So we do not want the next line to add a Learn_trap before it. 
 
-#ifdef _WIN32
-        // adding Learn_trap before exit() statements.
-	fprintf(convert, "-e s/\"\\(exit([a-zA-Z0-9_$]*)\\)\"/\"Learn_trap\\(\\); \\n &\"/ ");  
+#ifdef _MYWIN32
+        // adding Learn_trap before exit() statements. The space before 'exit' is important to prevent a case of a function such as a_exit(...)
+	fprintf(convert, "-e s/\"\\( exit([a-zA-Z0-9_$]*)\\)\"/\"Learn_trap\\(\\); \\n &\"/ ");  
 #else
-	fprintf(convert, "-e s/\"\\(exit([a-zA-Z0-9_$]*)\\)\"/\"Learn_trap\\(\\); \\n &\"/ ");  
+	fprintf(convert, "-e s/\"\\( exit([a-zA-Z0-9_$]*)\\)\"/\"Learn_trap\\(\\); \\n &\"/ ");  
 #endif
 	fprintf(convert, "-e s/\"@@\"/\"int exit\"/ ");  // replacing @@ back to the declaration of exit
 	
@@ -302,7 +303,7 @@ void init_auto_instrumentation()
 		tmp.str("");
 
 		tmp << 
-#ifdef _WIN32
+#ifdef _MYWIN32
 		  "cmd /C \"" << GET_FUNC_NAMES  << " " << input_file_prefix << " " << 
                      FUNC_NAMES << "\"";
 #else
@@ -330,6 +331,7 @@ void init_auto_instrumentation()
 				
 		instrument();
 	}
+	Assert_letter = alphabet_size - 1; // not suppose to change alphabet_size from this point on.
 }
 
 void init_word_length_file() {
@@ -345,7 +347,7 @@ void init_word_length_file() {
 
 void post_process() {
 	
-#ifdef _WIN32
+#ifdef _MYWIN32
   run("cmd /C \"dominators.exe\"");
   run("cmd /C \"dfs.exe\"");
 #else
@@ -368,12 +370,12 @@ void show_result(conjecture *result) {
 
 /*******************************  Learn  ****************************/
 
-list<int> get_CounterExample(int alphabetsize, int *feedback) {
+list<int> get_CounterExample(int alphabetsize, int *feedback, bool *need_recheck) {
 	list<int> ce;
 	int  i;
 	int length;
 	ifstream read(MODEL);
-
+	*need_recheck = false;
 	read >> *feedback;
 
 	assert(*feedback == 0 || *feedback == 1);
@@ -381,12 +383,16 @@ list<int> get_CounterExample(int alphabetsize, int *feedback) {
 	cout << "Counterexample ";
 	read >> length;
 	cout << "(length = " << length << ")";
-	while(read>>i && (length--)) 
+	while((length--) && read>>i ) 
 	{
 		cout << " read: " << i;
-		ce.push_back(i);
+		ce.push_back(i);		
 	}
 	cout << endl;
+	if (i == Assert_letter && *feedback == 0) {
+		cout << "need to query this negative example !" << endl;
+		*need_recheck = true;  // a negative example ending with the assert token might be wrong (it can actually belong to the language, if we send a different input). 
+	}
 	return ce;
 }
 
@@ -405,7 +411,7 @@ void instrument() {
 	tmp.str("");
 
 	tmp << 
-#ifdef _WIN32
+#ifdef _MYWIN32
 	  "cmd /c \"goto-cl " << input_file_working_copy <<"\"";
 #else
           "goto-cc " << input_file_working_copy;
@@ -416,7 +422,7 @@ void instrument() {
 	tmp.str("");
 
     tmp << 
-#ifdef _WIN32
+#ifdef _MYWIN32
 	    "cmd /c " <<  "\"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_exe << " a.c\"";
 #else
 					    "goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_exe << " a.c";
@@ -428,10 +434,10 @@ void instrument() {
 
 	tmp.str("");
     tmp <<
-#ifdef _WIN32
+#ifdef _MYWIN32
 	    "cmd /c " <<
 #endif
-	  CONVERT;
+	  CONVERT;	
 	run(tmp.str().c_str());	
 }
 
@@ -452,13 +458,13 @@ int run_cbmc(bool membership) {
 	string filename = (instrument_branches || instrument_functions) ? "a.c" : input_file_working_copy;
 	tmp.str("");
 	tmp << 
-#ifdef _WIN32
+#ifdef _MYWIN32
 	  "cmd /c \"" <<
 #endif
 	  "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << 
           " --no-unwinding-assertions --xml-ui " << filename << " learn_code.c " << " > " << 
           tmp_file 
-#ifdef _WIN32
+#ifdef _MYWIN32
           << "\""
 #endif
 	  ;
@@ -469,7 +475,7 @@ int run_cbmc(bool membership) {
 		
 	if (!membership) { // in case of conjecture query, we extract the counterexample
 		string cmd = 
-#ifdef _WIN32
+#ifdef _MYWIN32
 		  string("cmd /c ") + string("\"") + CE + string(" ") + tmp_file + "\"";
 #else
                   CE + string(" ") + tmp_file;
@@ -527,6 +533,7 @@ void positive_queries(list<int> query) {
 	run (ist.str().c_str());
 }
 
+// returns: 0 = reject, 1 = accept, 2 = don't know. 
 char membership_pre_checks(list<int> query) {
 	
 	// empty query
@@ -540,14 +547,14 @@ char membership_pre_checks(list<int> query) {
 	// the query is right after conjecture. We know the answer anyway. 
 	if (feedback == 0) 
 	{		
-		cout << "Feedback!" << endl;
+		cout << "Feedback from conjecture!" << endl;
 		feedback = -1;
 		return 0;		
 	}
 	else if (feedback == 1)
 	{
 		positive_queries(query);	
-		cout << "Feedback!" << endl;
+		cout << "Feedback from conjecture!" << endl;
 		feedback = -1;
 		return 1;
 	}
@@ -560,12 +567,26 @@ char membership_pre_checks(list<int> query) {
 		return 0;
 	}
 	
-	// last letter must be 'assert' (== alphabet_size - 1)
+	// last letter must be 'assert' 
 	list<int>::reverse_iterator rit = query.rbegin();
-	if (*rit != alphabet_size - 1) {		
+	if (*rit != Assert_letter) {		
 		cout << "End!" << endl;
 		return 0;
 	}
+
+	// only last letter can be 'assert' . 
+	// Note that the assert can be inside a loop, and call it several times before it fails it.  Nevertheless in learn_code.c/Learn_Assert(b)
+	// we make sure that the assert letter is reported only if the assert condition is false. And this can only happen in the 
+	// end of the execution.
+	int size = query.size() - 1;
+	for (list<int>::iterator it = query.begin(); size; it++, size--) 
+	{	
+		if (*it == Assert_letter) {		
+			cout << "assert before end! \n"; 
+			return 0;
+		}
+	}
+
 	return 2;
 }
 
@@ -647,20 +668,17 @@ bool answer_Membership(list<int> query) {
 	// all pre-tests failed. Going into a cbmc call.
 
 	bool saw_assert_test_letter = false;
-	bool last_is_assert_letter;
 	
 	cout << " | ";
 	st << "#include \"" << MEMBERSHIP_DATA_H << "\"\n"	<< "\nint _Learn_mq[mq_length] = {";
 	for (it = query.begin(); it != query.end(); )
-	{
-		last_is_assert_letter = false;
+	{		
 		
 		if (!instrument_functions) 
 		{	// cannot have two 'asserts' in the word
-			if (*it == alphabet_size - 1) {
+			if (*it == Assert_letter) {
 				if (saw_assert_test_letter) {cout << *it << " ! \n"; return false;}
-				saw_assert_test_letter = true;
-				last_is_assert_letter = true;
+				saw_assert_test_letter = true;				
 			}
 		}
 		cout << *it;
@@ -704,7 +722,7 @@ void learn() {
 	angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
 		
 	bool conjectured = false;
-	//int counter = 0;
+	int counter = 0;
 	do {	
 		// Advance the learning algorithm
 		conjecture *cj = algorithm.advance();		
@@ -731,16 +749,23 @@ void learn() {
 		}
 		// Resolve equivalence queries
 		else {			
-			//counter++;
+			counter++;
 			if (conjectured) Abort(string("last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. "));
 			conjectured = true;
 			bool is_equivalent = answer_Conjecture(cj);			
-			//if (counter == 1) exit(1);
+//			if (counter == 2) exit(1);
 			if (is_equivalent) {
 				result = cj;
 			} else {
+				bool need_recheck = false;
 				// Get a counter-example
-				list<int> ce = get_CounterExample(alphabet_size, &feedback);			
+				//exit(1);
+				list<int> ce = get_CounterExample(alphabet_size, &feedback, &need_recheck);
+				if (need_recheck) 
+				{
+					feedback = -1; // hack, to prevent answer_membership from taking the feedback's result as is, and rather recheck it.
+					cout << "rechecking ";					
+				}
 				//++counter;
 				//if (counter == 1) exit(1);
 				
@@ -764,6 +789,7 @@ void learn() {
 
 /*******************************  main  ****************************/
 int main(int argc, char**argv) {		
+
 	clock_t begin = clock();
 	parse_options(argc, argv);
 	remove_files();
