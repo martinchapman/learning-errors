@@ -370,12 +370,11 @@ void show_result(conjecture *result) {
 
 /*******************************  Learn  ****************************/
 
-list<int> get_CounterExample(int alphabetsize, int *feedback, bool *need_recheck) {
+list<int> get_CounterExample(int alphabetsize, int *feedback) {
 	list<int> ce;
 	int  i;
 	int length;
 	ifstream read(MODEL);
-	*need_recheck = false;
 	read >> *feedback;
 
 	assert(*feedback == 0 || *feedback == 1);
@@ -389,10 +388,6 @@ list<int> get_CounterExample(int alphabetsize, int *feedback, bool *need_recheck
 		ce.push_back(i);		
 	}
 	cout << endl;
-	if (i == Assert_letter && *feedback == 0) {
-		cout << "need to query this negative example !" << endl;
-		*need_recheck = true;  // a negative example ending with the assert token might be wrong (it can actually belong to the language, if we send a different input). 
-	}
 	return ce;
 }
 
@@ -544,14 +539,11 @@ char membership_pre_checks(list<int> query) {
 		return 0;
 	}
 	
-	// the query is right after conjecture. We know the answer anyway. 
-	if (feedback == 0) 
-	{		
-		cout << "Feedback from conjecture!" << endl;
-		feedback = -1;
-		return 0;		
-	}
-	else if (feedback == 1)
+	// The query is right after conjecture. We know the answer anyway. We use it only if it is positive feedback. If it is negative feedback we recheck anyway.
+	// The difference between positive and negative feedback is emenating from how we catch negative feedbacks. We do so by the 'trap', which extends any path reaching the end with an arbitrary sequence. 
+	// if that sequence happens to drive us to an accepting state in the current conjecture, we conclude that this is a negative feedback. But there can be a different input that creates exactly the same path
+	// and indeed violates the assertion. So we query the counterexample, to see if it happens to be positive.
+	if (feedback == 1)
 	{
 		positive_queries(query);	
 		cout << "Feedback from conjecture!" << endl;
@@ -760,12 +752,7 @@ void learn() {
 				bool need_recheck = false;
 				// Get a counter-example
 				//exit(1);
-				list<int> ce = get_CounterExample(alphabet_size, &feedback, &need_recheck);
-				if (need_recheck) 
-				{
-					feedback = -1; // hack, to prevent answer_membership from taking the feedback's result as is, and rather recheck it.
-					cout << "rechecking ";					
-				}
+				list<int> ce = get_CounterExample(alphabet_size, &feedback);
 				//++counter;
 				//if (counter == 1) exit(1);
 				
