@@ -1,0 +1,107 @@
+results: 
+
+1. tcas_auto_instrumented.c  
+length: 15
+membership queries: 2144 (44 cbmc calls - 2.05224%) cfg queries: 1053 cfg queries (prefix): 691
+Time: 69.271
+
+-- don't understand why, but now I have more queries on the same target: 
+
+membership queries: 5309 (83 cbmc calls - 1.56338%) cfg queries: 1581 cfg queries (prefix): 1166
+Time: 112.869
+
+this is after preventing assert from appearing in the middle, and rechecking negative feedbacks (this should only make a small difference). 
+contents of tcas_auto_instrumented.f:  
+ALIM
+Inhibit_Biased_Climb
+Own_Above_Threat
+Own_Below_Threat
+fake0
+fake1
+
+
+2. bubble_sort_safe.c
+length: 5
+membership queries: 76 (0 cbmc calls - 0%) cfg queries: 21 cfg queries (prefix): 6
+Time: 1.533
+
+3. rifiuti.c,
+length = 5
+membership queries: 129 (4 cbmc calls - 3.10078%) cfg queries: 49 cfg queries (prefix): 0
+Time: 3.451
+
+
+6. print_token2: Too many nested function calls. cbmc does not reach the SAT solver after a long while (it only unwinds). 
+
+-- passed now with depth 2
+membership queries: 20 (0 cbmc calls - 0%) cfg queries: 1 cfg queries (prefix): 0
+Time: 0.346 (wrong time measure)
+
+
+
+single path to error: 
+=====================
+test\s3_clnt_1_false.BV.c.cil
+byte_add_false
+
+
+
+
+Too long: 
+=========
+ddv_machzwd_all_false.cil / ddv_machzwd_inw_false.cil get stuck with length 10, regardless of the lsit of functions in the .f file. Before this it is the empty automata. 
+
+dll_of_dll_false.c // gets stuck on unwinding even with length 2.
+
+merge_sort_false.c // cnf file too large (3.4 M variables with unwinding 4)
+
+sll_to_dll_rev_false.c // cannot generate cnf
+
+FAILS
+=====
+
+
+2. replace.c  // required adding a header ctype.h
+cbmc cannot unwind even k = 1  (many nested loops inside recursions). Does not reach SAT solver. 
+
+3. space.c
+cbmc: fatal error C1064: compiler limit : token overflowed internal buffer
+
+
+
+gzip (?)
+
+
+5. print_token
+crashes after "Passing problem to propositional reduction"
+
+-- currently goto-cl prints a weired syntax error but there is no syntax error there. 
+
+
+
+7. schedule: syntax error in some library function cbmc includes (apparently stdio.h.) The error can be recreated with: 
+
+#include<stdio.h>
+
+void main() {
+	int i;
+	FILE *f;
+	fscanf(f,"%d",&i);
+}
+
+-- no syntax error, but too slow even with bound = 4.
+
+8. schedule2
+
+-- too slow
+
+9. sed: 
+doesn't pass cbmc: cbmc --unwind 2 sed.c results in 
+...
+call to `c::ck_malloc': not enough arguments
+
+whereas the code has enough arguments in every use of ck_malloc. It seems to be related to some chain of macros like obstack_chunk_alloc
+that cause the problem.
+
+10. tot_info
+same problem as #7 + #8
