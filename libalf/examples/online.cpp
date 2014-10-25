@@ -476,6 +476,7 @@ int run_cbmc(bool membership) {
                   CE + string(" ") + tmp_file;
 #endif
 		run(cmd.c_str());		
+		exit(1);
 	}
 	tmp.str("");
 	tmp <<  "grep -q FAILURE " << tmp_file;
@@ -607,8 +608,14 @@ bool membership_cfg_checks(list<int> query) {
 		FILE *seq = fopen(input_file_seq.c_str(), "w");
 		fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
 		fclose(seq);				
-		tmp << "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > _seq.res";  // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
 
+#ifdef _MYWIN32	    
+		tmp << "cmd /c " <<  "\"goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > _seq.res\"";  
+		// TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
+#else
+		tmp <<				   "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > _seq.res";  
+		// TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
+#endif
 		run(tmp.str().c_str());
 		++cfg_queries;
 		FILE *seq_res = fopen ("_seq.res", "r");

@@ -2,10 +2,10 @@
 
 # PREFIX ?= $(PROG)/libalf
 PREFIX ?= /usr/local
-# note: to change anything in the library, we need to run make install from C:\temp\learn_environment\trunk\libalf\libalf. The executable in Examples links to the library in /usr/local
+# note: to change anything in the library, we need to run make install from C:\.....\learn_environment\trunk\libalf\libalf. The executable in Examples links to the library in /usr/local
 
 
-CPPFLAGS+=-I${PREFIX}/include -I../libalf/include -I/cygdrive/c/temp/learn_environment/trunk/scc/boost_1_53_0 -I/sw/include -I/sw/opt/boost-1_55/include -Wall -g
+CPPFLAGS+=-I${PREFIX}/include -I../libalf/include -I../../scc/boost_1_53_0 -I/sw/include -I/sw/opt/boost-1_55/include -Wall -g
 
 CPPFLAGS+=-I../../scc/boost -I../ -U_WIN32 -D_MYWIN32
 
