@@ -14,7 +14,6 @@
 #include <ctime>
 #include "../../file_names.h" // ofer
 
-
 int Assert_letter;
 using namespace std;
 using namespace libalf;
@@ -41,40 +40,16 @@ string
 	input_file_seq,				// path/file.c => <input_file_prefix>.seq
 	input_file_is, 				// path/file.c => <input_file_prefix>.is
 	input_file_working_copy,	// path/file.c => <input_file_prefix>.c	
-	input_file_no_extention;	// path/file.c => path/file
-	
+    input_file_no_extention;	// path/file.c => path/file
 
 unsigned word_length, unwind = 0; 
 ostringstream unwind_s;
-FILE *convert;	
+ostringstream unwind_setlimit;
 
-
-bool rewrite_function_enter(char *name, int num) // rewriting the instrumented calls: either erase or change to reporting an int.
-{
-	static int counter = 0;
-	stringstream st; 
-	if (num == -1) // remove statement
-		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"// ";
-	else
-		st << "-e s/\"_Learn_function_enter((const char \\*)\\\"c::" << string(name) << "\\\");\"/\"_Learn_function_enter(" << num << ");\"/ ";		
-	fprintf(convert, "%s", st.str().c_str());
-	++counter;
-	if (counter == 50) { // need to break the sed command (beyond certain -e expressions it fails)
-		fprintf(convert, "a.c > tmp.c\ncp tmp.c a.c\n");
-		counter = 0;
-		return true;
-	}
-	return false;
-}
-
+//~MDC Needs to be addressed
 void rewrite_branch( string name, int num) 
 {
-	stringstream st; 
-	if (num == -1) // remove statement
-		st << "-e s/\"_Learn_branch((const char \\*)\\\"" << name << "\\\");\"// ";
-	else
-		st << "-e s/\"_Learn_branch((const char \\*)\\\"" << name << "\\\");\"/\"_Learn_branch(" << num << ");\"/ ";	
-	fprintf(convert, "%s", st.str().c_str());
+
 }
 
 // we duplicate file.f to file.is ("interesting set") where the latter has "c::" prefix before each function name, because 
@@ -94,6 +69,33 @@ void create_interesting_set(FILE *f) {
 }
 
 int generate_func_names(int letter) {
+
+	stringstream tmp;
+    
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-cl -c " << input_file_working_copy << " -o " << input_file_exe << "\"";
+#else
+    "goto-cc -c " << input_file_working_copy << " -o " << input_file_exe;
+#endif
+    
+    run(tmp.str().c_str());
+    
+	tmp.str("");
+	tmp <<
+#ifdef _MYWIN32
+	  "cmd /c \"goto-instrument --learn " << input_file_exe << " " << input_file_exe << "\"";
+#else
+		  "goto-instrument --learn " << input_file_exe << " " << input_file_exe;
+#endif
+
+	run(tmp.str().c_str());
+
+	FILE *func_names2 = fopen(FUNC_NAMES, "a");
+	fprintf(func_names2, "%s\n", "main");
+	fclose(func_names2);
+
 	// reads func names from FUNC_NAMES and 
 	// 1) fills the global list node_index (to be used later in compute_allowed_pairs())
 	// 2) populates AUTO_LABELS_FUNCTIONS with function labels,
@@ -124,25 +126,21 @@ int generate_func_names(int letter) {
 		create_interesting_set(func_names);	
 		rewind(func_names);
 	}
-
-	bool closed = true;
-
+    
+    bool closed = true;
+    
 	while (!feof(func_names)) {
 		if (fscanf(func_names, "%s", name) != 1) continue;	
 		if (!strcmp(name, "main") || ((user_func_names != NULL) && user_func_set.find(name) == user_func_set.end())) // here we can add other functions we wish to ignore
 		{
-			cout << "skipping " << name << endl; 
-			if (closed) fprintf(convert, "sed ");
-			closed = rewrite_function_enter(name, -1); // -1 = remove statement
+			cout << "skipping " << name << endl;
 			continue; 
 		}			
 
 		func_name.insert(pair<int, string>(letter, string(name)));
 		fprintf(Labels, "%d %s\n", letter, name);
-		if (closed) fprintf(convert, "sed ");		
-		closed = rewrite_function_enter(name, letter++);		
+		letter++;
 	}
-	if (!closed) fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
 	// what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
 
 	fprintf(Labels, "%d %s\n", letter, "Learn_Assert"); // changed from assert
@@ -150,15 +148,10 @@ int generate_func_names(int letter) {
 	func_name.insert(pair<int, string>(letter++, string("Learn_Assert")));	// changed from assert
 	func_name.insert(pair<int, string>(letter++, string("main")));	// we force main to be at index m + 1 for convenience when building matrix later on. It will not be part of the alphabet (see line).
 
-
-
 	fclose(func_names);
 	fclose(Labels);	
-	return letter - 1; // '-1' because this number is fed into alphabet_size, and we do not want main to be part of the alphabet. 
+	return letter - 1; // ~MDC No longer necessary as main not instrumented. '-1' because this number is fed into alphabet_size, and we do not want main to be part of the alphabet.
 }
-
-
-/********************************** Misc. ****************************/
 
 void Abort(string msg) {
 	cerr << msg << endl;
@@ -200,6 +193,7 @@ void define_file_prefixes(string file_name)
 	input_file_seq			= input_file_prefix + ".seq"; // we rely on the ".seq" extension later so do not change it. 		
 	input_file_is			= input_file_prefix + ".is";		
 	input_file_no_extention = input_file_path + base_without_extension;	
+    
 }
 
 void parse_options(int argc, char**argv) {		
@@ -215,8 +209,10 @@ void parse_options(int argc, char**argv) {
 ));
 		
 	define_file_prefixes(argv[1]);
-	
-	word_length = atoi(argv[2]);
+     
+    word_length = atoi(argv[2]);
+    
+    
 	for (int i = 3; i < argc ; ++i) {
 		if (!strcmp(argv[i], "--auto")) {
 			if (argc == i + 1) Abort("missing argument {'b','f'}  for --auto\n"); 
@@ -234,7 +230,7 @@ void parse_options(int argc, char**argv) {
 		}
 		else Abort(string("wrong argument: ") + string(argv[i]));
 	}	
-	
+    
 	if (alphabet_size == 0 && !instrument_branches && !instrument_functions) Abort("alphabet size must be > 0, or --auto should be used.");
 }
 
@@ -244,14 +240,15 @@ void remove_files() {
 	run(tmp.str().c_str());
 }
 
+
 void preprocess_source() {	
 	// adding 'include "learn.c" ' in the first line of the source file. It is necessary for goto-cl because of the Learn_Assert command. 
 	stringstream tmp;
-
+    
 	tmp << 
 #ifdef _MYWIN32
 	  "cmd /c " <<
-          "sed -e '1i\\#include \\\"learn.c\\\"' " << input_file_name_full << " > "  << input_file_working_copy; 
+          "sed -e '1i\\#include \\\"learn.c\\\"' " << input_file_name_full << " > "  << input_file_working_copy;
 #else
           "sed -e \"1i\\\\\n\\#include \\\"learn.c\\\"\" " << input_file_name_full << " > " <<  input_file_working_copy; 
 #endif
@@ -264,74 +261,31 @@ void preprocess_source() {
 
 void init_auto_instrumentation()
 {
-	stringstream tmp;
-	
-
-	// the convert file will be activated only after goto-instrument.
-	// we need to do the following conversions even if --auto is not activated, because the definition of _Learn_branch/_Learn_function_enter in learn.c won't compile otherwise.
-	convert = fopen(CONVERT, "w");
-#ifdef _MYWIN32
-	fprintf(convert, "@echo off\n");
-
-	fprintf(convert, "sed -e s/\"_Learn_function_exit((const char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((const char \\*)\\\"c::[a-zA-Z0-9_$]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
-#else
-	fprintf(convert, "sed -e s/\"_Learn_function_exit((const char \\*)\\\"c::main\\\");\"/@@/ -e s/\"_Learn_function_exit((const char \\*)\\\"c::[a-zA-Z0-9_$]*\\\");\"// -e s/\"@@\"/\"Learn_trap();\"/ ");
-#endif
-	
-	// adding learn_trap before exit statements
-	fprintf(convert, "-e s/\"int exit\"/\"@@\"/ ");  // because exit is sometimes declared. So we do not want the next line to add a Learn_trap before it. 
-
-#ifdef _MYWIN32
-        // adding Learn_trap before exit() statements. The space before 'exit' is important to prevent a case of a function such as a_exit(...)
-	fprintf(convert, "-e s/\"\\( exit([a-zA-Z0-9_$]*)\\)\"/\"Learn_trap\\(\\); \\n &\"/ ");  
-#else
-	fprintf(convert, "-e s/\"\\( exit([a-zA-Z0-9_$]*)\\)\"/\"Learn_trap\\(\\); \\n &\"/ ");  
-#endif
-	fprintf(convert, "-e s/\"@@\"/\"int exit\"/ ");  // replacing @@ back to the declaration of exit
-	
-	fprintf(convert, "-e s/\"signed int _Learn_letter;\"// " );
-	fprintf(convert, "-e s/\"void _Learn_branch(const char \\*)\"/\"void _Learn_branch(int _Learn_letter) \"/ ");	
-	fprintf(convert, "-e s/\"void _Learn_function_enter(const char \\*)\"/\"void _Learn_function_enter(int _Learn_letter) \"/ ");	
-	fprintf(convert, " a.c > tmp.c\ncp tmp.c a.c\n");
-		
-	if (instrument_branches) {
-		alphabet_size += 2;		
-		rewrite_branch("not-taken", 0);
-		rewrite_branch("taken", 1);
-	}
-	if (instrument_functions) {
-		tmp.str("");
-
-		tmp << 
-#ifdef _MYWIN32
-		  "cmd /C \"" << GET_FUNC_NAMES  << " " << input_file_prefix << " " << 
-                     FUNC_NAMES << "\"";
-#else
-	          GET_FUNC_NAMES  << " " << input_file_prefix << " " << FUNC_NAMES;
-#endif
-                // populates FUNC_NAMES with function names, according to the instrumented file generated by goto-instrument
-		cout << "running " << tmp.str() << endl;
-
-		run(tmp.str().c_str());
-		min_func_idx = alphabet_size;
-	
-		alphabet_size = generate_func_names(alphabet_size); // this one also updates AUTO_LABELS_FUNCTIONS		
-	}	
-	else {
-		alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
-		min_func_idx = alphabet_size; // we need to define it because it is used in answer_query
-	}	
-	
-	fclose(convert);		
-
-	if (instrument_branches || instrument_functions) {
-		tmp.str("");
-		tmp << "cat " << (instrument_branches ? AUTO_LABELS_BRANCHES : " ") << " " << (instrument_functions ? AUTO_LABELS_FUNCTIONS : " ") << " > " << AUTO_LABELS;
-		run(tmp.str().c_str());
-				
-		instrument();
-	}
-	Assert_letter = alphabet_size - 1; // not suppose to change alphabet_size from this point on.
+    stringstream tmp;
+    
+    if (instrument_branches) {
+        alphabet_size += 2;		
+        rewrite_branch("not-taken", 0);
+        rewrite_branch("taken", 1);
+    }
+    if (instrument_functions) {
+    
+        min_func_idx = alphabet_size;
+        
+        alphabet_size = generate_func_names(alphabet_size); // this one also updates AUTO_LABELS_FUNCTIONS		
+    }	
+    else {
+        alphabet_size++; // because of the assert function.	If instrument_function is true, it updates it anyway.
+        min_func_idx = alphabet_size; // we need to define it because it is used in answer_query
+    }
+    
+    if (instrument_branches || instrument_functions) {
+        tmp.str("");
+        tmp << "cat " << (instrument_branches ? AUTO_LABELS_BRANCHES : " ") << " " << (instrument_functions ? AUTO_LABELS_FUNCTIONS : " ") << " > " << AUTO_LABELS;
+        run(tmp.str().c_str());
+        
+    }
+    Assert_letter = alphabet_size - 1; // not suppose to change alphabet_size from this point on.
 }
 
 void init_word_length_file() {
@@ -340,8 +294,12 @@ void init_word_length_file() {
 	fprintf(file, "#define word_length_bound %d\n", word_length);
 	fprintf(file, "#define AlphaBetSize %d", alphabet_size);
 	fclose(file);	
-	unwind_s << max(word_length + 1, unwind); // we need to unroll one more than the word_length
+    
+    unwind_setlimit << max(word_length + 1, unwind); // we need to unroll one more than the word_length
+    unwind_s << 1;
 }
+
+
 
 /******************************* after learn *************************/
 
@@ -365,12 +323,13 @@ void show_result(conjecture *result) {
 	dot.close();
 	cout.rdbuf (strm_buffer); 
 
-	run("dotty a.dot");	
+	//run("dotty a.dot");	
 }
 
 /*******************************  Learn  ****************************/
 
 list<int> get_CounterExample(int alphabetsize, int *feedback) {
+    
 	list<int> ce;
 	int  i;
 	int length;
@@ -382,58 +341,17 @@ list<int> get_CounterExample(int alphabetsize, int *feedback) {
 	cout << "Counterexample ";
 	read >> length;
 	cout << "(length = " << length << ")";
+	
+    
+    
 	while((length--) && read>>i ) 
 	{
 		cout << " read: " << i;
 		ce.push_back(i);		
 	}
 	cout << endl;
+    
 	return ce;
-}
-
-void instrument() {
-	// precondition: we get here only if (instrument_branches || instrument_functions)
-	// auto-instrumentation via goto-instrument	
-	stringstream tmp;		
-	string goto_instrument_argument("");
-	if (instrument_branches) goto_instrument_argument += string("--branch _Learn_branch ");
-	if (instrument_functions) goto_instrument_argument += string("--function-enter _Learn_function_enter ");	
-	
-	assert(!goto_instrument_argument.empty());
-	
-	goto_instrument_argument += string("--function-exit _Learn_function_exit ");
-	
-	tmp.str("");
-
-	tmp << 
-#ifdef _MYWIN32
-	  "cmd /c \"goto-cl " << input_file_working_copy <<"\"";
-#else
-          "goto-cc " << input_file_working_copy;
-#endif
-
-	run(tmp.str().c_str());
-
-	tmp.str("");
-
-    tmp << 
-#ifdef _MYWIN32
-	    "cmd /c " <<  "\"goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_exe << " a.c\"";
-#else
-					    "goto-instrument " << goto_instrument_argument << "  --dump-c " << input_file_exe << " a.c";
-#endif
-
-	cout << "running: " << tmp.str() << endl;
-	run(tmp.str().c_str());
-
-
-	tmp.str("");
-    tmp <<
-#ifdef _MYWIN32
-	    "cmd /c " <<
-#endif
-	  CONVERT;	
-	run(tmp.str().c_str());	
 }
 
 int run(const char* cmd) {	
@@ -450,21 +368,46 @@ int run_cbmc(bool membership) {
 	string tmp_file("tmpfile");
 	tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
 	run(tmp.str().c_str());
-	string filename = (instrument_branches || instrument_functions) ? "a.c" : input_file_working_copy;
+    string filename = (instrument_branches || instrument_functions) ? "a.c" : input_file_working_copy;
 	tmp.str("");
-	tmp << 
+
+	tmp <<
 #ifdef _MYWIN32
-	  "cmd /c \"" <<
+	"cmd /c \"goto-cl -c learn_code.c -o learn_code.o \"";
+#else
+	"goto-cc -c learn_code.c -o learn_code.o";
 #endif
-	  "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << 
-          " --no-unwinding-assertions --xml-ui " << filename << " learn_code.c " << " > " << 
-          tmp_file 
-#ifdef _MYWIN32
-          << "\""
-#endif
-	  ;
-	run(tmp.str().c_str());		
+
+	run(tmp.str().c_str());
+
 	tmp.str("");
+	tmp <<
+#ifdef _MYWIN32
+	"cmd /c \"goto-cl " << input_file_exe << " learn_code.o -o " << "thisrun.o" << "\"";
+#else
+	"goto-cc " << input_file_exe << " learn_code.o -o " << "thisrun.o"; //input_file_exe;
+#endif
+
+	run(tmp.str().c_str());
+
+	tmp.str("");
+        
+        tmp << 
+#ifdef _MYWIN32
+        "cmd /c \"" <<
+#endif
+    
+        "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset c::Learn_trap.0:" << unwind_setlimit.str() << ",c::check_conjecture.0:" << unwind_setlimit.str() << ",c::check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "thisrun.o" << " > " <<
+        tmp_file
+        
+#ifdef _MYWIN32
+        << "\""
+#endif
+        ;
+    
+	run(tmp.str().c_str());
+	tmp.str("");
+
 	tmp << "grep ERROR " << tmp_file;
 	if (!run(tmp.str().c_str())) Abort(string("ERROR in output of CBMC (see " + tmp_file = ")"));
 		
@@ -476,7 +419,6 @@ int run_cbmc(bool membership) {
                   CE + string(" ") + tmp_file;
 #endif
 		run(cmd.c_str());		
-		exit(1);
 	}
 	tmp.str("");
 	tmp <<  "grep -q FAILURE " << tmp_file;
@@ -554,11 +496,11 @@ char membership_pre_checks(list<int> query) {
 	
 
 	// query longer than word_length. It will be rejected anyway. 
-	if (query.size() > word_length) 
-	{
-		cout << "Long!" << endl;
-		return 0;
-	}
+	//if (query.size() > word_length) 
+	//{
+	//	cout << "Long!" << endl;
+	//	return 0;
+	//}
 	
 	// last letter must be 'assert' 
 	list<int>::reverse_iterator rit = query.rbegin();
@@ -607,21 +549,24 @@ bool membership_cfg_checks(list<int> query) {
 		stringstream tmp;		
 		FILE *seq = fopen(input_file_seq.c_str(), "w");
 		fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
-		fclose(seq);				
-
+		fclose(seq);
+    
 #ifdef _MYWIN32	    
-		tmp << "cmd /c " <<  "\"goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > _seq.res\"";  
-		// TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
+    tmp << "cmd /c " <<  "\"goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res\"";
+    // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
 #else
-		tmp <<				   "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not\" > _seq.res";  
-		// TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
+    tmp <<				   "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res";
+    // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
 #endif
+
 		run(tmp.str().c_str());
 		++cfg_queries;
 		FILE *seq_res = fopen ("_seq.res", "r");
 		int res;
 		if (fscanf(seq_res, "%d", &res) != 1) Abort("cannot read _seq.res");
 		fclose(seq_res);	
+        //cout << res << endl;
+        //exit(1);
 		if (res == 1) {
 			cout << "cfg! "; 
 			// now we find where the point of failure was
@@ -790,7 +735,9 @@ int main(int argc, char**argv) {
 	preprocess_source();
 	init_auto_instrumentation();
     init_word_length_file();
-		
+    
+    
+
 	learn();		
 
 	clock_t end = clock();
