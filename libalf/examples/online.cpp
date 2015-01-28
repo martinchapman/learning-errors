@@ -43,6 +43,7 @@ string
     input_file_no_extention;	// path/file.c => path/file
 
 unsigned word_length, unwind = 0; 
+// ~MDC 'User bound'
 ostringstream unwind_s;
 ostringstream unwind_setlimit;
 
@@ -73,6 +74,7 @@ int generate_func_names(int letter) {
 
 	stringstream tmp;
     
+    // ~MDC Convert .c source into 'master' object file
     tmp.str("");
     tmp <<
 #ifdef _MYWIN32
@@ -83,6 +85,7 @@ int generate_func_names(int letter) {
     
     run(tmp.str().c_str());
     
+    // ~MDC Using new learn feature of goto-instrument, internally instrument functions for learn processing. Also outputs func_names.data
 	tmp.str("");
 	tmp <<
 #ifdef _MYWIN32
@@ -93,6 +96,7 @@ int generate_func_names(int letter) {
 
 	run(tmp.str().c_str());
 
+    // ~MDC Manually add main for consistency with original version, may not be necessary.
 	FILE *func_names2 = fopen(FUNC_NAMES, "a");
 	fprintf(func_names2, "%s\n", "main");
 	fclose(func_names2);
@@ -128,8 +132,6 @@ int generate_func_names(int letter) {
 		rewind(func_names);
 	}
     
-    bool closed = true;
-    
 	while (!feof(func_names)) {
 		if (fscanf(func_names, "%s", name) != 1) continue;	
 		if (!strcmp(name, "main") || ((user_func_names != NULL) && user_func_set.find(name) == user_func_set.end())) // here we can add other functions we wish to ignore
@@ -140,6 +142,7 @@ int generate_func_names(int letter) {
 
 		func_name.insert(pair<int, string>(letter, string(name)));
 		fprintf(Labels, "%d %s\n", letter, name);
+        // ~MDC Manually increment letter
 		letter++;
 	}
 	// what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
@@ -151,7 +154,7 @@ int generate_func_names(int letter) {
 
 	fclose(func_names);
 	fclose(Labels);	
-	return letter - 1; // ~MDC No longer necessary as main not instrumented. '-1' because this number is fed into alphabet_size, and we do not want main to be part of the alphabet.
+	return letter - 1; // '-1' because this number is fed into alphabet_size, and we do not want main to be part of the alphabet.
 }
 
 void Abort(string msg) {
@@ -213,6 +216,7 @@ void parse_options(int argc, char**argv) {
      
     word_length = atoi(argv[2]);
     
+    unwind_s << 1;
     
 	for (int i = 3; i < argc ; ++i) {
 		if (!strcmp(argv[i], "--auto")) {
@@ -224,6 +228,8 @@ void parse_options(int argc, char**argv) {
 		}
 		else if (isdigit(argv[i][0])) alphabet_size = atoi(argv[3]); 
 		else if (!strcmp(argv[i], "--v")) verbose = true;
+        // ~MDC Can supply own 'user loop' bound, otherwise defaults to 1
+        else if (!strcmp(argv[i], "--user-unwind")) { unwind_s.str(""); unwind_s << argv[i+1]; }
 		else if (!strcmp(argv[i], "--unwind")) {
 			++i;
 			if (argc == i || !isdigit(argv[i][0])) Abort("missing number after --unwind\n"); 
@@ -297,8 +303,6 @@ void init_word_length_file() {
 	fclose(file);	
     
     unwind_setlimit << max(word_length + 1, unwind); // we need to unroll one more than the word_length
-    //unwind_s << 1;
-    unwind_s << unwind;
 }
 
 
@@ -325,6 +329,7 @@ void show_result(conjecture *result) {
 	dot.close();
 	cout.rdbuf (strm_buffer); 
 
+    // Temporarily disabled immediate visual feedback of automaton.
 	//run("dotty a.dot");	
 }
 
@@ -370,9 +375,9 @@ int run_cbmc(bool membership) {
 	string tmp_file("tmpfile");
 	tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
 	run(tmp.str().c_str());
-    string filename = (instrument_branches || instrument_functions) ? "a.c" : input_file_working_copy;
-	tmp.str("");
-
+	
+    // ~MDC Convert learn code per run of cbmc to account for changes
+    tmp.str("");
 	tmp <<
 #ifdef _MYWIN32
 	"cmd /c \"goto-cl -c learn_code.c -o learn_code.o \"";
@@ -382,34 +387,30 @@ int run_cbmc(bool membership) {
 
 	run(tmp.str().c_str());
 
+    // ~MDC Combine learn code object with target code object
 	tmp.str("");
 	tmp <<
 #ifdef _MYWIN32
-	"cmd /c \"goto-cl " << input_file_exe << " learn_code.o -o " << "thisrun.o" << "\"";
+	"cmd /c \"goto-cl " << input_file_exe << " learn_code.o -o " << "learn_" << input_file_exe << ".o" << "\"";
 #else
-	"goto-cc " << input_file_exe << " learn_code.o -o " << "thisrun.o"; //input_file_exe;
+	"goto-cc " << input_file_exe << " learn_code.o -o " << "learn_" << input_file_exe << ".o";
 #endif
 
 	run(tmp.str().c_str());
 
+    // ~MDC Run combined objects through CBMC
 	tmp.str("");
-        
-        tmp << 
+    tmp << 
 #ifdef _MYWIN32
-        "cmd /c \"" <<
+    "cmd /c \"" <<
 #endif
-
-/*        "cbmc -Iansi-c-lib --unwind " << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "thisrun.o" << " > " <<
-        tmp_file    */
-        "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset Learn_trap.0:" << unwind_setlimit.str() << ",check_conjecture.0:" << unwind_setlimit.str() << ",check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "thisrun.o" << " > " <<
-        tmp_file
-/*        "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset c::Learn_trap.0:" << unwind_setlimit.str() << ",c::check_conjecture.0:" << unwind_setlimit.str() << ",c::check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "thisrun.o" << " > " <<
-        tmp_file*/
+    "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset Learn_trap.0:" << unwind_setlimit.str() << ",check_conjecture.0:" << unwind_setlimit.str() << ",check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "learn_" << input_file_exe << ".o" << " > " <<
+    tmp_file
         
 #ifdef _MYWIN32
-        << "\""
+    << "\""
 #endif
-        ;
+    ;
     
 	run(tmp.str().c_str());
 	tmp.str("");
@@ -447,7 +448,8 @@ bool answer_Conjecture(conjecture * cj) {
 	cout << endl << "Conjecture:" << endl << endl;
 	cout << a->visualize();
 	streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
-	//ofstream dot("a.dot");
+	// ~MDC Temporary disable of visualising intermediate conjectures
+    //ofstream dot("a.dot");
 	//cout.rdbuf (dot.rdbuf());
 	//cout << a->visualize();
 	//dot.close();
@@ -565,7 +567,8 @@ bool membership_cfg_checks(list<int> query) {
     //fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
 		fclose(seq);
     
-#ifdef _MYWIN32	    
+#ifdef _MYWIN32
+    // ~MDC grep search for 'not feasible' may need altering
     tmp << "cmd /c " <<  "\"goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res\"";
     // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
 #else
@@ -715,7 +718,6 @@ void learn() {
 			if (is_equivalent) {
 				result = cj;
 			} else {
-				bool need_recheck = false;
 				// Get a counter-example
 				//exit(1);
 				list<int> ce = get_CounterExample(alphabet_size, &feedback);
@@ -750,8 +752,6 @@ int main(int argc, char**argv) {
 	init_auto_instrumentation();
     init_word_length_file();
     
-    
-
 	learn();		
 
 	clock_t end = clock();
