@@ -18,7 +18,7 @@ char msg[3];
 
 void _Learn_branch(int _Learn_letter) { _Learn(_Learn_letter);};
 void _Learn_function_enter(int _Learn_letter) { _Learn(_Learn_letter);};
-
+bool conjecture_path_has_reached_failing_assert = 0 != 0;
 
 
 #ifdef conjecture
@@ -26,7 +26,8 @@ void _Learn_function_enter(int _Learn_letter) { _Learn(_Learn_letter);};
 // 1. we need to wrap 'assert' because goto-instrument --show-call-sequences does not refer to leaf functions. So we get 'Assert' in the report and replace it later with 'assert'.	
 // 2. we need 'feedback' because in conjecture query we search for its value in the counterexample, in order to figure out if this is a positive or negative feedback. 
 void Assert(bool x, char feedback) { 
-	assert(x);						
+	//assert(x);
+  __CPROVER_assert(x, "void Assert(bool x, char feedback)");						
 }
 
 void check_conjecture(bool assert_condition) {  
@@ -34,10 +35,31 @@ void check_conjecture(bool assert_condition) {
 	int sim_idx = 0;	
 	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
 		state = A[state][_Learn_b[sim_idx++]];
-	if (assert_condition == accept[state]) { // Both true: negative feedback. Both false: positive feedback.
+
+  if(assert_condition) {
+    if(accept[state]) {
+      // Path is not an error path and should not be part of the error language.
+      _Learn_ce_length = _Learn_idx;
+      Assert(0, 0);
+    }
+  } else {
+    if(accept[state] && conjecture_path_has_reached_failing_assert) {
+      // Path continues after a failing assertion. Should not be part of the language
+      _Learn_ce_length = _Learn_idx;
+      Assert(0, 0);
+    }
+    if(!accept[state] && !conjecture_path_has_reached_failing_assert) {
+      // Path ends in failing assertion and doesn't contain prior failing assertion. Should be part of the language
+      _Learn_ce_length = _Learn_idx;
+      Assert(0, 1);
+    }
+    conjecture_path_has_reached_failing_assert = 0 == 0;
+  }
+
+	/*if (assert_condition == accept[state]) { // Both true: negative feedback. Both false: positive feedback.
 		_Learn_ce_length = _Learn_idx;				
 		Assert(0, assert_condition ? 0 : 1); 
-	}	
+	}*/
 	
 	if (_Learn_idx  == word_length_bound) __CPROVER_assume(0); // it is possible that we continue beyond word_length_bound (e.g. cbmc has nested loops, hence the internal loop 
 															   // with the assert will be hit more than word_length_bound times). With this line, we truncate these paths. 
@@ -80,8 +102,9 @@ void Learn_trap() {
 
 #else
 
-void Assert(bool x) { 
-	assert(x);						
+void Assert(bool x) {
+  __CPROVER_assert(x, "void Assert(bool x)");
+	//assert(x);						
 }
 
 void membership_Learn(int x) { 

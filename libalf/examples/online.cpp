@@ -27,7 +27,7 @@ void predecessors(int m, int current, int *predecessors_list);
 void instrument();
 void Abort(string msg);
 int run(const char* cmd);
-bool verbose = false; 
+bool verbose = false;
 
 struct myEdge {char s[100]; char t[100];};
 
@@ -63,7 +63,8 @@ void create_interesting_set(FILE *f) {
 	FILE *func_names_for_goto_inst = fopen(input_file_is.c_str(), "w");  // we duplicate file.f to file.is where the latter has "c::" prefix before each function name, because 1) we want the user to enter natural names, 2) goto-instrument must have the c:: prefix, 3) func_names is produced by another tool that also generates natural names. So some conversion is necessary in any case. 
 	while (!feof(f)) {
 		if (fscanf(f, "%s", name) != 1) continue;		
-		fprintf(func_names_for_goto_inst, "c::%s\n", name);
+		fprintf(func_names_for_goto_inst, "%s\n", name);
+    //fprintf(func_names_for_goto_inst, "c::%s\n", name);
 	}
 	fclose(func_names_for_goto_inst);
 }
@@ -296,7 +297,8 @@ void init_word_length_file() {
 	fclose(file);	
     
     unwind_setlimit << max(word_length + 1, unwind); // we need to unroll one more than the word_length
-    unwind_s << 1;
+    //unwind_s << 1;
+    unwind_s << unwind;
 }
 
 
@@ -396,9 +398,13 @@ int run_cbmc(bool membership) {
 #ifdef _MYWIN32
         "cmd /c \"" <<
 #endif
-    
-        "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset c::Learn_trap.0:" << unwind_setlimit.str() << ",c::check_conjecture.0:" << unwind_setlimit.str() << ",c::check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "thisrun.o" << " > " <<
+
+/*        "cbmc -Iansi-c-lib --unwind " << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "thisrun.o" << " > " <<
+        tmp_file    */
+        "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset Learn_trap.0:" << unwind_setlimit.str() << ",check_conjecture.0:" << unwind_setlimit.str() << ",check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "thisrun.o" << " > " <<
         tmp_file
+/*        "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset c::Learn_trap.0:" << unwind_setlimit.str() << ",c::check_conjecture.0:" << unwind_setlimit.str() << ",c::check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "thisrun.o" << " > " <<
+        tmp_file*/
         
 #ifdef _MYWIN32
         << "\""
@@ -481,6 +487,12 @@ char membership_pre_checks(list<int> query) {
 		cout << "Zero-size!" << endl;
 		return 0;
 	}
+ 
+  if (query.size() > word_length)
+  {
+    cout << "Word too long!" << endl;
+    return 0;
+  }
 	
 	// The query is right after conjecture. We know the answer anyway. We use it only if it is positive feedback. If it is negative feedback we recheck anyway.
 	// The difference between positive and negative feedback is emenating from how we catch negative feedbacks. We do so by the 'trap', which extends any path reaching the end with an arbitrary sequence. 
@@ -544,11 +556,13 @@ bool membership_cfg_checks(list<int> query) {
 				if (*bad_prefix_it != *it) same_prefix = false;
 				++bad_prefix_it;
 			}
-			st << "c::" << func_name[*it] << endl;
+			st << func_name[*it] << endl;
+      //st << "c::" << func_name[*it] << endl;
 		}
 		stringstream tmp;		
 		FILE *seq = fopen(input_file_seq.c_str(), "w");
-		fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
+		fprintf(seq, "main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
+    //fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
 		fclose(seq);
     
 #ifdef _MYWIN32	    
@@ -654,7 +668,7 @@ bool answer_Membership(list<int> query) {
 	// updating the positive_queries_file: this will block paths that correspond to membership that we already answered positively.
 	if (res == 0) positive_queries(query);	
 
-	return (res == 0);		
+	return (res == 0);	
 }
 
 void learn() {
