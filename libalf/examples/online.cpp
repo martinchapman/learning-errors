@@ -375,38 +375,38 @@ int run_cbmc(bool membership) {
 	string tmp_file("tmpfile");
 	tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
 	run(tmp.str().c_str());
-	
+    
     // ~MDC Convert learn code per run of cbmc to account for changes
     tmp.str("");
-	tmp <<
+    tmp <<
 #ifdef _MYWIN32
-	"cmd /c \"goto-cl -c learn_code.c -o learn_code.o \"";
+    "cmd /c \"goto-cl -c learn_code.c -o learn_code.o \"";
 #else
-	"goto-cc -c learn_code.c -o learn_code.o";
+    "goto-cc -c learn_code.c -o learn_code.o";
 #endif
-
-	run(tmp.str().c_str());
-
+    
+    run(tmp.str().c_str());
+    
     // ~MDC Combine learn code object with target code object
-	tmp.str("");
-	tmp <<
+    tmp.str("");
+    tmp <<
 #ifdef _MYWIN32
-	"cmd /c \"goto-cl " << input_file_exe << " learn_code.o -o " << "learn_" << input_file_exe << ".o" << "\"";
+    "cmd /c \"goto-cl " << input_file_exe << " learn_code.o -o " << "learn" << input_file_exe << "\"";
 #else
-	"goto-cc " << input_file_exe << " learn_code.o -o " << "learn_" << input_file_exe << ".o";
+    "goto-cc " << input_file_exe << " learn_code.o -o " << "learn" << input_file_exe;
 #endif
-
-	run(tmp.str().c_str());
-
+    
+    run(tmp.str().c_str());
+    
     // ~MDC Run combined objects through CBMC
-	tmp.str("");
-    tmp << 
+    tmp.str("");
+    tmp <<
 #ifdef _MYWIN32
     "cmd /c \"" <<
 #endif
-    "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset Learn_trap.0:" << unwind_setlimit.str() << ",check_conjecture.0:" << unwind_setlimit.str() << ",check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "learn_" << input_file_exe << ".o" << " > " <<
+    "cbmc -Iansi-c-lib --unwind " << unwind_s.str() << " --unwindset Learn_trap.0:" << unwind_setlimit.str() << ",check_conjecture.0:" << unwind_setlimit.str() << ",check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "learn" << input_file_exe << " > " <<
     tmp_file
-        
+    
 #ifdef _MYWIN32
     << "\""
 #endif
