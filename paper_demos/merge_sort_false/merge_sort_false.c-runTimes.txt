@@ -1,0 +1,2 @@
+merge_sort_false.c-1-20:Time: 0.049578
+merge_sort_false.c-2-20:Time: 0.197682

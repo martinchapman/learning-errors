@@ -1,0 +1,34 @@
+digraph finite_automaton {
+	graph[fontsize=8]
+	rankdir=LR;
+	size=8;
+
+node [shape=rectangle, color = green, label= "Dominating edges: DockingApproachExample_Ext, MdlInitializeSampleTimes, MdlInitializeSizes, rtGetInf, rtGetInfF, rtGetMinusInf, rtGetMinusInfF, rtGetNaN, rtGetNaNF, rt_InitInfAndNaN, rt_SimInitTimingEngine, Learn_Assert"]; dom_edges;
+	node [shape=doublecircle, style="", color=green, label = "D"]; q1;
+	node [shape=circle, style="", color=green, label = ""]; q0;
+	node [shape=circle, style="", color=green, label = ""]; q2;
+	node [shape=circle, style="", color=green, label = ""]; q3;
+	node [shape=circle, style="", color=green, label = ""]; q4;
+	node [shape=circle, style="", color=green, label = ""]; q5;
+	node [shape=circle, style="", color=green, label = ""]; q6;
+	node [shape=circle, style="", color=green, label = ""]; q7;
+	node [shape=circle, style="", color=green, label = ""]; q8;
+	node [shape=circle, style="", color=green, label = ""]; q9;
+	node [shape=circle, style="", color=green, label = ""]; q10;
+	node [shape=circle, style="", color=green, label = ""]; q11;
+	node [shape=circle, style="", color=green, label = ""]; q12;
+	node [shape=plaintext, label="", style=""]; iq0;
+	iq0 -> q0 [color=blue];
+	q0 -> q12 [label="DockingApproachExample_Ext", color = green];
+	q2 -> q1 [label="Learn_Assert", color = green];
+	q3 -> q2 [label="rt_SimInitTimingEngine", color = green];
+	q4 -> q3 [label="MdlInitializeSampleTimes", color = green];
+	q5 -> q4 [label="MdlInitializeSizes", color = green];
+	q6 -> q5 [label="rtGetMinusInfF", color = green];
+	q7 -> q6 [label="rtGetMinusInf", color = green];
+	q8 -> q7 [label="rtGetInfF", color = green];
+	q9 -> q8 [label="rtGetInf", color = green];
+	q10 -> q9 [label="rtGetNaNF", color = green];
+	q11 -> q10 [label="rtGetNaN", color = green];
+	q12 -> q11 [label="rt_InitInfAndNaN", color = green];
+};
