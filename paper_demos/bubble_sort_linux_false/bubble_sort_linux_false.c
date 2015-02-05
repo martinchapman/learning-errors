@@ -165,7 +165,5 @@ int main()
 
     gl_destroy();
 
-		// _Learn_assert(false);
-
     return 0;
 }

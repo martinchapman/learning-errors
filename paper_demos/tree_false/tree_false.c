@@ -44,8 +44,8 @@ struct node *create_tree()
     struct node *node = NULL;
     while (nondet_int()) {
         node = malloc(sizeof *node);
-        if (!node)
-            abort();
+        //if (!node)
+            //abort();
         
         node->left = NULL;
         node->right = nodelast;
@@ -57,8 +57,8 @@ struct node *create_tree()
     }
     while (node != NULL) {
         node->left = malloc(sizeof *node);
-        if (!node)
-            abort();
+        //if (!node)
+            //abort();
         node->left->left = NULL;
         node->left->right = NULL;
         node->left->value = 42;
