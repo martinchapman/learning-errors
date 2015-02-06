@@ -89,9 +89,9 @@ int generate_func_names(int letter) {
 	tmp.str("");
 	tmp <<
 #ifdef _MYWIN32
-	  "cmd /c \"goto-instrument --learn " << input_file_exe << " " << input_file_exe << "\"";
+	  "cmd /c \"goto-instrument --learn " << input_file_exe << " --learn-functions " << input_file_no_extention << ".f " << input_file_exe << "\"";
 #else
-		  "goto-instrument --learn " << input_file_exe << " " << input_file_exe;
+		  "goto-instrument --learn " << input_file_exe << " --learn-functions " << input_file_no_extention << ".f " << input_file_exe;
 #endif
 
 	run(tmp.str().c_str());
@@ -615,7 +615,7 @@ bool answer_Membership(list<int> query) {
 
 	mem_queries++;
 	cout << "Please classify the word: ";	
-	for (it = query.begin(); it != query.end(); ++it ) cout << *it;
+	for (it = query.begin(); it != query.end(); ++it ) cout << ' ' << *it;
 	cout << " ";
 	
 	// cheap pre-checks
