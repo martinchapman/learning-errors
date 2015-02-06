@@ -1,7 +1,7 @@
-Index: goto-instrument/goto_instrument_parseoptions.h
+Index: goto_instrument_parse_options.h
 ===================================================================
---- goto-instrument/goto_instrument_parseoptions.h	(revision 5157)
-+++ goto-instrument/goto_instrument_parseoptions.h	(working copy)
+--- goto_instrument_parse_options.h	(revision 5163)
++++ goto_instrument_parse_options.h	(working copy)
 @@ -39,6 +39,7 @@
    "(nondet-volatile)(isr):" \
    "(stack-depth):(nondet-static)" \
@@ -10,7 +10,7 @@ Index: goto-instrument/goto_instrument_parseoptions.h
    "(signed-overflow-check)(unsigned-overflow-check)(float-overflow-check)" \
    "(show-goto-functions)(show-value-sets)(show-local-may-alias)" \
    "(show-local-bitvector-analysis)" \
-@@ -54,10 +55,10 @@
+@@ -54,7 +55,7 @@
    "(verbosity):(version)(xml-ui)(show-loops)" \
    "(accelerate)" \
    "(k-induction):(step-case)(base-case)" \
@@ -18,42 +18,12 @@ Index: goto-instrument/goto_instrument_parseoptions.h
 +  "(show-call-sequences)(check-call-sequence):(call-sequence-bound):" \
    "(interpreter)(show-reaching-definitions)(count-eloc)" \
    "(list-symbols)(list-undefined-functions)" \
--  "(z3)"
-+  "(z3)(show-dependence-graph)(add-library)(static-cycles)"
- 
- class goto_instrument_parseoptionst:
-   public parseoptions_baset,
-Index: goto-instrument/goto_instrument_parseoptions.cpp
+   "(z3)"
+Index: goto_instrument_parse_options.cpp
 ===================================================================
---- goto-instrument/goto_instrument_parseoptions.cpp	(revision 5157)
-+++ goto-instrument/goto_instrument_parseoptions.cpp	(working copy)
-@@ -36,7 +36,7 @@
- #include <pointer-analysis/show_value_sets.h>
- 
- #include <analyses/natural_loops.h>
--#include <analyses/local_may_alias.h>
-+#include <analyses/may_alias.h>
- #include <analyses/local_bitvector_analysis.h>
- #include <analyses/goto_check.h>
- #include <analyses/call_graph.h>
-@@ -43,6 +43,8 @@
- #include <analyses/interval_analysis.h>
- #include <analyses/interval_domain.h>
- #include <analyses/reaching_definitions.h>
-+#include <analyses/dependence_graph.h>
-+#include <analyses/goto_rw.h>
- 
- #include <cbmc/version.h>
- 
-@@ -60,7 +62,6 @@
- #include "mmio.h"
- #include "stack_depth.h"
- #include "nondet_static.h"
--#include "rw_set.h"
- #include "concurrency.h"
- #include "dump_c.h"
- #include "dot.h"
-@@ -67,11 +68,13 @@
+--- goto_instrument_parse_options.cpp	(revision 5163)
++++ goto_instrument_parse_options.cpp	(working copy)
+@@ -67,6 +67,7 @@
  #include "havoc_loops.h"
  #include "k_induction.h"
  #include "function.h"
@@ -61,67 +31,7 @@ Index: goto-instrument/goto_instrument_parseoptions.cpp
  #include "branch.h"
  #include "wmm/weak_memory.h"
  #include "call_sequences.h"
- #include "accelerate/accelerate.h"
- #include "count_eloc.h"
-+#include "wmm/static_cycles.h"
- 
- /*******************************************************************\
- 
-@@ -163,15 +166,8 @@
-       status() << "Partial Inlining" << eom;
-       goto_partial_inline(goto_functions, ns, ui_message_handler);
-     
--      forall_goto_functions(it, goto_functions)
--      {
--        local_may_aliast local_may_alias(it->second);
--        std::cout << ">>>>" << std::endl;
--        std::cout << ">>>> " << it->first << std::endl;
--        std::cout << ">>>>" << std::endl;
--        local_may_alias.output(std::cout, it->second, ns);
--        std::cout << std::endl;
--      }
-+      may_aliast may_alias(goto_functions, ns);
-+      may_alias.output(std::cout, goto_functions);
- 
-       return 0;
-     }
-@@ -199,6 +195,21 @@
-       return 0;
-     }
- 
-+    if(cmdline.isset("static-cycles"))
-+    {
-+      namespacet ns(symbol_table);
-+
-+      status() << "Function Pointer Removal" << eom;
-+      remove_function_pointers(symbol_table, goto_functions, false);
-+
-+      status() << "Partial Inlining" << eom;
-+      goto_partial_inline(goto_functions, ns, ui_message_handler);
-+
-+      static_cycles(symbol_table, goto_functions);
-+
-+      return 0;
-+    }
-+
-     if(cmdline.isset("show-points-to"))
-     {
-       namespacet ns(symbol_table);
-@@ -227,10 +238,10 @@
-       goto_partial_inline(goto_functions, ns, ui_message_handler);
-     
-       status() << "Interval Analysis" << eom;
--      static_analysist<interval_domaint> interval_analysis(ns);
--      interval_analysis(goto_functions);
-+      ait<interval_domaint> interval_analysis;
-+      interval_analysis(goto_functions, ns);
-       
--      interval_analysis.output(goto_functions, std::cout);
-+      interval_analysis.output(ns, goto_functions, std::cout);
-       return 0;
-     }
-     
-@@ -242,8 +253,14 @@
+@@ -242,8 +243,14 @@
  
      if(cmdline.isset("check-call-sequence"))
      {
@@ -137,164 +47,23 @@ Index: goto-instrument/goto_instrument_parseoptions.cpp
        return 0;
      }
  
-@@ -267,7 +284,9 @@
-       const symbolt &symbol=ns.lookup(ID_main);
-       symbol_exprt main(symbol.name, symbol.type);
-       
--      std::cout << rw_set_functiont(value_set_analysis, ns, goto_functions, main);
-+      rw_range_set_value_sett rw_set(ns, value_set_analysis);
-+      goto_rw(goto_functions, main.get_identifier(), rw_set);
-+      std::cout << rw_set;
-       return 0;
-     }
- 
-@@ -279,9 +298,12 @@
- 
-     if(cmdline.isset("show-reaching-definitions"))
-     {
-+      status() << "Function Pointer Removal" << eom;
-+      remove_function_pointers(symbol_table, goto_functions, false);
-+
-       const namespacet ns(symbol_table);
-       reaching_definitions_analysist rd_analysis(ns);
--      rd_analysis(goto_functions);
-+      rd_analysis(goto_functions, ns);
- 
-       forall_goto_functions(f_it, goto_functions)
-       {
-@@ -291,7 +313,7 @@
-           std::cout << "//// Function: " << f_it->first << std::endl;
-           std::cout << "////" << std::endl;
-           std::cout << std::endl;
--          rd_analysis.output(f_it->second.body, std::cout);
-+          rd_analysis.output(ns, f_it->second.body, std::cout);
-         }
-       }
- 
-@@ -298,6 +320,32 @@
-       return 0;
-     }
- 
-+    if(cmdline.isset("show-dependence-graph"))
-+    {
-+      status() << "Function Pointer Removal" << eom;
-+      remove_function_pointers(symbol_table, goto_functions, false);
-+
-+      const namespacet ns(symbol_table);
-+      dependence_grapht dependence_graph(ns);
-+      dependence_graph(goto_functions, ns);
-+
-+      forall_goto_functions(f_it, goto_functions)
-+      {
-+        if(f_it->second.body_available)
-+        {
-+          std::cout << "////" << std::endl;
-+          std::cout << "//// Function: " << f_it->first << std::endl;
-+          std::cout << "////" << std::endl;
-+          std::cout << std::endl;
-+          dependence_graph.output(ns, f_it->second.body, std::cout);
-+        }
-+      }
-+
-+      dependence_graph.output_dot(std::cout);
-+
-+      return 0;
-+    }
-+
-     if(cmdline.isset("count-eloc"))
-     {
-       count_eloc(goto_functions);
-@@ -633,7 +681,9 @@
- 
-   // we add the library in some cases, as some analyses benefit
- 
--  if(cmdline.isset("mm"))
-+  if(cmdline.isset("add-library") ||
-+     cmdline.isset("mm") ||
-+     cmdline.isset("static-cycles"))
-   {
-     status() << "Adding CPROVER library" << eom;
-     link_to_library(symbol_table, goto_functions, ui_message_handler);
-@@ -792,9 +842,11 @@
-         loops=no_loop;
- 
-       if(model!=Unknown)
-+      {
-+        may_aliast may_alias(goto_functions, ns);
-         weak_memory(
-           model,
--          value_set_analysis,
-+          may_alias,
-           symbol_table,
-           goto_functions,
-           cmdline.isset("scc"),
-@@ -812,6 +864,7 @@
-           cmdline.isset("hide-internals"),
-           get_message_handler(),
-           cmdline.isset("ignore-arrays"));
-+      }
-     }
- 
-     // Interrupt handler
-@@ -854,8 +907,14 @@
-   if(cmdline.isset("havoc-loops"))
-   {
-     status() << "Havocing loops" << eom;
--    havoc_loops(goto_functions);
-+    havoc_loops(goto_functions, ns);
+@@ -857,6 +864,12 @@
+     havoc_loops(goto_functions);
    }
-+  
+ 
 +  if(cmdline.isset("learn"))
 +  {
 +    status() << "_Learn_function_enter and Learn_trap instrumentation" << eom;
 +    instrument_functions_for_learn(symbol_table, goto_functions, cmdline.get_value("learn-functions"));
 +  }
- 
++
    if(cmdline.isset("k-induction"))
    {
-@@ -875,7 +934,7 @@
-     status() << "Instrumenting k-induction for k=" << k << ", "
-              << (base_case?"base case":"step case") << eom;
-     
--    k_induction(goto_functions, base_case, step_case, k);
-+    k_induction(goto_functions, base_case, step_case, k, ns);
-   }
- 
-   if(cmdline.isset("function-enter"))
-@@ -931,8 +990,12 @@
-   // full slice?
-   if(cmdline.isset("full-slice"))
-   {
-+    status() << "Function Pointer Removal" << eom;
-+    remove_function_pointers(
-+      symbol_table, goto_functions, cmdline.isset("pointer-check"));
-+
-     status() << "Performing a full slice" << eom;
--    full_slicer(goto_functions);
-+    full_slicer(goto_functions, ns);
-   }
-   
-   // label the assertions
-@@ -1025,6 +1088,7 @@
-     " --no-po-rendering            no representation of the threads in the dot\n"
-     " --render-cluster-file        clusterises the dot by files\n"
-     " --render-cluster-function    clusterises the dot by functions\n"
-+    " --static-cycles              identify potentially critical cycles\n"
-     "\n"
-     "Slicing:\n"
-     " --reachability-slicer        slice away instructions that can't reach assertions\n"
-@@ -1032,6 +1096,7 @@
-     "\n"
-     "Further transformations:\n"
-     " --inline                     perform full inlining\n"
-+    " --add-library                add models of C library functions\n"
-     "\n"
-     "Other options:\n"
-     " --use-system-headers         with --dump-c/--dump-cpp: generate C source with includes\n"
-Index: goto-instrument/learn.h
+     bool base_case=cmdline.isset("base-case");
+Index: learn.h
 ===================================================================
---- goto-instrument/learn.h	(revision 0)
-+++ goto-instrument/learn.h	(working copy)
+--- learn.h	(revision 0)
++++ learn.h	(working copy)
 @@ -0,0 +1,11 @@
 +/*******************************************************************
 + Module: Learn environment instrumentation
@@ -307,11 +76,11 @@ Index: goto-instrument/learn.h
 +
 +void instrument_functions_for_learn(class symbol_tablet &st,
 +    class goto_functionst &gf, const std::string &ff);
-Index: goto-instrument/learn.cpp
+Index: learn.cpp
 ===================================================================
---- goto-instrument/learn.cpp	(revision 0)
-+++ goto-instrument/learn.cpp	(working copy)
-@@ -0,0 +1,216 @@
+--- learn.cpp	(revision 0)
++++ learn.cpp	(working copy)
+@@ -0,0 +1,215 @@
 +#include <cstring>
 +#include <fstream>
 +#include <iterator>
@@ -330,7 +99,6 @@ Index: goto-instrument/learn.cpp
 +const char MAIN[] = "main";
 +const char NONDET_PREFIX[] = "nondet";
 +const char *NO_INSTR[] = { "assume", "exit", "Learn_Assert", "_Learn_function_enter" , "_Learn_Assert", "_Learn_assert", "Learn_trap", "_start" };
-+//const char *NO_INSTR[] = { "assume", "exit", "Learn_Assert", "_Learn_function_enter" , "_Learn_Assert", "_Learn_assert", "Learn_trap", "_start", "fprintf", "displayUsage", "fmod", "sscanf", "strcmp", "space_dummy_bool", "ceil", "floor", "printf", "rtGetNaN", "rtGetNaNF", "rtGetInf", "rtGetInfF", "rtGetMinusInf", "rtGetMinusInfF", "__assert_fail", "rtIsInf", "rtIsInfF", "rtIsNaN", "rtIsNaNF", "rt_InitInfAndNaN", "rt_StartDataLogging", "rt_StopDataLogging", "MdlTerminate", "MdlStart", "MdlOutputs", "MdlUpdate", "MdlInitializeSizes", "MdlInitializeSampleTimes", "MdlInitialize", "rt_ODECreateIntegrationData", "rt_ODEUpdateContinuousStates", "rt_UpdateTXYLogVars", "rt_UpdateSigLogVars", "rt_SimGetNextSampleHit", "rt_SimInitTimingEngine", "rt_SimUpdateDiscreteTaskSampleHits", "DockingApproachExample_Ext_terminate" };
 +
 +bool is_internal_function(const std::string &function_name) {
 +  return has_prefix(function_name, CPROVER_PREFIX) || has_prefix(function_name, NONDET_PREFIX);
