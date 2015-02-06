@@ -1,0 +1,530 @@
+Index: goto-instrument/goto_instrument_parseoptions.h
+===================================================================
+--- goto-instrument/goto_instrument_parseoptions.h	(revision 5157)
++++ goto-instrument/goto_instrument_parseoptions.h	(working copy)
+@@ -39,6 +39,7 @@
+   "(nondet-volatile)(isr):" \
+   "(stack-depth):(nondet-static)" \
+   "(function-enter):(function-exit):(branch):" \
++  "(learn)(learn-functions):" \
+   "(signed-overflow-check)(unsigned-overflow-check)(float-overflow-check)" \
+   "(show-goto-functions)(show-value-sets)(show-local-may-alias)" \
+   "(show-local-bitvector-analysis)" \
+@@ -54,10 +55,10 @@
+   "(verbosity):(version)(xml-ui)(show-loops)" \
+   "(accelerate)" \
+   "(k-induction):(step-case)(base-case)" \
+-  "(show-call-sequences)(check-call-sequence)" \
++  "(show-call-sequences)(check-call-sequence):(call-sequence-bound):" \
+   "(interpreter)(show-reaching-definitions)(count-eloc)" \
+   "(list-symbols)(list-undefined-functions)" \
+-  "(z3)"
++  "(z3)(show-dependence-graph)(add-library)(static-cycles)"
+ 
+ class goto_instrument_parseoptionst:
+   public parseoptions_baset,
+Index: goto-instrument/goto_instrument_parseoptions.cpp
+===================================================================
+--- goto-instrument/goto_instrument_parseoptions.cpp	(revision 5157)
++++ goto-instrument/goto_instrument_parseoptions.cpp	(working copy)
+@@ -36,7 +36,7 @@
+ #include <pointer-analysis/show_value_sets.h>
+ 
+ #include <analyses/natural_loops.h>
+-#include <analyses/local_may_alias.h>
++#include <analyses/may_alias.h>
+ #include <analyses/local_bitvector_analysis.h>
+ #include <analyses/goto_check.h>
+ #include <analyses/call_graph.h>
+@@ -43,6 +43,8 @@
+ #include <analyses/interval_analysis.h>
+ #include <analyses/interval_domain.h>
+ #include <analyses/reaching_definitions.h>
++#include <analyses/dependence_graph.h>
++#include <analyses/goto_rw.h>
+ 
+ #include <cbmc/version.h>
+ 
+@@ -60,7 +62,6 @@
+ #include "mmio.h"
+ #include "stack_depth.h"
+ #include "nondet_static.h"
+-#include "rw_set.h"
+ #include "concurrency.h"
+ #include "dump_c.h"
+ #include "dot.h"
+@@ -67,11 +68,13 @@
+ #include "havoc_loops.h"
+ #include "k_induction.h"
+ #include "function.h"
++#include "learn.h"
+ #include "branch.h"
+ #include "wmm/weak_memory.h"
+ #include "call_sequences.h"
+ #include "accelerate/accelerate.h"
+ #include "count_eloc.h"
++#include "wmm/static_cycles.h"
+ 
+ /*******************************************************************\
+ 
+@@ -163,15 +166,8 @@
+       status() << "Partial Inlining" << eom;
+       goto_partial_inline(goto_functions, ns, ui_message_handler);
+     
+-      forall_goto_functions(it, goto_functions)
+-      {
+-        local_may_aliast local_may_alias(it->second);
+-        std::cout << ">>>>" << std::endl;
+-        std::cout << ">>>> " << it->first << std::endl;
+-        std::cout << ">>>>" << std::endl;
+-        local_may_alias.output(std::cout, it->second, ns);
+-        std::cout << std::endl;
+-      }
++      may_aliast may_alias(goto_functions, ns);
++      may_alias.output(std::cout, goto_functions);
+ 
+       return 0;
+     }
+@@ -199,6 +195,21 @@
+       return 0;
+     }
+ 
++    if(cmdline.isset("static-cycles"))
++    {
++      namespacet ns(symbol_table);
++
++      status() << "Function Pointer Removal" << eom;
++      remove_function_pointers(symbol_table, goto_functions, false);
++
++      status() << "Partial Inlining" << eom;
++      goto_partial_inline(goto_functions, ns, ui_message_handler);
++
++      static_cycles(symbol_table, goto_functions);
++
++      return 0;
++    }
++
+     if(cmdline.isset("show-points-to"))
+     {
+       namespacet ns(symbol_table);
+@@ -227,10 +238,10 @@
+       goto_partial_inline(goto_functions, ns, ui_message_handler);
+     
+       status() << "Interval Analysis" << eom;
+-      static_analysist<interval_domaint> interval_analysis(ns);
+-      interval_analysis(goto_functions);
++      ait<interval_domaint> interval_analysis;
++      interval_analysis(goto_functions, ns);
+       
+-      interval_analysis.output(goto_functions, std::cout);
++      interval_analysis.output(ns, goto_functions, std::cout);
+       return 0;
+     }
+     
+@@ -242,8 +253,14 @@
+ 
+     if(cmdline.isset("check-call-sequence"))
+     {
++      int bound = -1;
++      if (cmdline.isset("call-sequence-bound"))
++        bound=unsafe_string2int(cmdline.get_value("call-sequence-bound"));
+       remove_returns(symbol_table, goto_functions);
+-      check_call_sequence(goto_functions);
++      check_call_sequence(
++        goto_functions,
++        cmdline.get_value("check-call-sequence"),
++        bound);
+       return 0;
+     }
+ 
+@@ -267,7 +284,9 @@
+       const symbolt &symbol=ns.lookup(ID_main);
+       symbol_exprt main(symbol.name, symbol.type);
+       
+-      std::cout << rw_set_functiont(value_set_analysis, ns, goto_functions, main);
++      rw_range_set_value_sett rw_set(ns, value_set_analysis);
++      goto_rw(goto_functions, main.get_identifier(), rw_set);
++      std::cout << rw_set;
+       return 0;
+     }
+ 
+@@ -279,9 +298,12 @@
+ 
+     if(cmdline.isset("show-reaching-definitions"))
+     {
++      status() << "Function Pointer Removal" << eom;
++      remove_function_pointers(symbol_table, goto_functions, false);
++
+       const namespacet ns(symbol_table);
+       reaching_definitions_analysist rd_analysis(ns);
+-      rd_analysis(goto_functions);
++      rd_analysis(goto_functions, ns);
+ 
+       forall_goto_functions(f_it, goto_functions)
+       {
+@@ -291,7 +313,7 @@
+           std::cout << "//// Function: " << f_it->first << std::endl;
+           std::cout << "////" << std::endl;
+           std::cout << std::endl;
+-          rd_analysis.output(f_it->second.body, std::cout);
++          rd_analysis.output(ns, f_it->second.body, std::cout);
+         }
+       }
+ 
+@@ -298,6 +320,32 @@
+       return 0;
+     }
+ 
++    if(cmdline.isset("show-dependence-graph"))
++    {
++      status() << "Function Pointer Removal" << eom;
++      remove_function_pointers(symbol_table, goto_functions, false);
++
++      const namespacet ns(symbol_table);
++      dependence_grapht dependence_graph(ns);
++      dependence_graph(goto_functions, ns);
++
++      forall_goto_functions(f_it, goto_functions)
++      {
++        if(f_it->second.body_available)
++        {
++          std::cout << "////" << std::endl;
++          std::cout << "//// Function: " << f_it->first << std::endl;
++          std::cout << "////" << std::endl;
++          std::cout << std::endl;
++          dependence_graph.output(ns, f_it->second.body, std::cout);
++        }
++      }
++
++      dependence_graph.output_dot(std::cout);
++
++      return 0;
++    }
++
+     if(cmdline.isset("count-eloc"))
+     {
+       count_eloc(goto_functions);
+@@ -633,7 +681,9 @@
+ 
+   // we add the library in some cases, as some analyses benefit
+ 
+-  if(cmdline.isset("mm"))
++  if(cmdline.isset("add-library") ||
++     cmdline.isset("mm") ||
++     cmdline.isset("static-cycles"))
+   {
+     status() << "Adding CPROVER library" << eom;
+     link_to_library(symbol_table, goto_functions, ui_message_handler);
+@@ -792,9 +842,11 @@
+         loops=no_loop;
+ 
+       if(model!=Unknown)
++      {
++        may_aliast may_alias(goto_functions, ns);
+         weak_memory(
+           model,
+-          value_set_analysis,
++          may_alias,
+           symbol_table,
+           goto_functions,
+           cmdline.isset("scc"),
+@@ -812,6 +864,7 @@
+           cmdline.isset("hide-internals"),
+           get_message_handler(),
+           cmdline.isset("ignore-arrays"));
++      }
+     }
+ 
+     // Interrupt handler
+@@ -854,8 +907,14 @@
+   if(cmdline.isset("havoc-loops"))
+   {
+     status() << "Havocing loops" << eom;
+-    havoc_loops(goto_functions);
++    havoc_loops(goto_functions, ns);
+   }
++  
++  if(cmdline.isset("learn"))
++  {
++    status() << "_Learn_function_enter and Learn_trap instrumentation" << eom;
++    instrument_functions_for_learn(symbol_table, goto_functions, cmdline.get_value("learn-functions"));
++  }
+ 
+   if(cmdline.isset("k-induction"))
+   {
+@@ -875,7 +934,7 @@
+     status() << "Instrumenting k-induction for k=" << k << ", "
+              << (base_case?"base case":"step case") << eom;
+     
+-    k_induction(goto_functions, base_case, step_case, k);
++    k_induction(goto_functions, base_case, step_case, k, ns);
+   }
+ 
+   if(cmdline.isset("function-enter"))
+@@ -931,8 +990,12 @@
+   // full slice?
+   if(cmdline.isset("full-slice"))
+   {
++    status() << "Function Pointer Removal" << eom;
++    remove_function_pointers(
++      symbol_table, goto_functions, cmdline.isset("pointer-check"));
++
+     status() << "Performing a full slice" << eom;
+-    full_slicer(goto_functions);
++    full_slicer(goto_functions, ns);
+   }
+   
+   // label the assertions
+@@ -1025,6 +1088,7 @@
+     " --no-po-rendering            no representation of the threads in the dot\n"
+     " --render-cluster-file        clusterises the dot by files\n"
+     " --render-cluster-function    clusterises the dot by functions\n"
++    " --static-cycles              identify potentially critical cycles\n"
+     "\n"
+     "Slicing:\n"
+     " --reachability-slicer        slice away instructions that can't reach assertions\n"
+@@ -1032,6 +1096,7 @@
+     "\n"
+     "Further transformations:\n"
+     " --inline                     perform full inlining\n"
++    " --add-library                add models of C library functions\n"
+     "\n"
+     "Other options:\n"
+     " --use-system-headers         with --dump-c/--dump-cpp: generate C source with includes\n"
+Index: goto-instrument/learn.h
+===================================================================
+--- goto-instrument/learn.h	(revision 0)
++++ goto-instrument/learn.h	(working copy)
+@@ -0,0 +1,11 @@
++/*******************************************************************
++ Module: Learn environment instrumentation
++
++ Author: Pascal Kesseli, pascal.kesseli@stx.ox.ac.uk
++
++ \*******************************************************************/
++
++#include <string>
++
++void instrument_functions_for_learn(class symbol_tablet &st,
++    class goto_functionst &gf, const std::string &ff);
+Index: goto-instrument/learn.cpp
+===================================================================
+--- goto-instrument/learn.cpp	(revision 0)
++++ goto-instrument/learn.cpp	(working copy)
+@@ -0,0 +1,216 @@
++#include <cstring>
++#include <fstream>
++#include <iterator>
++#include <algorithm>
++#include <util/prefix.h>
++#include <util/cprover_prefix.h>
++#include <util/simplify_expr.h>
++#include <ansi-c/c_types.h>
++#include <goto-instrument/function.h>
++
++// Helper Functions
++namespace {
++const char LEARN_ENTER[] = "_Learn_function_enter";
++const char LEARN_TRAP[] = "Learn_trap";
++const char EXIT[] = "exit";
++const char MAIN[] = "main";
++const char NONDET_PREFIX[] = "nondet";
++const char *NO_INSTR[] = { "assume", "exit", "Learn_Assert", "_Learn_function_enter" , "_Learn_Assert", "_Learn_assert", "Learn_trap", "_start" };
++//const char *NO_INSTR[] = { "assume", "exit", "Learn_Assert", "_Learn_function_enter" , "_Learn_Assert", "_Learn_assert", "Learn_trap", "_start", "fprintf", "displayUsage", "fmod", "sscanf", "strcmp", "space_dummy_bool", "ceil", "floor", "printf", "rtGetNaN", "rtGetNaNF", "rtGetInf", "rtGetInfF", "rtGetMinusInf", "rtGetMinusInfF", "__assert_fail", "rtIsInf", "rtIsInfF", "rtIsNaN", "rtIsNaNF", "rt_InitInfAndNaN", "rt_StartDataLogging", "rt_StopDataLogging", "MdlTerminate", "MdlStart", "MdlOutputs", "MdlUpdate", "MdlInitializeSizes", "MdlInitializeSampleTimes", "MdlInitialize", "rt_ODECreateIntegrationData", "rt_ODEUpdateContinuousStates", "rt_UpdateTXYLogVars", "rt_UpdateSigLogVars", "rt_SimGetNextSampleHit", "rt_SimInitTimingEngine", "rt_SimUpdateDiscreteTaskSampleHits", "DockingApproachExample_Ext_terminate" };
++
++bool is_internal_function(const std::string &function_name) {
++  return has_prefix(function_name, CPROVER_PREFIX) || has_prefix(function_name, NONDET_PREFIX);
++}
++
++bool is_instrumentation_function(const std::string &function_name) {
++  const char **end(NO_INSTR + sizeof(NO_INSTR) / sizeof(NO_INSTR[0]));
++  return end != std::find(NO_INSTR, end, function_name);
++}
++
++const char BUILTIN[] = "<built-in-additions>";
++const char STDLIB[] = "/std";
++
++bool is_builtin(const locationt &loc) {
++  const std::string &file(id2string(loc.get_file()));
++  return file.find(BUILTIN) != std::string::npos || file.find(STDLIB) != std::string::npos;
++  
++}
++
++bool should_not_be_instrumented(const std::string &fn, const locationt &loc) {
++  return is_builtin(loc) || is_internal_function(fn) || is_instrumentation_function(fn);
++}
++
++symbol_tablet::symbolst::const_iterator find_or_add_indexed_function(
++    symbol_tablet &st, const irep_idt &fn) {
++  const irep_idt full_id(id2string(fn));
++  const symbol_tablet::symbolst::const_iterator s_it(st.symbols.find(full_id));
++  if (s_it != st.symbols.end()) {
++    const typet &type(s_it->second.type);
++    if (type.id() == ID_code) {
++      const code_typet::parameterst &params(to_code_type(type).parameters());
++      if (params.size() == 1 && params.begin()->type().id() == ID_signedbv) {
++        return s_it;
++      }
++    }
++    throw "Function `" + id2string(fn) + "` has wrong signature.";
++  }
++  const typet arg_type(signed_int_type());
++  code_typet function_type;
++  function_type.return_type() = empty_typet();
++  function_type.parameters().push_back(code_typet::parametert(arg_type));
++  symbolt new_symbol;
++  new_symbol.name = full_id;
++  new_symbol.base_name = fn;
++  new_symbol.type = function_type;
++  st.move(new_symbol);
++  return st.symbols.find(full_id);
++}
++
++symbol_tablet::symbolst::const_iterator find_or_add_void_function(
++    symbol_tablet &st, const irep_idt &fn) {
++  const irep_idt full_id(id2string(fn));
++  const symbol_tablet::symbolst::const_iterator s_it(st.symbols.find(full_id));
++  if (s_it != st.symbols.end()) {
++    const typet &type(s_it->second.type);
++    if (type.id() == ID_code && to_code_type(type).parameters().empty()) {
++      return s_it;
++    }
++    throw "Function `" + id2string(fn) + "` has wrong signature.";
++  }
++  code_typet function_type;
++  function_type.return_type() = empty_typet();
++  symbolt new_symbol;
++  new_symbol.name = full_id;
++  new_symbol.base_name = fn;
++  new_symbol.type = function_type;
++  st.move(new_symbol);
++  return st.symbols.find(full_id);
++}
++
++code_function_callt to_indexed_function_call(symbol_tablet &st,
++    const irep_idt &fn, int index) {
++  const symbol_tablet::symbolst::const_iterator s_it(
++      find_or_add_indexed_function(st, fn));
++  assert(st.symbols.end() != s_it);
++  code_function_callt call;
++  call.function() = symbol_exprt(s_it->second.name, s_it->second.type);
++  const typet arg_type(signed_int_type());
++  const mp_integer width(string2integer(arg_type.get_string(ID_width)));
++  const std::string binary_value(integer2string(index, 2));
++  std::string bv_value((width - binary_value.length()).to_ulong(), '0');
++  bv_value += binary_value;
++  constant_exprt arg(bv_value, arg_type);
++  call.arguments().push_back(arg);
++  return call;
++}
++
++code_function_callt to_void_function_call(symbol_tablet &st,
++    const irep_idt &fn) {
++  const symbol_tablet::symbolst::const_iterator s_it(
++      find_or_add_void_function(st, fn));
++  assert(st.symbols.end() != s_it);
++  code_function_callt call;
++  call.function() = symbol_exprt(s_it->second.name, s_it->second.type);
++  return call;
++}
++
++void instrument_function_enter(symbol_tablet &st,
++    goto_functionst::function_mapt::iterator f_it, int index) {
++  goto_programt &body(f_it->second.body);
++  goto_programt::instructionst &instrs(body.instructions);
++  goto_programt::targett instr(body.insert_before(instrs.begin()));
++  instr->make_function_call(to_indexed_function_call(st, LEARN_ENTER, index));
++  instr->function = f_it->first;
++}
++
++void instrument_main_exit(symbol_tablet &st,
++    goto_functionst::function_mapt::iterator f_it) {
++  goto_programt &body(f_it->second.body);
++  goto_programt::instructionst &instrs(body.instructions);
++  if (instrs.empty() || !instrs.back().is_end_function()) {
++    body.add_instruction(END_FUNCTION);
++  }
++  for (typeof(instrs.begin()) it(instrs.begin()); it != instrs.end(); ++it) {
++    if (it->is_return()) {
++      goto_programt::instructiont call;
++      call.function=f_it->first;
++      call.make_function_call(to_void_function_call(st, LEARN_TRAP));
++      body.insert_before_swap(it, call);
++      ++it;
++    }
++  }
++}
++
++void instrument_learn_trap(symbol_tablet &st,
++    goto_functionst::function_mapt::iterator f_it) {
++  goto_programt &body(f_it->second.body);
++  goto_programt::instructionst &instrs(body.instructions);
++  for (typeof(instrs.begin()) it(instrs.begin()); it != instrs.end(); ++it) {
++    if (it->is_function_call()) {
++      const code_function_callt &call(to_code_function_call(it->code));
++      const exprt &f(call.function());
++      if (ID_symbol == f.id()) {
++        if (EXIT == id2string(to_symbol_expr(f).get_identifier())) {
++          goto_programt::instructiont call;
++          call.function=f_it->first;
++          call.make_function_call(to_void_function_call(st, LEARN_TRAP));
++          body.insert_before_swap(it, call);
++          ++it;
++        }
++      }
++    }
++  }
++  if (MAIN == id2string(f_it->first)) {
++    instrument_main_exit(st, f_it);
++  }
++}
++
++std::set<std::string> read_learn_functions(const std::string &path) {
++  std::set<std::string> result;
++  if (path.empty()) {
++    return result;
++  }
++  std::ifstream ifs(path.c_str());
++  std::copy(std::istream_iterator<std::string>(ifs),
++      std::istream_iterator<std::string>(),
++      std::inserter(result, result.end()));
++  return result;
++}
++
++bool is_permitted_by_learn_functions_file(const std::set<std::string> &fs, const std::string &f) {
++  return fs.empty() || fs.find(f) != fs.end();
++}
++}
++
++/*******************************************************************
++ Function: learn_enter
++
++ Inputs:
++
++ Outputs:
++
++ Purpose:
++
++ \*******************************************************************/
++
++void instrument_functions_for_learn(symbol_tablet &st, goto_functionst &gf, const std::string &ff) {
++  std::set<std::string> fs(read_learn_functions(ff));
++  goto_functionst::function_mapt &fm(gf.function_map);
++  std::vector<std::string> funcs;
++  int function_index(-1);
++  for (typeof(fm.begin()) f_it(fm.begin()); f_it != fm.end(); ++f_it) {
++    const std::string &fn(id2string(f_it->first));
++    if (should_not_be_instrumented(fn, f_it->second.type.location())) {
++      continue;
++    }
++    if (MAIN != fn && is_permitted_by_learn_functions_file(fs, fn)) {
++      funcs.push_back(fn);
++      instrument_function_enter(st, f_it, ++function_index);
++    }
++    instrument_learn_trap(st, f_it);
++  }
++  std::ofstream ofs("func_names.data");
++  for (typeof(funcs.begin()) it(funcs.begin()); it != funcs.end(); ++it) {
++    ofs << "  " << *it << std::endl;
++  }
++}
