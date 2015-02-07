@@ -85,66 +85,75 @@ int generate_func_names(int letter) {
     
     run(tmp.str().c_str());
     
-    // ~MDC Using new learn feature of goto-instrument, internally instrument functions for learn processing. Also outputs func_names.data
-	tmp.str("");
-	tmp <<
+    stringstream st, st1;
+    st << input_file_no_extention << ".f";
+    FILE *user_func_names = fopen(st.str().c_str() , "r");
+    
+    if (user_func_names == NULL) {
+        
+        // ~MDC Using new learn feature of goto-instrument, internally instrument functions for learn processing. Also outputs func_names.data
+        tmp.str("");
+        tmp <<
 #ifdef _MYWIN32
-	  "cmd /c \"goto-instrument --learn " << input_file_exe << " --learn-functions " << input_file_no_extention << ".f " << input_file_exe << "\"";
+        "cmd /c \"goto-instrument --learn " << input_file_exe << " " << input_file_exe << "\"";
 #else
-		  "goto-instrument --learn " << input_file_exe << " --learn-functions " << input_file_no_extention << ".f " << input_file_exe;
+        "goto-instrument --learn " << input_file_exe << " " << input_file_exe;
 #endif
-
-	run(tmp.str().c_str());
+        
+        run(tmp.str().c_str());
+        
+    } else {
+        
+        // ~MDC Same as instrumentation above, except here we restrict the functions instrumented to a subset specified in an external file 
+        tmp.str("");
+        tmp <<
+#ifdef _MYWIN32
+        "cmd /c \"goto-instrument --learn --learn-functions " << input_file_no_extention << ".f" << " " << input_file_exe << " " << input_file_exe << "\"";
+#else
+        "goto-instrument --learn --learn-functions " << input_file_no_extention << ".f" << " " << input_file_exe << " " << input_file_exe;
+#endif
+        
+        run(tmp.str().c_str());
+        
+    }
 
     // ~MDC Manually add main for consistency with original version, may not be necessary.
 	FILE *func_names2 = fopen(FUNC_NAMES, "a");
 	fprintf(func_names2, "%s\n", "main");
 	fclose(func_names2);
 
-	// reads func names from FUNC_NAMES and 
-	// 1) fills the global list node_index (to be used later in compute_allowed_pairs())
-	// 2) populates AUTO_LABELS_FUNCTIONS with function labels,
-	// 3) prepares the CONVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjecture, etc), 
-	//    and replaces the (char *) <func_name> with (int index) in the file a.c (the result of goto-instrument). Using int rather than strings avoids
-	//    strcmp() instructions which turn into loops by cbmc. 
-	char name[100];
-	map<string, int> user_func_set;
-	stringstream st, st1;
-	st << input_file_no_extention << ".f";
-	FILE *func_names = fopen(FUNC_NAMES, "r"),
-		*Labels = fopen(AUTO_LABELS_FUNCTIONS, "w"),
-		*user_func_names = fopen(st.str().c_str() , "r");
-
-	if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
-	if (user_func_names != NULL) {
-		cout << "found " << st.str() << endl;
-		create_interesting_set(user_func_names);	
-		rewind(user_func_names);
-		while (!feof(user_func_names)) {			
-			if (fscanf(user_func_names, "%s", name) != 1) continue;
-			user_func_set.insert(pair<string, int>(name, 0));			
-		}		
-    fclose(user_func_names);
-	}
-	else {
-		cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_no_extention << ".f" << endl;
-		create_interesting_set(func_names);	
-		rewind(func_names);
-	}
+    // reads func names from FUNC_NAMES and
+    // 1) fills the global list node_index (to be used later in compute_allowed_pairs())
+    // 2) populates AUTO_LABELS_FUNCTIONS with function labels,
+    // 3) prepares the CONVERT (convert.bat) file, which removes calls to _Learn_func_enter that we are not interested in (e.g. 'main, check_conjecture, etc),
+    //    and replaces the (char *) <func_name> with (int index) in the file a.c (the result of goto-instrument). Using int rather than strings avoids
+    //    strcmp() instructions which turn into loops by cbmc. (~MDC Depreciated)
+    char name[100];
+    map<string, int> user_func_set;
+    FILE *func_names = fopen(FUNC_NAMES, "r"),
+    *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w");
     
-	while (!feof(func_names)) {
-		if (fscanf(func_names, "%s", name) != 1) continue;	
-		if (!strcmp(name, "main") || ((user_func_names != NULL) && user_func_set.find(name) == user_func_set.end())) // here we can add other functions we wish to ignore
-		{
-			cout << "skipping " << name << endl;
-			continue; 
-		}			
-
-		func_name.insert(pair<int, string>(letter, string(name)));
-		fprintf(Labels, "%d %s\n", letter, name);
+    if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
+    
+    if (user_func_names == NULL) {
+        
+        cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_no_extention << ".f" << endl;
+        
+    }
+    
+    while (!feof(func_names)) {
+        if (fscanf(func_names, "%s", name) != 1) continue;
+        if (!strcmp(name, "main")) // here we can add other functions we wish to ignore
+        {
+            cout << "skipping " << name << endl;
+            continue;
+        }
+        
+        func_name.insert(pair<int, string>(letter, string(name)));
+        fprintf(Labels, "%d %s\n", letter, name);
         // ~MDC Manually increment letter
-		letter++;
-	}
+        letter++;
+    }
 	// what's special about assert is that it is not instrumented, being a library function. Inside Learn_assert we invoke Learn(alphabet-1)
 
 	fprintf(Labels, "%d %s\n", letter, "Learn_Assert"); // changed from assert
