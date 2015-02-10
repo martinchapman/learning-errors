@@ -13,7 +13,9 @@
 #include <map>
 #include <ctime>
 #include "../../file_names.h" // ofer
+#ifdef _EXPERIMENT_MODE
 #include <boost/unordered_map.hpp>
+#endif
 
 int Assert_letter;
 using namespace std;
@@ -49,6 +51,7 @@ ostringstream unwind_s;
 ostringstream unwind_setlimit;
 
 // CBMC membership query cache
+#ifdef _EXPERIMENT_MODE
 boost::unordered_map<std::list<int>, bool> MEMBERSHIP_QUERY_CACHE;
 
 enum membership_query_cache_resultt {
@@ -64,7 +67,7 @@ membership_query_cache_resultt lookup_query(const std::list<int> &query) {
 }
 
 void remember_query(const std::list<int> &query, bool result) { MEMBERSHIP_QUERY_CACHE.insert(std::make_pair(query, result)); }
-
+#endif
 
 //~MDC Needs to be addressed
 void rewrite_branch( string name, int num) 
@@ -652,12 +655,14 @@ bool answer_Membership(list<int> query) {
 		
 	// if instrumenting function calls, word has to be compatible with the cfg
 	if (instrument_functions && !membership_cfg_checks(query)) return false;
- 
+
+#ifdef _EXPERIMENT_MODE
   const membership_query_cache_resultt cached_result(lookup_query(query));
   if(NO_ENTRY_FOUND != cached_result) {
     cout << "Cached membership query!" << endl;
     return IN_LANGUAGE == cached_result;
   }
+#endif
 		
 	cout.flush();
 	// all pre-tests failed. Going into a cbmc call.
@@ -700,7 +705,9 @@ bool answer_Membership(list<int> query) {
 	
 	const int res = run_cbmc(true);
   const bool cbmc_result = res == 0;
-  if(cbmc_result) { remember_query(query, cbmc_result); }	
+#ifdef _EXPERIMENT_MODE
+  if(cbmc_result) { remember_query(query, cbmc_result); }
+#endif	
 	
 	cout << " " << (cbmc_result ? "(yes)" : "(no)") << endl;
 	
