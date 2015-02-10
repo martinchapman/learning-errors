@@ -652,9 +652,6 @@ bool answer_Membership(list<int> query) {
 	// cheap pre-checks
 	char pre_res = membership_pre_checks(query);  // 0 - false, 1 - true, 2 - no finding
 	 if (pre_res != 2) return (bool) pre_res; 
-		
-	// if instrumenting function calls, word has to be compatible with the cfg
-	if (instrument_functions && !membership_cfg_checks(query)) return false;
 
 #ifdef _EXPERIMENT_MODE
   const membership_query_cache_resultt cached_result(lookup_query(query));
@@ -663,6 +660,14 @@ bool answer_Membership(list<int> query) {
     return IN_LANGUAGE == cached_result;
   }
 #endif
+
+	// if instrumenting function calls, word has to be compatible with the cfg
+	if (instrument_functions && !membership_cfg_checks(query)) {
+#ifdef _EXPERIMENT_MODE
+    remember_query(query, false);
+#endif
+    return false;
+  }
 		
 	cout.flush();
 	// all pre-tests failed. Going into a cbmc call.
@@ -801,17 +806,25 @@ void copy_file(const char *source, const char *destination) {
   std::ofstream  dst(destination, std::ios::binary);
   dst << src.rdbuf();
 }
+
+#define WORD_LENGTH_ARGUMENT_INDEX 2
+#define USER_BOUND_ARGUMENT_INDEX 7
 #endif
 
 /*******************************  main  ****************************/
 int main(int argc, const char**argv) {		
 #ifdef _EXPERIMENT_MODE
-  for(int i = 2; i < 4; ++i) {
-    std::ostringstream ss;
-    ss << i;
-    const std::string user_bound(ss.str());
-    argv[7] = user_bound.c_str();
-    reset_global_variables();
+  for(int word_length = 15; word_length < 21; ++word_length) {
+    for(int user_bound = 2; user_bound < 4; ++user_bound) {
+      std::ostringstream ss;
+      ss << user_bound;
+      const std::string user_bound_argument(ss.str());
+      argv[USER_BOUND_ARGUMENT_INDEX] = user_bound_argument.c_str();
+      reset(ss);
+      ss << word_length;
+      const std::string word_length_argument(ss.str());
+      argv[WORD_LENGTH_ARGUMENT_INDEX] = word_length_argument.c_str();
+      reset_global_variables();
 #endif
 
 	clock_t begin = clock();
@@ -823,9 +836,9 @@ int main(int argc, const char**argv) {
     
 	learn();
 #ifdef _EXPERIMENT_MODE
-  reset(ss);
-  ss << "a-" << i << ".dot";
-  copy_file("a.dot", ss.str().c_str());
+    reset(ss);
+    ss << "a-" << word_length << "-" << user_bound << ".dot";
+    copy_file("a.dot", ss.str().c_str());
 #endif
 
 	clock_t end = clock();
@@ -834,6 +847,7 @@ int main(int argc, const char**argv) {
 	cout << "Time: " << elapsed_secs << endl;
 
 #ifdef _EXPERIMENT_MODE
+    }
   }
 #endif
 
