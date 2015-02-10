@@ -13,6 +13,7 @@
 #include <map>
 #include <ctime>
 #include "../../file_names.h" // ofer
+#include <boost/unordered_map.hpp>
 
 int Assert_letter;
 using namespace std;
@@ -47,6 +48,32 @@ unsigned word_length, unwind = 0;
 ostringstream unwind_s;
 ostringstream unwind_setlimit;
 
+// CBMC membership query cache
+boost::unordered_map<std::list<int>, bool> MEMBERSHIP_QUERY_CACHE;
+
+void init_cbmc_membership_cache() {
+  std::ofstream ofs(MEMBERSHIP_CACHE, std::ofstream::out | std::ofstream::trunc);
+  ofs.close();
+}
+
+void persist_cbmc_membership_cache() {
+}
+
+enum membership_query_cache_resultt {
+  IN_LANGUAGE,
+  NOT_IN_LANGUAGE,
+  NO_ENTRY_FOUND
+};
+
+membership_query_cache_resultt lookup_query(const std::list<int> &query) {
+  const typeof(MEMBERSHIP_QUERY_CACHE.begin()) it(MEMBERSHIP_QUERY_CACHE.find(query));
+  if(MEMBERSHIP_QUERY_CACHE.end() == it) { return NO_ENTRY_FOUND; }
+  return it->second ? IN_LANGUAGE : NOT_IN_LANGUAGE;
+}
+
+void remember_query(const std::list<int> &query, bool result) { MEMBERSHIP_QUERY_CACHE.insert(std::make_pair(query, result)); }
+
+
 //~MDC Needs to be addressed
 void rewrite_branch( string name, int num) 
 {
@@ -78,7 +105,7 @@ int generate_func_names(int letter) {
     tmp.str("");
     tmp <<
 #ifdef _MYWIN32
-    "cmd /c \"goto-cl -c " << input_file_working_copy << " -o " << input_file_exe << "\"";
+    "cmd /c \"goto-cl -c " << input_file_working_copy << " /Fo" << input_file_exe << "\"";
 #else
     "goto-cc -c " << input_file_working_copy << " -o " << input_file_exe;
 #endif
@@ -389,7 +416,7 @@ int run_cbmc(bool membership) {
     tmp.str("");
     tmp <<
 #ifdef _MYWIN32
-    "cmd /c \"goto-cl -c learn_code.c -o learn_code.o \"";
+    "cmd /c \"goto-cl -c learn_code.c /Folearn_code.o \"";
 #else
     "goto-cc -c learn_code.c -o learn_code.o";
 #endif
@@ -400,7 +427,7 @@ int run_cbmc(bool membership) {
     tmp.str("");
     tmp <<
 #ifdef _MYWIN32
-    "cmd /c \"goto-cl " << input_file_exe << " learn_code.o -o " << "learn" << input_file_exe << "\"";
+    "cmd /c \"goto-cl " << input_file_exe << " learn_code.o /Fe" << "learn" << input_file_exe << "\"";
 #else
     "goto-cc " << input_file_exe << " learn_code.o -o " << "learn" << input_file_exe;
 #endif
@@ -633,6 +660,9 @@ bool answer_Membership(list<int> query) {
 		
 	// if instrumenting function calls, word has to be compatible with the cfg
 	if (instrument_functions && !membership_cfg_checks(query)) return false;
+ 
+  const membership_query_cache_resultt cached_result(lookup_query(query));
+  if(NO_ENTRY_FOUND != cached_result) { return IN_LANGUAGE == cached_result; }
 		
 	cout.flush();
 	// all pre-tests failed. Going into a cbmc call.
@@ -673,14 +703,16 @@ bool answer_Membership(list<int> query) {
 
 	fflush(stdout);
 	
-	int res = run_cbmc(true);	
+	const int res = run_cbmc(true);
+  const bool cbmc_result = res == 0;
+  remember_query(query, cbmc_result);	
 	
-	cout << " " << (res == 0 ? "(yes)" : "(no)") << endl;
+	cout << " " << (cbmc_result ? "(yes)" : "(no)") << endl;
 	
 	// updating the positive_queries_file: this will block paths that correspond to membership that we already answered positively.
-	if (res == 0) positive_queries(query);	
+	if (cbmc_result) positive_queries(query);	
 
-	return (res == 0);	
+	return cbmc_result;	
 }
 
 void learn() {
