@@ -13,6 +13,7 @@
 #include <map>
 #include <ctime>
 #include "../../file_names.h" // ofer
+#include <boost/unordered_map.hpp>
 
 int Assert_letter;
 using namespace std;
@@ -46,6 +47,24 @@ unsigned word_length, unwind = 0;
 // ~MDC 'User bound'
 ostringstream unwind_s;
 ostringstream unwind_setlimit;
+
+// CBMC membership query cache
+boost::unordered_map<std::list<int>, bool> MEMBERSHIP_QUERY_CACHE;
+
+enum membership_query_cache_resultt {
+  IN_LANGUAGE,
+  NOT_IN_LANGUAGE,
+  NO_ENTRY_FOUND
+};
+
+membership_query_cache_resultt lookup_query(const std::list<int> &query) {
+  const typeof(MEMBERSHIP_QUERY_CACHE.begin()) it(MEMBERSHIP_QUERY_CACHE.find(query));
+  if(MEMBERSHIP_QUERY_CACHE.end() == it) { return NO_ENTRY_FOUND; }
+  return it->second ? IN_LANGUAGE : NOT_IN_LANGUAGE;
+}
+
+void remember_query(const std::list<int> &query, bool result) { MEMBERSHIP_QUERY_CACHE.insert(std::make_pair(query, result)); }
+
 
 //~MDC Needs to be addressed
 void rewrite_branch( string name, int num) 
@@ -209,7 +228,7 @@ void define_file_prefixes(string file_name)
     
 }
 
-void parse_options(int argc, char**argv) {		
+void parse_options(int argc, const char**argv) {		
 
 	if (argc < 3) Abort(string(
 		"Usage: online <file_name> <word-length> [--auto {b,f}]* [--v] [--unwind #] [<user (manualy inserted) alphabet-size>]\n\n" 
@@ -633,6 +652,12 @@ bool answer_Membership(list<int> query) {
 		
 	// if instrumenting function calls, word has to be compatible with the cfg
 	if (instrument_functions && !membership_cfg_checks(query)) return false;
+ 
+  const membership_query_cache_resultt cached_result(lookup_query(query));
+  if(NO_ENTRY_FOUND != cached_result) {
+    cout << "Cached membership query!" << endl;
+    return IN_LANGUAGE == cached_result;
+  }
 		
 	cout.flush();
 	// all pre-tests failed. Going into a cbmc call.
@@ -674,7 +699,8 @@ bool answer_Membership(list<int> query) {
 	fflush(stdout);
 	
 	const int res = run_cbmc(true);
-  const bool cbmc_result = res == 0;	
+  const bool cbmc_result = res == 0;
+  if(cbmc_result) { remember_query(query, cbmc_result); }	
 	
 	cout << " " << (cbmc_result ? "(yes)" : "(no)") << endl;
 	
@@ -752,8 +778,34 @@ void learn() {
 	delete result;	
 }
 
+#ifdef _EXPERIMENT_MODE
+void reset(std::ostringstream &ss) {
+  ss.clear();
+  ss.str("");
+}
+
+void reset_global_variables() {
+  reset(unwind_s);
+  reset(unwind_setlimit);
+}
+
+void copy_file(const char *source, const char *destination) {
+  std::ifstream  src(source, std::ios::binary);
+  std::ofstream  dst(destination, std::ios::binary);
+  dst << src.rdbuf();
+}
+#endif
+
 /*******************************  main  ****************************/
-int main(int argc, char**argv) {		
+int main(int argc, const char**argv) {		
+#ifdef _EXPERIMENT_MODE
+  for(int i = 2; i < 4; ++i) {
+    std::ostringstream ss;
+    ss << i;
+    const std::string user_bound(ss.str());
+    argv[7] = user_bound.c_str();
+    reset_global_variables();
+#endif
 
 	clock_t begin = clock();
 	parse_options(argc, argv);
@@ -762,12 +814,21 @@ int main(int argc, char**argv) {
 	init_auto_instrumentation();
     init_word_length_file();
     
-	learn();		
+	learn();
+#ifdef _EXPERIMENT_MODE
+  reset(ss);
+  ss << "a-" << i << ".dot";
+  copy_file("a.dot", ss.str().c_str());
+#endif
 
 	clock_t end = clock();
 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 	cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << endl;
 	cout << "Time: " << elapsed_secs << endl;
+
+#ifdef _EXPERIMENT_MODE
+  }
+#endif
 
 	return 0;
 		
