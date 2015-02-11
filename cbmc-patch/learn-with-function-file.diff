@@ -1,7 +1,7 @@
-Index: goto_instrument_parse_options.h
+Index: src/goto-instrument/goto_instrument_parse_options.h
 ===================================================================
---- goto_instrument_parse_options.h	(revision 5163)
-+++ goto_instrument_parse_options.h	(working copy)
+--- src/goto-instrument/goto_instrument_parse_options.h	(revision 5163)
++++ src/goto-instrument/goto_instrument_parse_options.h	(working copy)
 @@ -39,6 +39,7 @@
    "(nondet-volatile)(isr):" \
    "(stack-depth):(nondet-static)" \
@@ -19,10 +19,10 @@ Index: goto_instrument_parse_options.h
    "(interpreter)(show-reaching-definitions)(count-eloc)" \
    "(list-symbols)(list-undefined-functions)" \
    "(z3)"
-Index: goto_instrument_parse_options.cpp
+Index: src/goto-instrument/goto_instrument_parse_options.cpp
 ===================================================================
---- goto_instrument_parse_options.cpp	(revision 5163)
-+++ goto_instrument_parse_options.cpp	(working copy)
+--- src/goto-instrument/goto_instrument_parse_options.cpp	(revision 5163)
++++ src/goto-instrument/goto_instrument_parse_options.cpp	(working copy)
 @@ -67,6 +67,7 @@
  #include "havoc_loops.h"
  #include "k_induction.h"
@@ -60,10 +60,10 @@ Index: goto_instrument_parse_options.cpp
    if(cmdline.isset("k-induction"))
    {
      bool base_case=cmdline.isset("base-case");
-Index: learn.h
+Index: src/goto-instrument/learn.h
 ===================================================================
---- learn.h	(revision 0)
-+++ learn.h	(working copy)
+--- src/goto-instrument/learn.h	(revision 0)
++++ src/goto-instrument/learn.h	(working copy)
 @@ -0,0 +1,11 @@
 +/*******************************************************************
 + Module: Learn environment instrumentation
@@ -76,10 +76,10 @@ Index: learn.h
 +
 +void instrument_functions_for_learn(class symbol_tablet &st,
 +    class goto_functionst &gf, const std::string &ff);
-Index: learn.cpp
+Index: src/goto-instrument/learn.cpp
 ===================================================================
---- learn.cpp	(revision 0)
-+++ learn.cpp	(working copy)
+--- src/goto-instrument/learn.cpp	(revision 0)
++++ src/goto-instrument/learn.cpp	(working copy)
 @@ -0,0 +1,215 @@
 +#include <cstring>
 +#include <fstream>
