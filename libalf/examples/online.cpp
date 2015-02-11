@@ -23,7 +23,7 @@ using namespace libalf;
 int alphabet_size; 
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
-int mem_queries, cbmc_mem_queries, cfg_queries, cfg_prefix;
+int mem_queries, conjectures, cbmc_mem_queries, cfg_queries, cfg_prefix;
 int feedback = -1;
 
 void predecessors(int m, int current, int *predecessors_list);
@@ -247,6 +247,7 @@ void parse_options(int argc, const char**argv) {
      
     word_length = atoi(argv[2]);
     
+    alphabet_size = 0;
     unwind_s << 1;
     
 	for (int i = 3; i < argc ; ++i) {
@@ -474,6 +475,8 @@ int run_cbmc(bool membership) {
 bool answer_Conjecture(conjecture * cj) {
 
 	assert(cj != NULL);
+    
+    conjectures++;
 
 	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
 	cout << endl << "Conjecture:" << endl << endl;
@@ -807,50 +810,150 @@ void copy_file(const char *source, const char *destination) {
   dst << src.rdbuf();
 }
 
+int countNodes(const char* filename) {
+    int nodes = 0;
+    std::ifstream input(filename);
+    std::string line;
+    while( std::getline( input, line ) ) {
+        if ( line.find("shape=circle") != std::string::npos || line.find("shape=doublecircle") != std::string::npos )
+        nodes++;
+    }
+    return nodes;
+}
+
+int countEdges(const char* filename) {
+    int edges = -1;
+    std::ifstream input(filename);
+    std::string line;
+    while( std::getline( input, line ) ) {
+        if ( line.find("->") != std::string::npos )
+            edges++;
+    }
+    return edges;
+}
+
+bool hasBackedges(const char* filename) {
+    std::ifstream input(filename);
+    std::string line;
+    while( std::getline( input, line ) ) {
+        if ( line.find("q0 -> q0") != std::string::npos )
+            return true;
+    }
+    return false;
+}
+
+bool hasLoops() {
+    stringstream tmp;
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l > _loops.res\"";
+#else
+    "goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l > _loops.res";
+#endif
+    
+    run(tmp.str().c_str());
+    
+    FILE *seq_res = fopen ("_loops.res", "r");
+    int loops;
+    if (fscanf(seq_res, "%d", &loops) != 1) Abort("cannot read _loops.res");
+    fclose(seq_res);
+    
+    if (loops > 1)
+        return true;
+    
+    return false;
+}
+
+bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
+    // ~MDC: Number of automata that must match to signal convergence 
+    int NUMBER_MATCHING = 3;
+    bool matching = false;
+    if ( (word_length - lowest_word_length) > NUMBER_MATCHING ) {
+        matching = true;
+        for ( int current_length = word_length - ( NUMBER_MATCHING - 1 ); current_length < word_length; current_length++ ) {
+            std::stringstream file_a_path;
+            file_a_path << input_file_prefix << "-" << (current_length - 1) << "-" << user_bound << ".dot";
+            std::stringstream file_b_path;
+            file_b_path << input_file_prefix << "-" << current_length << "-" << user_bound << ".dot";  
+            
+            if (hasBackedges(file_a_path.str().c_str()))
+                matching = false;
+            if (hasBackedges(file_b_path.str().c_str()))
+                matching = false;
+            
+            if (countNodes(file_a_path.str().c_str()) != countNodes(file_b_path.str().c_str()) || countEdges(file_a_path.str().c_str()) != countEdges(file_b_path.str().c_str()))
+                matching = false;
+        }
+    }
+    return matching;
+}
+
 #define WORD_LENGTH_ARGUMENT_INDEX 2
 #define USER_BOUND_ARGUMENT_INDEX 7
 #endif
 
 /*******************************  main  ****************************/
 int main(int argc, const char**argv) {		
-#ifdef _EXPERIMENT_MODE
-  for(int word_length = 15; word_length < 21; ++word_length) {
-    for(int user_bound = 2; user_bound < 4; ++user_bound) {
-      std::ostringstream ss;
-      ss << user_bound;
-      const std::string user_bound_argument(ss.str());
-      argv[USER_BOUND_ARGUMENT_INDEX] = user_bound_argument.c_str();
-      reset(ss);
-      ss << word_length;
-      const std::string word_length_argument(ss.str());
-      argv[WORD_LENGTH_ARGUMENT_INDEX] = word_length_argument.c_str();
-      reset_global_variables();
-#endif
-
-	clock_t begin = clock();
-	parse_options(argc, argv);
-	remove_files();
-	preprocess_source();
-	init_auto_instrumentation();
-    init_word_length_file();
+#ifdef _EXPERIMENT_MODE 
     
-	learn();
-#ifdef _EXPERIMENT_MODE
-    reset(ss);
-    ss << "a-" << word_length << "-" << user_bound << ".dot";
-    copy_file("a.dot", ss.str().c_str());
+    for(int user_bound = 1; user_bound < 2; ++user_bound) {
+
 #endif
-
-	clock_t end = clock();
-	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-	cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << endl;
-	cout << "Time: " << elapsed_secs << endl;
+        clock_t begin = clock();
 
 #ifdef _EXPERIMENT_MODE
+
+        for(int word_length = 1; word_length < 25; ++word_length) {
+            
+            std::ostringstream ss;
+            ss << user_bound;
+            const std::string user_bound_argument(ss.str());
+            argv[USER_BOUND_ARGUMENT_INDEX] = user_bound_argument.c_str();
+            reset(ss);
+            ss << word_length;
+            const std::string word_length_argument(ss.str());
+            argv[WORD_LENGTH_ARGUMENT_INDEX] = word_length_argument.c_str();
+            reset_global_variables();
+#endif
+            
+            parse_options(argc, argv);
+            remove_files();
+            preprocess_source();
+            init_auto_instrumentation();
+            init_word_length_file();
+            
+            learn();
+            
+#ifdef _EXPERIMENT_MODE
+            reset(ss);
+            ss << input_file_prefix << "-" << word_length << "-" << user_bound << ".dot";
+            copy_file("a.dot", ss.str().c_str());
+            if (testConvergence(1, word_length, user_bound))
+                break;
+#endif
+            
+#ifdef _EXPERIMENT_MODE
+
+        }
+        
+        cout << "user bound: " << user_bound;
+        
+#endif
+        clock_t end = clock();
+        double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+        cout << " membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " total conjectures: " << conjectures << endl;
+        cout << "Time: " << elapsed_secs << endl;
+        
+#ifdef _EXPERIMENT_MODE
+        
+        if ( !hasLoops() )
+            break;
+        
     }
-  }
+    
 #endif
-
-	return 0;
-		
-	}
+    
+    return 0;
+    
+}

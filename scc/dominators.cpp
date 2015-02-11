@@ -1,6 +1,7 @@
 #include "dominators.hpp"
 #include "../file_names.h"
 #include <stdio.h>
+#include <iostream>
 
 using namespace std;
 using namespace boost;
