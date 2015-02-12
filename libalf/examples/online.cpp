@@ -276,7 +276,7 @@ void parse_options(int argc, const char**argv) {
 void remove_files() {
     #ifdef _EXPERIMENT_MODE
         ostringstream tmp;
-        tmp << "rm -f " << AUTO_LABELS; 
+        tmp << "rm -f " << AUTO_LABELS;
         run(tmp.str().c_str());
     #else
         ostringstream tmp;
@@ -893,24 +893,31 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
         
         for ( int remove_length = lowest_word_length; remove_length < word_length - ( NUMBER_MATCHING - 1 ); remove_length++ ) {
             stringstream st;
-            st << "rm " << " learn_output/" << input_file_prefix << "-" << remove_length << "-" << user_bound << ".dot";
+            st << "rm " << " learn_output/" << input_file_prefix << "-" << user_bound << "-" << remove_length << ".dot";
             //run(st.str().c_str());
         }
         
         for ( int current_length = word_length - ( NUMBER_MATCHING - 1 ); current_length < word_length; current_length++ ) {
             cout << current_length << endl;
             std::stringstream file_a_path;
-            file_a_path << "learn_output/" << input_file_prefix << "-" << (current_length - 1) << "-" << user_bound << ".dot";
+            file_a_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << (current_length - 1) << ".dot";
             std::stringstream file_b_path;
-            file_b_path << "learn_output/" << input_file_prefix << "-" << current_length << "-" << user_bound << ".dot";
+            file_b_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << current_length << ".dot";
             
-            if (hasBackedges(file_a_path.str().c_str()))
+            if (hasBackedges(file_a_path.str().c_str())) {
                 matching = false;
-            if (hasBackedges(file_b_path.str().c_str()))
-                matching = false;
+                break;
+            }
             
-            if (countNodes(file_a_path.str().c_str()) != countNodes(file_b_path.str().c_str()) || countEdges(file_a_path.str().c_str()) != countEdges(file_b_path.str().c_str()))
+            if (hasBackedges(file_b_path.str().c_str())) {
                 matching = false;
+                break;
+            }
+            
+            if (countNodes(file_a_path.str().c_str()) != countNodes(file_b_path.str().c_str()) || countEdges(file_a_path.str().c_str()) != countEdges(file_b_path.str().c_str())) {
+                matching = false;
+                break;
+            }
         }
     }
     return matching;
@@ -959,6 +966,7 @@ int main(int argc, const char**argv) {
             ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
             copy_file("a.dot", ss.str().c_str());
             // ~MDC Replace 1 with lower bound estimation
+            cout << testConvergence(1, word_length, user_bound) << endl;
             if (testConvergence(1, word_length, user_bound) || LOG_EACH_LENGTH) {
                 
 #endif
