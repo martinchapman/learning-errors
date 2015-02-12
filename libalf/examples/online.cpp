@@ -274,9 +274,15 @@ void parse_options(int argc, const char**argv) {
 }
 
 void remove_files() {
-	ostringstream tmp;
-	tmp << "rm -f " << AUTO_LABELS << " " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;	// we need a positives_query file because it is included from other files. 
-	run(tmp.str().c_str());
+    #ifdef _EXPERIMENT_MODE
+        ostringstream tmp;
+        tmp << "rm -f " << AUTO_LABELS; 
+        run(tmp.str().c_str());
+    #else
+        ostringstream tmp;
+        tmp << "rm -f " << AUTO_LABELS << " " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;	// we need a positives_query file because it is included from other files.
+        run(tmp.str().c_str());
+    #endif
 }
 
 
@@ -533,7 +539,7 @@ char membership_pre_checks(list<int> query) {
 	// and indeed violates the assertion. So we query the counterexample, to see if it happens to be positive.
 	if (feedback == 1)
 	{
-		positive_queries(query);	
+		positive_queries(query);
 		cout << "Feedback from conjecture!" << endl;
 		feedback = -1;
 		return 1;
@@ -717,7 +723,7 @@ bool answer_Membership(list<int> query) {
 	cout << " " << (cbmc_result ? "(yes)" : "(no)") << endl;
 	
 	// updating the positive_queries_file: this will block paths that correspond to membership that we already answered positively.
-	if (cbmc_result) positive_queries(query);	
+	if (cbmc_result) positive_queries(query);
 
 	return cbmc_result;	
 }
@@ -880,7 +886,7 @@ bool hasLoops() {
 
 bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
     // ~MDC: Number of automata that must match to signal convergence 
-    int NUMBER_MATCHING = 3;
+    int NUMBER_MATCHING = 2;
     bool matching = false;
     if ( (word_length - lowest_word_length) > NUMBER_MATCHING ) {
         matching = true;
@@ -892,6 +898,7 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
         }
         
         for ( int current_length = word_length - ( NUMBER_MATCHING - 1 ); current_length < word_length; current_length++ ) {
+            cout << current_length << endl;
             std::stringstream file_a_path;
             file_a_path << "learn_output/" << input_file_prefix << "-" << (current_length - 1) << "-" << user_bound << ".dot";
             std::stringstream file_b_path;
@@ -911,6 +918,7 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
 
 #define WORD_LENGTH_ARGUMENT_INDEX 2
 #define USER_BOUND_ARGUMENT_INDEX 7
+#define LOG_EACH_LENGTH false
 #endif
 
 /*******************************  main  ****************************/
@@ -948,9 +956,10 @@ int main(int argc, const char**argv) {
             
 #ifdef _EXPERIMENT_MODE
             reset(ss);
-            ss << "learn_output/" << input_file_prefix << "-" << word_length << "-" << user_bound << ".dot";
+            ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
             copy_file("a.dot", ss.str().c_str());
-            if (testConvergence(1, word_length, user_bound)) {
+            // ~MDC Replace 1 with lower bound estimation
+            if (testConvergence(1, word_length, user_bound) || LOG_EACH_LENGTH) {
                 
 #endif
                 clock_t end = clock();
@@ -961,10 +970,10 @@ int main(int argc, const char**argv) {
 #ifdef _EXPERIMENT_MODE
                 
                 std::stringstream final_automaton_path;
-                final_automaton_path << "learn_output/" << input_file_prefix << "-" << word_length << "-" << user_bound << ".dot";
+                final_automaton_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
                 
                 std::stringstream final_automaton_stats_filename;
-                final_automaton_stats_filename << input_file_prefix << "-" << user_bound << "-" << word_length;
+                final_automaton_stats_filename << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length;
                 
                 ofstream final_automaton_stats_file;
                 final_automaton_stats_file.open(final_automaton_stats_filename.str());
