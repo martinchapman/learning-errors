@@ -854,9 +854,11 @@ int countEdges(const char* filename) {
 bool hasBackedges(const char* filename) {
     std::ifstream input(filename);
     std::string line;
+   
     while( std::getline( input, line ) ) {
-        if ( line.find("q0 -> q0") != std::string::npos )
+        if ( line.find("q0 -> q0") != std::string::npos && line.find("blue") == std::string::npos ) {
             return true;
+        }
     }
     return false;
 }
@@ -888,7 +890,7 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
     // ~MDC: Number of automata that must match to signal convergence 
     int NUMBER_MATCHING = 2;
     bool matching = false;
-    if ( (word_length - lowest_word_length) > NUMBER_MATCHING ) {
+    if ( (word_length - lowest_word_length) >= NUMBER_MATCHING ) {
         matching = true;
         
         for ( int remove_length = lowest_word_length; remove_length < word_length - ( NUMBER_MATCHING - 1 ); remove_length++ ) {
@@ -898,7 +900,6 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
         }
         
         for ( int current_length = word_length - ( NUMBER_MATCHING - 1 ); current_length < word_length; current_length++ ) {
-            cout << current_length << endl;
             std::stringstream file_a_path;
             file_a_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << (current_length - 1) << ".dot";
             std::stringstream file_b_path;
@@ -930,6 +931,7 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
 
 /*******************************  main  ****************************/
 int main(int argc, const char**argv) {
+    
 #ifdef _EXPERIMENT_MODE
     
     for(int user_bound = 1; user_bound < 4; ++user_bound) {
@@ -940,7 +942,7 @@ int main(int argc, const char**argv) {
 #ifdef _EXPERIMENT_MODE
         
         // ~MDC initial value of word_length should be estimate of lower bound
-        for(int word_length = 1; word_length < 30; ++word_length) {
+        for(int word_length = 1; word_length < 50; ++word_length) {
             
             std::ostringstream ss;
             ss << user_bound;
@@ -966,7 +968,6 @@ int main(int argc, const char**argv) {
             ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
             copy_file("a.dot", ss.str().c_str());
             // ~MDC Replace 1 with lower bound estimation
-            cout << testConvergence(1, word_length, user_bound) << endl;
             if (testConvergence(1, word_length, user_bound) || LOG_EACH_LENGTH) {
                 
 #endif
