@@ -1,5 +1,3 @@
-#include "learn.c" 
-
 /*  -*- Last-Edit:  Fri Jan 29 11:13:27 1993 by Tarak S. Goradia; -*- */
 /* $Log: tcas_v23_523.c,v $
 /* Revision 1.1  2006-04-04 08:38:22  kroening

@@ -29,6 +29,7 @@ int feedback = -1;
 void predecessors(int m, int current, int *predecessors_list);
 void instrument();
 void Abort(string msg);
+void exitLearn();
 int run(const char* cmd);
 bool verbose = false;
 
@@ -157,11 +158,10 @@ int generate_func_names(int letter) {
     
     if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
     
-    if (user_func_names == NULL) {
-        
-        cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_no_extention << ".f" << endl;
-        
-    }
+    if (user_func_names == NULL) cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_no_extention << ".f" << endl;
+    
+    create_interesting_set(func_names);
+    rewind(func_names);
     
     while (!feof(func_names)) {
         if (fscanf(func_names, "%s", name) != 1) continue;
@@ -366,7 +366,6 @@ void show_result(conjecture *result) {
 }
 
 /*******************************  Learn  ****************************/
-
 list<int> get_CounterExample(int alphabetsize, int *feedback) {
     
 	list<int> ce;
@@ -381,8 +380,6 @@ list<int> get_CounterExample(int alphabetsize, int *feedback) {
 	read >> length;
 	cout << "(length = " << length << ")";
 	
-    
-    
 	while((length--) && read>>i ) 
 	{
 		cout << " read: " << i;
@@ -793,6 +790,22 @@ void learn() {
 	delete result;	
 }
 
+void exitLearn() {
+    
+    string rm_input_file_exe = "rm " + input_file_exe;
+    run(rm_input_file_exe.c_str());
+    
+    string rm_input_file_seq = "rm " + input_file_seq;
+    run(rm_input_file_seq.c_str());
+    
+    string rm_input_file_is = "rm " + input_file_is;
+    run(rm_input_file_is.c_str());
+    
+    string rm_input_file_working_copy = "rm " + input_file_working_copy;
+    run(rm_input_file_working_copy.c_str());
+    
+}
+
 #ifdef _EXPERIMENT_MODE
 void reset(std::ostringstream &ss) {
   ss.clear();
@@ -871,11 +884,18 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
     bool matching = false;
     if ( (word_length - lowest_word_length) > NUMBER_MATCHING ) {
         matching = true;
+        
+        for ( int remove_length = lowest_word_length; remove_length < word_length - ( NUMBER_MATCHING - 1 ); remove_length++ ) {
+            stringstream st;
+            st << "rm " << " learn_output/" << input_file_prefix << "-" << remove_length << "-" << user_bound << ".dot";
+            //run(st.str().c_str());
+        }
+        
         for ( int current_length = word_length - ( NUMBER_MATCHING - 1 ); current_length < word_length; current_length++ ) {
             std::stringstream file_a_path;
-            file_a_path << input_file_prefix << "-" << (current_length - 1) << "-" << user_bound << ".dot";
+            file_a_path << "learn_output/" << input_file_prefix << "-" << (current_length - 1) << "-" << user_bound << ".dot";
             std::stringstream file_b_path;
-            file_b_path << input_file_prefix << "-" << current_length << "-" << user_bound << ".dot";  
+            file_b_path << "learn_output/" << input_file_prefix << "-" << current_length << "-" << user_bound << ".dot";
             
             if (hasBackedges(file_a_path.str().c_str()))
                 matching = false;
@@ -894,17 +914,18 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
 #endif
 
 /*******************************  main  ****************************/
-int main(int argc, const char**argv) {		
-#ifdef _EXPERIMENT_MODE 
+int main(int argc, const char**argv) {
+#ifdef _EXPERIMENT_MODE
     
-    for(int user_bound = 1; user_bound < 2; ++user_bound) {
-
+    for(int user_bound = 1; user_bound < 4; ++user_bound) {
+        
 #endif
         clock_t begin = clock();
-
+        
 #ifdef _EXPERIMENT_MODE
-
-        for(int word_length = 1; word_length < 25; ++word_length) {
+        
+        // ~MDC initial value of word_length should be estimate of lower bound
+        for(int word_length = 1; word_length < 30; ++word_length) {
             
             std::ostringstream ss;
             ss << user_bound;
@@ -927,28 +948,42 @@ int main(int argc, const char**argv) {
             
 #ifdef _EXPERIMENT_MODE
             reset(ss);
-            ss << input_file_prefix << "-" << word_length << "-" << user_bound << ".dot";
+            ss << "learn_output/" << input_file_prefix << "-" << word_length << "-" << user_bound << ".dot";
             copy_file("a.dot", ss.str().c_str());
-            if (testConvergence(1, word_length, user_bound))
-                break;
+            if (testConvergence(1, word_length, user_bound)) {
+                
 #endif
-            
+                clock_t end = clock();
+                double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+                cout << " membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " total conjectures: " << conjectures << endl;
+                cout << "Time: " << elapsed_secs << endl;
+                
 #ifdef _EXPERIMENT_MODE
-
+                
+                std::stringstream final_automaton_path;
+                final_automaton_path << "learn_output/" << input_file_prefix << "-" << word_length << "-" << user_bound << ".dot";
+                
+                std::stringstream final_automaton_stats_filename;
+                final_automaton_stats_filename << input_file_prefix << "-" << user_bound << "-" << word_length;
+                
+                ofstream final_automaton_stats_file;
+                final_automaton_stats_file.open(final_automaton_stats_filename.str());
+                
+                std::stringstream final_automaton_stats_info;
+                // Name, Nodes, Edges, Lower Bound, Convergence Bound, User Bound, Seconds gone, CBMC mem queries / total queries, Conjectures, Iterations
+                final_automaton_stats_info << input_file_prefix << " & " << countNodes(final_automaton_path.str().c_str()) << " & " << countEdges(final_automaton_path.str().c_str()) << " & " << 1 << " & " << word_length << " & " << user_bound << " & " << elapsed_secs << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << conjectures << " & " << word_length - 1;
+                
+                final_automaton_stats_file << final_automaton_stats_info.str();
+                final_automaton_stats_file.close();
+                
+                break;
+                
+            }
+            
         }
         
-        cout << "user bound: " << user_bound;
-        
-#endif
-        clock_t end = clock();
-        double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-        cout << " membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " total conjectures: " << conjectures << endl;
-        cout << "Time: " << elapsed_secs << endl;
-        
-#ifdef _EXPERIMENT_MODE
-        
         if ( !hasLoops() )
-            break;
+        break;
         
     }
     

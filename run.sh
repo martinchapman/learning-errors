@@ -3,10 +3,10 @@
 
 if [ -z "$2" ]
 then
-libalf/examples/online $1 0 --auto f --v
+libalf/examples/online $1 0 --auto f --v --user-unwind 1
 elif [ -z "$3" ]
 then
-libalf/examples/online $1 $2 --auto f --v
+libalf/examples/online $1 $2 --auto f --v --user-unwind 1
 else
 libalf/examples/online $1 $2 --auto f --v --user-unwind $3
 fi
