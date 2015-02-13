@@ -272,20 +272,26 @@ void parse_options(int argc, const char**argv) {
 	if (alphabet_size == 0 && !instrument_branches && !instrument_functions) Abort("alphabet size must be > 0, or --auto should be used.");
 }
 
+void remove_labels() {
+    ostringstream tmp;
+    tmp << "rm -f " << AUTO_LABELS;
+    run(tmp.str().c_str());
+}
+
 void remove_files() {
-    #ifdef _EXPERIMENT_MODE
-        ostringstream tmp;
-        tmp << "rm -f " << AUTO_LABELS;
-        run(tmp.str().c_str());
-    #else
-        ostringstream tmp;
-        tmp << "rm -f " << AUTO_LABELS << " " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;	// we need a positives_query file because it is included from other files.
-        run(tmp.str().c_str());
+    remove_labels();
+    #ifndef _EXPERIMENT_MODE
+        remove_positive_queries();
     #endif
 }
 
+void remove_positive_queries() {
+    ostringstream tmp;
+    tmp << "rm -f " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;	// we need a positives_query file because it is included from other files.
+    run(tmp.str().c_str());
+}
 
-void preprocess_source() {	
+void preprocess_source() {
 	// adding 'include "learn.c" ' in the first line of the source file. It is necessary for goto-cl because of the Learn_Assert command. 
 	stringstream tmp;
     
@@ -364,7 +370,8 @@ void show_result(conjecture *result) {
 	cout.rdbuf (dot.rdbuf());	
 	cout << a->visualize();
 	dot.close();
-	cout.rdbuf (strm_buffer); 
+    
+	cout.rdbuf (strm_buffer);
 
     // Temporarily disabled immediate visual feedback of automaton.
 	//run("dotty a.dot");	
@@ -888,7 +895,7 @@ bool hasLoops() {
 
 bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
     // ~MDC: Number of automata that must match to signal convergence 
-    int NUMBER_MATCHING = 2;
+    int NUMBER_MATCHING = 1;
     bool matching = false;
     if ( (word_length - lowest_word_length) >= NUMBER_MATCHING ) {
         matching = true;
@@ -899,11 +906,11 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
             //run(st.str().c_str());
         }
         
-        for ( int current_length = word_length - ( NUMBER_MATCHING - 1 ); current_length < word_length; current_length++ ) {
+        for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
             std::stringstream file_a_path;
-            file_a_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << (current_length - 1) << ".dot";
+            file_a_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << current_length << ".dot";
             std::stringstream file_b_path;
-            file_b_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << current_length << ".dot";
+            file_b_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << (current_length + 1) << ".dot";
             
             if (hasBackedges(file_a_path.str().c_str())) {
                 matching = false;
@@ -1007,6 +1014,7 @@ int main(int argc, const char**argv) {
     
 #endif
     
+    remove_positive_queries();
     return 0;
     
 }
