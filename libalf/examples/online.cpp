@@ -278,6 +278,12 @@ void remove_labels() {
     run(tmp.str().c_str());
 }
 
+void remove_positive_queries() {
+	ostringstream tmp;
+	tmp << "rm -f " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;	// we need a positives_query file because it is included from other files.
+	run(tmp.str().c_str());
+}
+
 void remove_files() {
     remove_labels();
     #ifndef _EXPERIMENT_MODE
@@ -285,11 +291,6 @@ void remove_files() {
     #endif
 }
 
-void remove_positive_queries() {
-    ostringstream tmp;
-    tmp << "rm -f " << POSITIVE_QUERIES_FILE << "; echo > " << POSITIVE_QUERIES_FILE;	// we need a positives_query file because it is included from other files.
-    run(tmp.str().c_str());
-}
 
 void preprocess_source() {
 	// adding 'include "learn.c" ' in the first line of the source file. It is necessary for goto-cl because of the Learn_Assert command. 

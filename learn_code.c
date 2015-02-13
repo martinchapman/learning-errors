@@ -31,19 +31,18 @@ void Assert(bool x, char feedback) {
 }
 
 void check_conjecture(bool assert_condition) {  
-	char state = 0;
-	int sim_idx = 0;	
+	char state = 0;	
 	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
-		state = A[state][_Learn_b[sim_idx++]];
+		state = A[state][_Learn_b[i]];
 
-  if(assert_condition) {
-    if(accept[state]) {
+  if (assert_condition) {
+    if (accept[state]) {
       // Path is not an error path and should not be part of the error language.
       _Learn_ce_length = _Learn_idx;
       Assert(0, 0);
     }
   } else {
-    if(accept[state] && conjecture_path_has_reached_failing_assert) {
+    if (accept[state] && conjecture_path_has_reached_failing_assert) {
       // Path continues after a failing assertion. Should not be part of the language
       _Learn_ce_length = _Learn_idx;
       Assert(0, 0);
@@ -69,10 +68,9 @@ void check_conjecture(bool assert_condition) {
 	
 // called from _Learn_trap. At the trap we are only interested in negative feedbacks (everything that gets here is not in the language).
 void check_conjecture_at_trap() {  
-	char state = 0;
-	int sim_idx = 0;
+	char state = 0;	
 	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
-		state = A[state][_Learn_b[sim_idx++]];
+		state = A[state][_Learn_b[i]];
 	if (accept[state]) {
 		// positive_queries_filter filters out (via assume(0)) paths that are in the language (we know that because a previous mem. query proved so). This prevents nondeterminism, i.e., earlier we said it is in the language, and now we return it as a negative feedback.
 		// note that this non-determinisms is artificial, due to the trap, e.g., a path 0-1-1-2 breaks the assertion, but there is another path that doesn't go via any of these locations and simply reaches the trap.
@@ -82,8 +80,7 @@ void check_conjecture_at_trap() {
 	}	
 }
 
-void Learn_Assert(bool assert_condition) { 	 
-  
+void Learn_Assert(bool assert_condition) { 
 	if (!assert_condition) {_Learn(assert_letter);} // we call _Learn only when !res because our queries never include 'assert' more than once, hence we do not count asserts that pass.
 	check_conjecture(assert_condition); 
 }

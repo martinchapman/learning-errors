@@ -7,7 +7,7 @@ PREFIX ?= /usr/local
 
 CPPFLAGS+=-I${PREFIX}/include -I../libalf/include -I../../scc/boost_1_53_0 -I/sw/include -I/sw/opt/boost-1_55/include -Wall -g
 
-CPPFLAGS+=-I../../scc/boost -I../ -D_EXPERIMENT_MODE -U_WIN32 -D_MYWIN32
+CPPFLAGS+=-I../../scc/boost -I../ -U_WIN32 -D_MYWIN32
 
 LDFLAGS+=-L${PREFIX}/lib -L${PWD}/../libalf/src -g
 
