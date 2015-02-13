@@ -247,7 +247,6 @@ void parse_options(int argc, const char**argv) {
      
     word_length = atoi(argv[2]);
     
-    alphabet_size = 0;
     unwind_s << 1;
     
 	for (int i = 3; i < argc ; ++i) {
@@ -670,7 +669,7 @@ bool answer_Membership(list<int> query) {
 	// if instrumenting function calls, word has to be compatible with the cfg
 	if (instrument_functions && !membership_cfg_checks(query)) {
 #ifdef _EXPERIMENT_MODE
-    remember_query(query, false);
+    //remember_query(query, false);
 #endif
     return false;
   }
@@ -717,7 +716,7 @@ bool answer_Membership(list<int> query) {
 	const int res = run_cbmc(true);
   const bool cbmc_result = res == 0;
 #ifdef _EXPERIMENT_MODE
-  if(cbmc_result) { remember_query(query, cbmc_result); }
+  if(cbmc_result) { /*remember_query(query, cbmc_result);*/ }
 #endif	
 	
 	cout << " " << (cbmc_result ? "(yes)" : "(no)") << endl;
@@ -821,6 +820,7 @@ void reset(std::ostringstream &ss) {
 void reset_global_variables() {
   reset(unwind_s);
   reset(unwind_setlimit);
+  alphabet_size = 0;
 }
 
 void copy_file(const char *source, const char *destination) {
@@ -985,7 +985,7 @@ int main(int argc, const char**argv) {
                 final_automaton_stats_filename << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length;
                 
                 ofstream final_automaton_stats_file;
-                final_automaton_stats_file.open(final_automaton_stats_filename.str());
+                final_automaton_stats_file.open(final_automaton_stats_filename.str().c_str());
                 
                 std::stringstream final_automaton_stats_info;
                 // Name, Nodes, Edges, Lower Bound, Convergence Bound, User Bound, Seconds gone, CBMC mem queries / total queries, Conjectures, Iterations
