@@ -14,6 +14,7 @@
 #include <ctime>
 #include <ctype.h>
 #include "../../file_names.h" // ofer
+#include <boost/algorithm/string.hpp>
 #ifdef _EXPERIMENT_MODE
 #include <boost/unordered_map.hpp>
 #endif
@@ -94,17 +95,17 @@ void create_interesting_set(FILE *f) {
 	fclose(func_names_for_goto_inst);
 }
 
-int generate_func_names(int letter) {
-
-	stringstream tmp;
+void add_learn_instrumentation(string input_file, string link) {
+    
+    stringstream tmp;
     
     // ~MDC Convert .c source into 'master' object file
     tmp.str("");
     tmp <<
 #ifdef _MYWIN32
-    "cmd /c \"goto-cl -c " << input_file_working_copy << " /Fo" << input_file_exe << "\"";
+    "cmd /c \"goto-cl " << link << " " << input_file << " /Fo" << input_file_exe << "\"";
 #else
-    "goto-cc -c " << input_file_working_copy << " -o " << input_file_exe;
+    "goto-cc " << link << " " << input_file << " -o " << input_file_exe;
 #endif
     
     run(tmp.str().c_str());
@@ -114,6 +115,8 @@ int generate_func_names(int letter) {
     FILE *user_func_names = fopen(st.str().c_str() , "r");
     
     if (user_func_names == NULL) {
+        
+        cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_no_extention << ".f" << endl;
         
         // ~MDC Using new learn feature of goto-instrument, internally instrument functions for learn processing. Also outputs func_names.data
         tmp.str("");
@@ -128,7 +131,7 @@ int generate_func_names(int letter) {
         
     } else {
         
-        // ~MDC Same as instrumentation above, except here we restrict the functions instrumented to a subset specified in an external file 
+        // ~MDC Same as instrumentation above, except here we restrict the functions instrumented to a subset specified in an external file
         tmp.str("");
         tmp <<
 #ifdef _MYWIN32
@@ -140,7 +143,13 @@ int generate_func_names(int letter) {
         run(tmp.str().c_str());
         
     }
+    
+}
 
+int generate_func_names(int letter) {
+
+    add_learn_instrumentation(input_file_working_copy, "-c");
+    
     // ~MDC Manually add main for consistency with original version, may not be necessary.
 	FILE *func_names2 = fopen(FUNC_NAMES, "a");
 	fprintf(func_names2, "%s\n", "main");
@@ -158,8 +167,6 @@ int generate_func_names(int letter) {
     *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w");
     
     if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
-    
-    if (user_func_names == NULL) cout << "Using all function names (other than 'main'). A restricted list can be given in a file " << input_file_no_extention << ".f" << endl;
     
     create_interesting_set(func_names);
     rewind(func_names);
@@ -305,7 +312,7 @@ void preprocess_source() {
           "sed -e \"1i\\\\\n\\#include \\\"learn.c\\\"\" " << input_file_name_full << " > " <<  input_file_working_copy; 
 #endif
 
-	//run(tmp.str().c_str());
+	run(tmp.str().c_str());
 	/*tmp.str("");		
 	tmp << "cp tmp " << input_file_working_copy;
 	run(tmp.str().c_str());	*/
@@ -413,10 +420,10 @@ int run(const char* cmd) {
 	return res;
 }
 
-std::string run_with_result(const char* cmd) {
+int run_with_numeric_result(const char* cmd) {
     if (verbose) {cout << endl << "---------- external command -----------" << endl << cmd << endl;}
     FILE* pipe = popen(cmd, "r");
-    if (!pipe) return "ERROR";
+    if (!pipe) return -1;
     char buffer[256];
     std::string result = "";
     while(!feof(pipe)) {
@@ -426,7 +433,17 @@ std::string run_with_result(const char* cmd) {
     pclose(pipe);
     if (verbose) {cout << endl << "---------------------------------------" << endl;}
     cout.flush();
-    return result;
+    
+    std::stringstream ss(result);
+    std::string item;
+    while (std::getline(ss, item, '\n')) {
+        boost::trim(item);
+        if (isdigit(item.c_str()[0])) {
+            return stoi(item);
+        }
+    }
+
+    return -1;
 }
 
 int run_cbmc(bool membership) {
@@ -893,19 +910,12 @@ bool has_loops() {
     tmp.str("");
     tmp <<
 #ifdef _MYWIN32
-    "cmd /c \"goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l > _loops.res\"";
+    "cmd /c \"goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l\"";
 #else
-    "goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l > _loops.res";
+    "goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l";
 #endif
     
-    run(tmp.str().c_str());
-    
-    FILE *seq_res = fopen ("_loops.res", "r");
-    int loops;
-    if (fscanf(seq_res, "%d", &loops) != 1) Abort("cannot read _loops.res");
-    fclose(seq_res);
-    
-    if (loops > 1)
+    if (run_with_numeric_result(tmp.str().c_str()) > 1)
         return true;
     
     return false;
@@ -913,50 +923,19 @@ bool has_loops() {
 
 int estimate_wordlength() {
     
+    add_learn_instrumentation(input_file_name_full, "");
+    
+    //
+    
     stringstream tmp;
-    
-    tmp.str("");
     tmp <<
 #ifdef _MYWIN32
-    "cmd /c \"goto-cl " << input_file_name_full << " /Fo" << input_file_exe << "\"";
+     "cmd /c \"goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe << "\"";
 #else
-    "goto-cc " << input_file_name_full << " -o " << input_file_exe;
+    "goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe;
 #endif
     
-    run(tmp.str().c_str());
-    
-    //
-    
-    tmp.str("");
-    tmp <<
-#ifdef _MYWIN32
-    "cmd /c \"goto-instrument --learn " << input_file_exe << " " << input_file_exe << "\"";
-#else
-    "goto-instrument --learn " << input_file_exe << " " << input_file_exe;
-#endif
-    
-    run(tmp.str().c_str());
-    
-    //
-    
-    tmp.str("");
-#ifdef _MYWIN32
-    temp << "cmd /c \"goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe << "\"";
-#else
-    tmp << "goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe;
-#endif
-    
-    std::string result = run_with_result(tmp.str().c_str());
-    
-    std::stringstream ss(result);
-    std::string item;
-    while (std::getline(ss, item, '\n')) {
-        if (isdigit(item.c_str()[0])) {
-            return stoi(item);
-        }
-    }
-    
-    return -1;
+    return run_with_numeric_result(tmp.str().c_str());
     
 }
 
@@ -970,7 +949,7 @@ bool test_convergence(int lowest_word_length, int word_length, int user_bound) {
         for ( int remove_length = lowest_word_length; remove_length < (word_length - NUMBER_MATCHING); remove_length++ ) {
             stringstream st;
             st << "rm " << " learn_output/" << input_file_prefix << "-" << user_bound << "-" << remove_length << ".dot";
-            //run(st.str().c_str());
+            run(st.str().c_str());
         }
         
         for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
@@ -1008,9 +987,11 @@ int main(int argc, const char**argv) {
     
 #ifdef _EXPERIMENT_MODE
     
-    define_file_prefixes(argv[1]);
-    
+    parse_options(argc, argv);
+
     int lower_bound = estimate_wordlength();
+    
+    cout << "Estimating lower_bound as: " << lower_bound << endl;
     
     for(int user_bound = 1; user_bound < 4; ++user_bound) {
         
@@ -1037,7 +1018,7 @@ int main(int argc, const char**argv) {
             preprocess_source();
             init_auto_instrumentation();
             init_word_length_file();
-            
+
             learn();
             
 #ifdef _EXPERIMENT_MODE
