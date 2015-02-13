@@ -1,0 +1,447 @@
+Index: src/goto-instrument/Makefile
+===================================================================
+--- src/goto-instrument/Makefile	(revision 5187)
++++ src/goto-instrument/Makefile	(working copy)
+@@ -1,13 +1,13 @@
+ SRC = goto_instrument_parse_options.cpp rw_set.cpp \
+       document_properties.cpp goto_instrument_languages.cpp \
+       uninitialized.cpp full_slicer.cpp k_induction.cpp \
+-      object_id.cpp show_locations.cpp points_to.cpp \
+-      alignment_checks.cpp race_check.cpp \
+-      nondet_volatile.cpp interrupt.cpp function.cpp branch.cpp \
+-      mmio.cpp stack_depth.cpp nondet_static.cpp \
+-      concurrency.cpp dump_c.cpp dot.cpp havoc_loops.cpp \
+-      call_sequences.cpp unwind.cpp function_modifies.cpp \
+-      accelerate/accelerate.cpp accelerate/polynomial.cpp \
++      object_id.cpp show_locations.cpp points_to.cpp \+      alignment_checks.cpp race_check.cpp \+      nondet_volatile.cpp interrupt.cpp function.cpp branch.cpp \+      learn.cpp mmio.cpp stack_depth.cpp nondet_static.cpp \+      concurrency.cpp dump_c.cpp dot.cpp havoc_loops.cpp \+      call_sequences.cpp unwind.cpp function_modifies.cpp \+      accelerate/accelerate.cpp accelerate/polynomial.cpp \       accelerate/scratch_program.cpp accelerate/polynomial_accelerator.cpp \
+       accelerate/util.cpp accelerate/trace_automaton.cpp \
+       accelerate/enumerating_loop_acceleration.cpp \
+Index: src/goto-instrument/call_sequences.cpp
+===================================================================
+--- src/goto-instrument/call_sequences.cpp	(revision 5187)
++++ src/goto-instrument/call_sequences.cpp	(working copy)
+@@ -7,12 +7,14 @@
+ Date: April 2013
+ 
+ \*******************************************************************/
+-
+-#include <stack>
+-#include <iostream>
+-
+-#include <util/std_expr.h>
+-
+++#include <stack>+#include <iostream>+#include <fstream>+#include <algorithm>++#include <util/std_expr.h>+ #include "call_sequences.h"
+ 
+ /*******************************************************************\
+@@ -153,23 +155,28 @@
+ 
+ class check_call_sequencet
+ {
+-public:
+-  explicit check_call_sequencet(
+-    const goto_functionst &_goto_functions,
+-    const std::vector<irep_idt> &_sequence):
+-    goto_functions(_goto_functions),
+-    sequence(_sequence)
+-  {
+-  }  
+-
++public:+  explicit check_call_sequencet(+    const goto_functionst &_goto_functions,+    const std::vector<irep_idt> &_sequence,+    const std::set<irep_idt> &_interesting_set,+    int _bound):+    goto_functions(_goto_functions),+    sequence(_sequence),+    interesting_set(_interesting_set), bound(_bound)+  {+  }  +   void operator()();
+   
+-protected:
+-  const goto_functionst &goto_functions;
+-  const std::vector<irep_idt> &sequence;
+-
+-  struct call_stack_entryt
+-  {
++protected:+  const goto_functionst &goto_functions;+  const std::vector<irep_idt> &sequence;+  const std::set<irep_idt> &interesting_set;+  int bound;++  struct call_stack_entryt+  {     goto_functionst::function_mapt::const_iterator f;
+     goto_programt::const_targett return_address;
+   };
+@@ -236,17 +243,22 @@
+     queue.push(statet());
+     queue.top().f=f_it;
+     queue.top().pc=f_it->second.body.instructions.begin();
+-    queue.top().index=1;
+-  }
+-  
+-  while(!queue.empty())
+-  {
+-    statet &e=queue.top();
+-    
+-    // seen already?
+-    if(states.find(e)!=states.end())
+-    {
+-      // drop, continue
++    queue.top().index=1;+  }+  +  bool all_interesting = interesting_set.empty();+  bool is_bounded = (bound > -1);+  unsigned ending_index = 0;+  int non_interesting_counter = 0;++  while(!queue.empty())+  {+    statet &e=queue.top();+    if (e.index > ending_index) ending_index = e.index;+    // seen already (control-flow join points)+    if(states.find(e)!=states.end())+    {+      // drop, continue       queue.pop();
+       continue;
+     }
+@@ -258,13 +270,13 @@
+     if(e.index==sequence.size())
+     {
+       std::cout << "sequence feasible\n";
+-      return;
+-    }
+-
+-    // new, explore
+-    if(e.pc==e.f->second.body.instructions.end())
+-    {
+-      if(e.call_stack.empty())
++      return;+    }++    // reached end of function, return+    if(e.pc==e.f->second.body.instructions.end())+    {+      if(e.call_stack.empty())         queue.pop();
+       else
+       {
+@@ -277,17 +289,27 @@
+     else if(e.pc->is_function_call())
+     {
+       const exprt &function=to_code_function_call(e.pc->code).function();
+-      if(function.id()==ID_symbol)
+-      {
+-        irep_idt identifier=to_symbol_expr(function).get_identifier();
+-        
+-        if(sequence[e.index]==identifier)
+-        {
+-          e.index++; // yes, we have seen it
+-        
+-          goto_functionst::function_mapt::const_iterator f_call_it=
+-            goto_functions.function_map.find(identifier);
+-          
++      if(function.id()==ID_symbol)+      {+        irep_idt identifier=to_symbol_expr(function).get_identifier();++        if (sequence[e.index]==identifier ||   // found it+            // the other option is to counter a case in which a+            // non-interesting function is recursive and hence we may diverge+            (!all_interesting &&+             interesting_set.find(identifier) == interesting_set.end() && // it is not an interesting function+             !(is_bounded && non_interesting_counter > bound))) // we did not yet cross the bound+        {++          if(sequence[e.index]==identifier) {+            e.index++; // yes, we have seen it+            non_interesting_counter = 0;+          }+          else non_interesting_counter++;++          goto_functionst::function_mapt::const_iterator f_call_it=+            goto_functions.function_map.find(identifier);+                     if(f_call_it==goto_functions.function_map.end())
+             e.pc++;
+           else
+@@ -320,14 +342,13 @@
+     else
+     {
+       e.pc++;
+-    }
+-  }
+-
+-  std::cout << "sequence not feasible\n";
+-}
+-
+-/*******************************************************************\
+-
++    }+  }++  std::cout << "sequence not feasible\n"<< ending_index << "\n";+}++/*******************************************************************\
+ Function: check_call_sequence
+ 
+   Inputs:
+@@ -335,25 +356,51 @@
+  Outputs:
+ 
+  Purpose:
+-
+-\*******************************************************************/
+-
+-void check_call_sequence(const goto_functionst &goto_functions)
+-{
+-  // read the sequence from stdin
+-  
+-  std::vector<irep_idt> sequence;
+-  
+-  std::string line;
+-  while(std::getline(std::cin, line))
+-  {
+-    if(line!="" && line[line.size()-1]=='\r')
+-      line.resize(line.size()-1);
+++\*******************************************************************/++void check_call_sequence(+  const goto_functionst &goto_functions,+  const std::string &in_file_prefix,+  int bound)+{+  std::ifstream in_file;+  std::string in_file_name = in_file_prefix + ".seq";+  in_file.open(in_file_name.c_str());+  +  std::vector<irep_idt> sequence;+  +  std::string line;+  while(std::getline(in_file, line))+  {+    if(line!="" && line[line.size()-1]=='\r')+      line.resize(line.size()-1);       
+-    if(line!="")
+-      sequence.push_back(line);
+-  }
+-
+-  check_call_sequencet(goto_functions, sequence)();
+-}
+-
++    if(line!="")+      sequence.push_back(line);+  }+  in_file.close();+  // read the 'interesting set', i.e., set of function names that we want to+  // follow (others cause an \epsilon transition). It is assumed (but not+  // checked) that (name \in sequence ==> name \in interesting_set)+  in_file_name = in_file_prefix + ".is";+  in_file.open(in_file_name.c_str());++  std::set<irep_idt> interesting_set;++  if (in_file.is_open())+  {+    //std::cerr << "Reading set of interesting functions from " << in_file_name << " \n";+    while(std::getline(in_file, line))+    {+      if(line!="" && line[line.size()-1]=='\r')+        line.resize(line.size()-1);++      if(line!="")+        interesting_set.insert(line);+    }+  }++  check_call_sequencet(goto_functions, sequence, interesting_set, bound)();+}+Index: src/goto-instrument/call_sequences.h
+===================================================================
+--- src/goto-instrument/call_sequences.h	(revision 5187)
++++ src/goto-instrument/call_sequences.h	(working copy)
+@@ -11,9 +11,12 @@
+ #ifndef CPROVER_GOTO_INSTRUMENT_CALL_SEQUENCES_H
+ #define CPROVER_GOTO_INSTRUMENT_CALL_SEQUENCES_H
+ 
+-#include <goto-programs/goto_functions.h>
+-
+-void show_call_sequences(const goto_functionst &goto_functions);
+-void check_call_sequence(const goto_functionst &goto_functions);
+-
+-#endif
++#include <goto-programs/goto_functions.h>++void show_call_sequences(const goto_functionst &goto_functions);+void check_call_sequence(+  const goto_functionst &goto_functions,+  const std::string &in_file_prefix,+  int bound);++#endifIndex: src/goto-instrument/goto_instrument_parse_options.cpp
+===================================================================
+--- src/goto-instrument/goto_instrument_parse_options.cpp	(revision 5187)
++++ src/goto-instrument/goto_instrument_parse_options.cpp	(working copy)
+@@ -67,6 +67,7 @@
+ #include "havoc_loops.h"
+ #include "k_induction.h"
+ #include "function.h"
++#include "learn.h"
+ #include "branch.h"
+ #include "wmm/weak_memory.h"
+ #include "call_sequences.h"
+@@ -242,8 +243,14 @@
+ 
+     if(cmdline.isset("check-call-sequence"))
+     {
++      int bound = -1;
++      if (cmdline.isset("call-sequence-bound"))
++        bound=unsafe_string2int(cmdline.get_value("call-sequence-bound"));
+       remove_returns(symbol_table, goto_functions);
+-      check_call_sequence(goto_functions);
++      check_call_sequence(
++        goto_functions,
++        cmdline.get_value("check-call-sequence"),
++        bound);
+       return 0;
+     }
+ 
+@@ -857,6 +864,18 @@
+     havoc_loops(goto_functions);
+   }
+ 
++  if(cmdline.isset("learn"))
++  {
++    status() << "_Learn_function_enter and Learn_trap instrumentation" << eom;
++    instrument_functions_for_learn(symbol_table, goto_functions, cmdline.get_value("learn-functions"));
++  }
++
++  if(cmdline.isset("learn-word-length"))
++  {
++    status() << "Estimating minimumg learn word length" << eom;
++    show_learn_word_length(symbol_table, goto_functions, cmdline.get_value("learn-functions"));
++  }
++
+   if(cmdline.isset("k-induction"))
+   {
+     bool base_case=cmdline.isset("base-case");
+Index: src/goto-instrument/goto_instrument_parse_options.h
+===================================================================
+--- src/goto-instrument/goto_instrument_parse_options.h	(revision 5187)
++++ src/goto-instrument/goto_instrument_parse_options.h	(working copy)
+@@ -39,6 +39,7 @@
+   "(nondet-volatile)(isr):" \
+   "(stack-depth):(nondet-static)" \
+   "(function-enter):(function-exit):(branch):" \
++  "(learn)(learn-functions):(learn-word-length)" \
+   "(signed-overflow-check)(unsigned-overflow-check)(float-overflow-check)" \
+   "(show-goto-functions)(show-value-sets)(show-local-may-alias)" \
+   "(show-local-bitvector-analysis)" \
+@@ -54,11 +55,10 @@
+   "(verbosity):(version)(xml-ui)(show-loops)" \
+   "(accelerate)" \
+   "(k-induction):(step-case)(base-case)" \
+-  "(show-call-sequences)(check-call-sequence)" \
++  "(show-call-sequences)(check-call-sequence):(call-sequence-bound):" \
+   "(interpreter)(show-reaching-definitions)(count-eloc)" \
+   "(list-symbols)(list-undefined-functions)" \
+   "(z3)"
+-
+ class goto_instrument_parse_optionst:
+   public parse_options_baset,
+   public language_uit
+Index: src/goto-instrument/learn.cpp
+===================================================================
+--- src/goto-instrument/learn.cpp	(revision 0)
++++ src/goto-instrument/learn.cpp	(working copy)
+@@ -0,0 +1,385 @@
++#include <cstring>+#include <iostream>+#include <fstream>+#include <iterator>+#include <stack>+#include <queue>+#include <algorithm>+#include <util/prefix.h>+#include <util/cprover_prefix.h>+#include <util/simplify_expr.h>+#include <ansi-c/c_types.h>+#include <goto-programs/cfg.h>+#include <goto-instrument/function.h>++// "--learn" helper functions+namespace {+const char LEARN_ENTER[] = "_Learn_function_enter";+const char LEARN_TRAP[] = "Learn_trap";+const char EXIT[] = "exit";+const char MAIN[] = "main";+const char NONDET_PREFIX[] = "nondet";+const char *NO_INSTR[] = { "assume", "exit", "Learn_Assert", "_Learn_function_enter" , "_Learn_Assert", "_Learn_assert", "Learn_trap", "_start" };++bool is_internal_function(const std::string &function_name) {+  return has_prefix(function_name, CPROVER_PREFIX) || has_prefix(function_name, NONDET_PREFIX);+}++bool is_instrumentation_function(const std::string &function_name) {+  const char **end(NO_INSTR + sizeof(NO_INSTR) / sizeof(NO_INSTR[0]));+  return end != std::find(NO_INSTR, end, function_name);+}++const char BUILTIN[] = "<built-in-additions>";+const char STDLIB[] = "/std";++bool is_builtin(const locationt &loc) {+  const std::string &file(id2string(loc.get_file()));+  return file.find(BUILTIN) != std::string::npos || file.find(STDLIB) != std::string::npos;+  +}++bool should_not_be_instrumented(const std::string &fn, const locationt &loc) {+  return is_builtin(loc) || is_internal_function(fn) || is_instrumentation_function(fn);+}++symbol_tablet::symbolst::const_iterator find_or_add_indexed_function(+    symbol_tablet &st, const irep_idt &fn) {+  const irep_idt full_id(id2string(fn));+  const symbol_tablet::symbolst::const_iterator s_it(st.symbols.find(full_id));+  if (s_it != st.symbols.end()) {+    const typet &type(s_it->second.type);+    if (type.id() == ID_code) {+      const code_typet::parameterst &params(to_code_type(type).parameters());+      if (params.size() == 1 && params.begin()->type().id() == ID_signedbv) {+        return s_it;+      }+    }+    throw "Function `" + id2string(fn) + "` has wrong signature.";+  }+  const typet arg_type(signed_int_type());+  code_typet function_type;+  function_type.return_type() = empty_typet();+  function_type.parameters().push_back(code_typet::parametert(arg_type));+  symbolt new_symbol;+  new_symbol.name = full_id;+  new_symbol.base_name = fn;+  new_symbol.type = function_type;+  st.move(new_symbol);+  return st.symbols.find(full_id);+}++symbol_tablet::symbolst::const_iterator find_or_add_void_function(+    symbol_tablet &st, const irep_idt &fn) {+  const irep_idt full_id(id2string(fn));+  const symbol_tablet::symbolst::const_iterator s_it(st.symbols.find(full_id));+  if (s_it != st.symbols.end()) {+    const typet &type(s_it->second.type);+    if (type.id() == ID_code && to_code_type(type).parameters().empty()) {+      return s_it;+    }+    throw "Function `" + id2string(fn) + "` has wrong signature.";+  }+  code_typet function_type;+  function_type.return_type() = empty_typet();+  symbolt new_symbol;+  new_symbol.name = full_id;+  new_symbol.base_name = fn;+  new_symbol.type = function_type;+  st.move(new_symbol);+  return st.symbols.find(full_id);+}++code_function_callt to_indexed_function_call(symbol_tablet &st,+    const irep_idt &fn, int index) {+  const symbol_tablet::symbolst::const_iterator s_it(+      find_or_add_indexed_function(st, fn));+  assert(st.symbols.end() != s_it);+  code_function_callt call;+  call.function() = symbol_exprt(s_it->second.name, s_it->second.type);+  const typet arg_type(signed_int_type());+  const mp_integer width(string2integer(arg_type.get_string(ID_width)));+  const std::string binary_value(integer2string(index, 2));+  std::string bv_value((width - binary_value.length()).to_ulong(), '0');+  bv_value += binary_value;+  constant_exprt arg(bv_value, arg_type);+  call.arguments().push_back(arg);+  return call;+}++code_function_callt to_void_function_call(symbol_tablet &st,+    const irep_idt &fn) {+  const symbol_tablet::symbolst::const_iterator s_it(+      find_or_add_void_function(st, fn));+  assert(st.symbols.end() != s_it);+  code_function_callt call;+  call.function() = symbol_exprt(s_it->second.name, s_it->second.type);+  return call;+}++void instrument_function_enter(symbol_tablet &st,+    goto_functionst::function_mapt::iterator f_it, int index) {+  goto_programt &body(f_it->second.body);+  goto_programt::instructionst &instrs(body.instructions);+  goto_programt::targett instr(body.insert_before(instrs.begin()));+  instr->make_function_call(to_indexed_function_call(st, LEARN_ENTER, index));+  instr->function = f_it->first;+}++void instrument_main_exit(symbol_tablet &st,+    goto_functionst::function_mapt::iterator f_it) {+  goto_programt &body(f_it->second.body);+  goto_programt::instructionst &instrs(body.instructions);+  if (instrs.empty() || !instrs.back().is_end_function()) {+    body.add_instruction(END_FUNCTION);+  }+  for (typeof(instrs.begin()) it(instrs.begin()); it != instrs.end(); ++it) {+    if (it->is_return()) {+      goto_programt::instructiont call;+      call.function=f_it->first;+      call.make_function_call(to_void_function_call(st, LEARN_TRAP));+      body.insert_before_swap(it, call);+      ++it;+    }+  }+}++void instrument_learn_trap(symbol_tablet &st,+    goto_functionst::function_mapt::iterator f_it) {+  goto_programt &body(f_it->second.body);+  goto_programt::instructionst &instrs(body.instructions);+  for (typeof(instrs.begin()) it(instrs.begin()); it != instrs.end(); ++it) {+    if (it->is_function_call()) {+      const code_function_callt &call(to_code_function_call(it->code));+      const exprt &f(call.function());+      if (ID_symbol == f.id()) {+        if (EXIT == id2string(to_symbol_expr(f).get_identifier())) {+          goto_programt::instructiont call;+          call.function=f_it->first;+          call.make_function_call(to_void_function_call(st, LEARN_TRAP));+          body.insert_before_swap(it, call);+          ++it;+        }+      }+    }+  }+  if (MAIN == id2string(f_it->first)) {+    instrument_main_exit(st, f_it);+  }+}++std::set<std::string> read_functions(const std::string &path) {+  std::set<std::string> result;+  if (path.empty()) {+    return result;+  }+  std::ifstream ifs(path.c_str());+  std::copy(std::istream_iterator<std::string>(ifs),+      std::istream_iterator<std::string>(),+      std::inserter(result, result.end()));+  return result;+}++bool is_permitted_by_learn_functions_file(const std::set<std::string> &fs, const std::string &f) {+  return fs.empty() || fs.find(f) != fs.end();+}+}++/*******************************************************************+ Function: instrument_functions_for_learn++ Inputs:++ Outputs:++ Purpose:++ \*******************************************************************/++void instrument_functions_for_learn(symbol_tablet &st, goto_functionst &gf, const std::string &ff) {+  const std::set<std::string> fs(read_functions(ff));+  goto_functionst::function_mapt &fm(gf.function_map);+  std::vector<std::string> funcs;+  int function_index(-1);+  for (typeof(fm.begin()) f_it(fm.begin()); f_it != fm.end(); ++f_it) {+    const std::string &fn(id2string(f_it->first));+    if (should_not_be_instrumented(fn, f_it->second.type.location())) {+      continue;+    }+    if (MAIN != fn && is_permitted_by_learn_functions_file(fs, fn)) {+      funcs.push_back(fn);+      instrument_function_enter(st, f_it, ++function_index);+    }+    instrument_learn_trap(st, f_it);+  }+  std::ofstream ofs("func_names.data");+  for (typeof(funcs.begin()) it(funcs.begin()); it != funcs.end(); ++it) {+    ofs << "  " << *it << std::endl;+  }+}++// --learn-word-length helper functions+namespace {+class word_length_cfg_nodet {+  bool visited;+public:+  word_length_cfg_nodet() :+      visited(false) {+  }+  void mark_visited() {+    visited = true;+  }+  bool is_visited() {+    return visited;+  }+};++typedef cfg_baset<word_length_cfg_nodet> cfgt;+typedef std::stack<cfgt::iterator> call_stackt;+typedef std::list<call_stackt> call_stackst;+typedef std::pair<cfgt::iterator, call_stackt *> frontier_itemt;+typedef std::queue<frontier_itemt> frontiert;+frontier_itemt make_frontier_itemt(cfgt::iterator node, call_stackt *call_stack) { return std::make_pair(node, call_stack); }++bool is_root(const cfgt::entry_mapt::value_type &entry) {+  const goto_programt::const_targett &instruction(entry.first);+  return goto_functionst::entry_point() == instruction->function+      && instruction->location_number == 0;+}++bool is_function_call(const cfgt::entryt &node) {+  if (!node.PC->is_function_call()) {+    return false;+  }+  return ID_symbol == to_code_function_call(node.PC->code).function().id();+}++const std::string &get_function_name(const cfgt::entryt &node) {+  const exprt &f(to_code_function_call(node.PC->code).function());+  return id2string(to_symbol_expr(f).get_identifier());+}++const char LEARN_ASSERT[] = "_Learn_assert";+bool is_learn_assert(const cfgt::entryt &node) {+  return is_function_call(node) && LEARN_ASSERT == get_function_name(node);+}++bool is_learn_enter(const cfgt::entryt &node) {+  return is_function_call(node) && LEARN_ENTER == get_function_name(node);+}++bool is_call_of_inlined_function(const std::set<std::string> &inlined_functions, const cfgt::entryt &node) {+  if (!is_function_call(node)) { return false; }+  return std::find(inlined_functions.begin(), inlined_functions.end(), get_function_name(node)) != inlined_functions.end();+}++bool is_empty_function_call(cfgt::entry_mapt &nodes, const cfgt::entryt &node) {+  goto_programt::const_targett next_instruction(node.PC);+  cfgt::entry_mapt::iterator next_instruction_node(nodes.find(++next_instruction));+  assert(next_instruction_node != nodes.end());+  return node.successors.size() == 1 && node.successors.front() == &next_instruction_node->second;+}++bool is_in_inlined_function(const std::set<std::string> &inlined_functions, const cfgt::entryt &node) {+  return std::find(inlined_functions.begin(), inlined_functions.end(), id2string(node.PC->function)) != inlined_functions.end();+}++bool handle_inlining(cfgt::entry_mapt &nodes, frontiert &frontier, call_stackst &call_stacks, const std::set<std::string> &inlined_functions, frontier_itemt &item) {+  cfgt::entryt &node(*item.first);+  if (is_call_of_inlined_function(inlined_functions, node) && !is_empty_function_call(nodes, node)) {+    if (!is_in_inlined_function(inlined_functions, node)) { node.mark_visited(); }+    goto_programt::const_targett next_instruction(node.PC);+    cfgt::entry_mapt::iterator next_instruction_node(nodes.find(++next_instruction));+    assert(next_instruction_node != nodes.end());+    item.second->push(&next_instruction_node->second);+    assert(node.successors.size() == 1);+    frontier.push(make_frontier_itemt(node.successors.front(), item.second));+    return true;+  } else if (is_in_inlined_function(inlined_functions, node)) {+    if (!node.PC->is_end_function()) {+      return false;+    }+    assert(!item.second->empty());+    frontier.push(make_frontier_itemt(item.second->top(), item.second));+    item.second->pop();+    return true;+  }+  node.mark_visited();+  return false;+}++class call_stack_slittert {+  call_stackst &call_stacks;+  call_stackt &original_call_stack;+  bool should_split;+  bool is_first;+public:+  call_stack_slittert(call_stackst &call_stacks, frontier_itemt &item) +    : call_stacks(call_stacks), original_call_stack(*item.second), should_split(item.first->PC->is_goto() && !item.first->PC->guard.is_true()) {+  }+  call_stackt *operator()() {+    if (!should_split) { return &original_call_stack; }+    if (is_first) {+      is_first = false;+      return &original_call_stack;+    }+    call_stacks.push_back(original_call_stack);+    return &call_stacks.back();+  }+};++void search_bfs(frontiert &frontier, call_stackst &call_stacks, frontier_itemt &item) {+  cfgt::entryt &node(*item.first);+  cfgt::entriest &s(node.successors);+  call_stack_slittert call_stack_slitter(call_stacks, item);+  for (typeof(s.begin()) it(s.begin()); it != s.end(); ++it) {+    if (!(*it)->is_visited()) {+      call_stackt *call_stack(call_stack_slitter());+      frontier.push(make_frontier_itemt(*it, call_stack));+    }+  }+}++std::set<std::string> read_inlined_functions(const std::string &file_path) {+  std::set<std::string> result(read_functions(file_path));+  result.insert(LEARN_ENTER);+  return result;+}+}++/*******************************************************************+ Function: show_learn_word_length++ Inputs:++ Outputs:++ Purpose:++ \*******************************************************************/+void show_learn_word_length(class symbol_tablet &st, class goto_functionst &gf, const std::string &iff) {+  const std::set<std::string> inlined_functions(read_inlined_functions(iff));+  cfgt cfg;+  cfg(gf);+  cfgt::entry_mapt &nodes(cfg.entry_map);+  call_stackst call_stacks(1, call_stackt());+  frontiert frontier;+  frontier.push(make_frontier_itemt(&std::find_if(nodes.begin(), nodes.end(), is_root)->second, &call_stacks.back()));+  size_t minimum_word_length(0);+  while (!frontier.empty()) {+    frontier_itemt &item(frontier.front());+    cfgt::entryt &node(*item.first);+    if (is_learn_assert(node)) {+      ++minimum_word_length;+      break;+    }+    if (is_learn_enter(node)) {+      ++minimum_word_length;+    }+    if (!handle_inlining(nodes, frontier, call_stacks, inlined_functions, item)) {+      search_bfs(frontier, call_stacks, item);+    }+    frontier.pop();+  }+  std::cout << minimum_word_length << std::endl;+}Index: src/goto-instrument/learn.h
+===================================================================
+--- src/goto-instrument/learn.h	(revision 0)
++++ src/goto-instrument/learn.h	(working copy)
+@@ -0,0 +1,13 @@
++/*******************************************************************+ Module: Learn environment instrumentation++ Author: Pascal Kesseli, pascal.kesseli@stx.ox.ac.uk++ \*******************************************************************/++#include <string>++void instrument_functions_for_learn(class symbol_tablet &st,+    class goto_functionst &gf, const std::string &ff);++void show_learn_word_length(class symbol_tablet &st, class goto_functionst &gf, const std::string &iff);Index: src/goto-programs/remove_returns.cpp
+===================================================================
+--- src/goto-programs/remove_returns.cpp	(revision 5187)
++++ src/goto-programs/remove_returns.cpp	(working copy)
+@@ -158,13 +158,14 @@
+ void remove_returnst::do_function_calls(
+   goto_functionst &goto_functions,
+   goto_programt &goto_program)
+-{
+-  Forall_goto_program_instructions(i_it, goto_program)
+-  {
+-    if(i_it->is_function_call())
+-    {
+-      code_function_callt &function_call=to_code_function_call(i_it->code);
+-
++{+  Forall_goto_program_instructions(i_it, goto_program)+  {+    if(i_it->is_function_call() &&+       to_code_function_call(i_it->code).lhs().is_not_nil())+    {+      code_function_callt &function_call=to_code_function_call(i_it->code);+       // replace "lhs=f(...)" by "f(...); lhs=f#return_value;"
+       code_typet old_type=to_code_type(function_call.function().type());
+ 
+Index: src/goto-programs/xml_goto_trace.cpp
+===================================================================
+--- src/goto-programs/xml_goto_trace.cpp	(revision 5187)
++++ src/goto-programs/xml_goto_trace.cpp	(working copy)
+@@ -198,17 +198,19 @@
+         xmlt &xml_call_return=dest.new_element(tag);
+         
+         xml_call_return.set_attribute_bool("hidden", it->hidden);
+-        xml_call_return.set_attribute("thread", i2string(it->thread_nr));
+-        xml_call_return.set_attribute("step_nr", i2string(it->step_nr));
+-
+-        const symbolt &symbol=ns.lookup(it->identifier);
+-        xmlt &xml_function=xml_call_return.new_element("function");
+-        xml_function.set_attribute("display_name", id2string(symbol.display_name()));
+-        xml_function.set_attribute("identifier", id2string(it->identifier));
+-        xml_function.new_element()=xml(symbol.location);
+-
+-        if(xml_location.name!="")
+-          xml_call_return.new_element().swap(xml_location);
++        xml_call_return.set_attribute("thread", i2string(it->thread_nr));+        xml_call_return.set_attribute("step_nr", i2string(it->step_nr));++        xmlt &xml_function=xml_call_return.new_element("function");+        const symbolt *symbol;+        if(!ns.lookup(it->identifier, symbol)) {+          xml_function.set_attribute("display_name", id2string(symbol->display_name()));+          xml_function.new_element()=xml(symbol->location);+        }+        xml_function.set_attribute("identifier", id2string(it->identifier));++        if(xml_location.name!="")+          xml_call_return.new_element().swap(xml_location);       }
+       break;
+       
+Index: src/path-symex/build_goto_trace.cpp
+===================================================================
+--- src/path-symex/build_goto_trace.cpp	(revision 5187)
++++ src/path-symex/build_goto_trace.cpp	(working copy)
+@@ -49,19 +49,25 @@
+     switch(instruction.type)
+     {
+     case ASSIGN:
+-      trace_step.type=goto_trace_stept::ASSIGNMENT;
+-      trace_step.full_lhs=step.full_lhs;
+-      trace_step.full_lhs_value=decision_procedure.get(step.ssa_lhs);
+-      break;
+-    
+-    case DECL:
++      trace_step.type=goto_trace_stept::ASSIGNMENT;+      trace_step.full_lhs=step.full_lhs;+      trace_step.full_lhs_value=decision_procedure.get(step.ssa_lhs);+      trace_step.lhs_object = step.ssa_lhs;+      trace_step.lhs_object_value = step.ssa_rhs;+      break;+    +    case DECL:       trace_step.type=goto_trace_stept::DECL;
+-      trace_step.full_lhs=step.full_lhs;
+-      trace_step.lhs_object=to_symbol_expr(step.full_lhs);
+-      trace_step.full_lhs_value=decision_procedure.get(step.ssa_lhs);
+-      break;
+-      
+-    case DEAD:
++      trace_step.full_lhs=step.full_lhs;+      trace_step.lhs_object=to_symbol_expr(step.full_lhs);+      trace_step.full_lhs_value=decision_procedure.get(step.ssa_lhs);+      if (ID_symbol == step.full_lhs.id()) {+        trace_step.lhs_object = to_symbol_expr(step.full_lhs);+        trace_step.lhs_object_value = trace_step.full_lhs_value;+      }+      break;+      +    case DEAD:       trace_step.type=goto_trace_stept::DEAD;
+       break;
+       
+Index: src/path-symex/path_symex.cpp
+===================================================================
+--- src/path-symex/path_symex.cpp	(revision 5187)
++++ src/path-symex/path_symex.cpp	(working copy)
+@@ -17,15 +17,12 @@
+ #include <ansi-c/c_types.h>
+ 
+ #include <pointer-analysis/dereference.h>
+-
+-#include "path_symex_class.h"
+-
+-//#define DEBUG
+-
+-#ifdef DEBUG
+-#include <iostream>
+-#endif
+-
+++#include "path_symex_class.h"++#ifdef DEBUG+#include <iostream>+#endif
+ /*******************************************************************\
+ 
+ Function: path_symext::propagate
+@@ -357,14 +354,13 @@
+     {
+       // consistency check
+       if(!base_type_eq(ssa_rhs.type(), new_lhs.type(), state.var_map.ns))
+-      {
+-        #ifdef DEBUG
+-        std::cout << "ssa_rhs: " << ssa_rhs.pretty() << std::endl;
+-        std::cout << "new_lhs: " << new_lhs.pretty() << std::endl;
+-        #endif
+-        throw "assign_rec got different types";
+-      }
+-
++      {+        #ifdef DEBUG+        std::cout << "ssa_rhs: " << ssa_rhs.pretty() << std::endl;+        std::cout << "new_lhs: " << new_lhs.pretty() << std::endl;        +        #endif+        throw "assign_rec got different types";+      }
+       // record the step
+       state.record_step();
+       stept &step=*state.history;
+@@ -760,22 +756,23 @@
+   path_symex_statet &state,
+   std::list<path_symex_statet> &further_states)
+ {
+-  const goto_programt::instructiont &instruction=
+-    *state.get_instruction();
+-
+-  if(instruction.is_backwards_goto())
++  const goto_programt::instructiont &instruction=+    *state.get_instruction();++  const loct &loc=state.locs[state.pc()];+  assert(!loc.branch_target.is_nil());+  +  if(instruction.is_backwards_goto())+  {+    // we keep a statistic on how many times we execute backwards gotos+    state.unwinding_map[state.pc()]++;+    state.backedge_map.insert(std::make_pair(state.pc(), loc.branch_target));+  }++  exprt guard=state.read(instruction.guard);+  +  if(guard.is_true()) // branch taken always   {
+-    // we keep a statistic on how many times we execute backwards gotos
+-    state.unwinding_map[state.pc()]++;
+-  }
+-
+-  const loct &loc=state.locs[state.pc()];
+-  assert(!loc.branch_target.is_nil());
+-
+-  exprt guard=state.read(instruction.guard);
+-  
+-  if(guard.is_true()) // branch taken always
+-  {
+     state.record_step();
+     state.history->branch=stept::BRANCH_TAKEN;
+     state.set_pc(loc.branch_target);
+@@ -787,13 +784,13 @@
+     // branch taken case
+     // copy the state into 'furhter_states'
+     further_states.push_back(state);
+-    further_states.back().record_step();
+-    state.history->branch=stept::BRANCH_TAKEN;
+-    further_states.back().set_pc(loc.branch_target);
+-    further_states.back().history->guard=guard;
+-  }
+-
+-  // branch not taken case
++    further_states.back().record_step();+    state.history->branch=stept::BRANCH_TAKEN;+    further_states.back().set_pc(loc.branch_target);+    further_states.back().history->guard=guard;  +  }++  // branch not taken case   exprt negated_guard=not_exprt(guard);
+   state.record_step();
+   state.history->branch=stept::BRANCH_NOT_TAKEN;
+@@ -862,12 +859,21 @@
+ \*******************************************************************/
+ 
+ void path_symext::operator()(
+-  path_symex_statet &state,
+-  std::list<path_symex_statet> &further_states)
+-{
+-  const goto_programt::instructiont &instruction=
+-    *state.get_instruction();
+-    
++  path_symex_statet &state,+  std::list<path_symex_statet> &further_states)+{+  for(typeof(state.backedge_map.begin()) it(state.backedge_map.begin()); it != state.backedge_map.end(); ++it) {+    if(it->second == state.pc()) {+      path_symex_statet::backedge_mapt::const_iterator edge(state.backedge_map.find(state.previous_pc));+      if(state.backedge_map.end() == edge || edge->second != state.pc()) {+        state.unwinding_map[it->first] = 0;+      }+    }+  }+  const loc_reft previous_pc(state.pc());+  const goto_programt::instructiont &instruction=+    *state.get_instruction();+       #ifdef DEBUG
+   std::cout << "path_symext::operator(): "
+             << state.pc() << " "
+@@ -1012,13 +1018,13 @@
+     state.next_pc();
+     break;
+ 
+-  default:
+-    throw "path_symext: unexpected instruction";
+-  }
+-}
+-
+-/*******************************************************************\
+-
++  default:+    throw "path_symext: unexpected instruction";+  }+  state.previous_pc = previous_pc;+}++/*******************************************************************\
+ Function: path_symext::operator()
+ 
+   Inputs:
+Index: src/path-symex/path_symex_state.h
+===================================================================
+--- src/path-symex/path_symex_state.h	(revision 5187)
++++ src/path-symex/path_symex_state.h	(working copy)
+@@ -182,12 +182,15 @@
+ 
+   bool check_assertion(class decision_proceduret &);
+ 
+-  // counts how many times we have executed backwards edges
+-  typedef std::map<loc_reft, unsigned> unwinding_mapt;
+-  unwinding_mapt unwinding_map;
+-
+-  // similar for recursive function calls
+-  typedef std::map<irep_idt, unsigned> recursion_mapt;
++  // counts how many times we have executed backwards edges+  typedef std::map<loc_reft, unsigned> unwinding_mapt;+  unwinding_mapt unwinding_map;+  typedef std::map<loc_reft, loc_reft> backedge_mapt;+  backedge_mapt backedge_map;+  loc_reft previous_pc;++  // similar for recursive function calls+  typedef std::map<irep_idt, unsigned> recursion_mapt;   recursion_mapt recursion_map;
+ 
+ protected:
+Index: src/symex/symex_parse_options.h
+===================================================================
+--- src/symex/symex_parse_options.h	(revision 5187)
++++ src/symex/symex_parse_options.h	(working copy)
+@@ -24,12 +24,13 @@
+   "D:I:" \
+   "(depth):(context-bound):(unwind):" \
+   "(bounds-check)(pointer-check)(div-by-zero-check)(memory-leak-check)" \
+-  "(signed-overflow-check)(unsigned-overflow-check)(nan-check)" \
+-  "(float-overflow-check)" \
+-  "(no-assertions)(no-assumptions)" \
+-  "(16)(32)(64)(LP64)(ILP64)(LLP64)(ILP32)(LP32)" \
+-  "(little-endian)(big-endian)" \
+-  "(error-label):(verbosity):(no-library)" \
++  "(signed-overflow-check)(unsigned-overflow-check)(nan-check)" \+  "(float-overflow-check)" \+  "(no-assertions)(no-assumptions)" \+  "(xml-ui)" \+  "(16)(32)(64)(LP64)(ILP64)(LLP64)(ILP32)(LP32)" \+  "(little-endian)(big-endian)" \+  "(error-label):(verbosity):(no-library)" \   "(version)" \
+   "(i386-linux)(i386-macos)(i386-win32)(win32)(winx64)(gcc)" \
+   "(ppc-macos)(unsigned-char)" \
