@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <ctime>
+#include <ctype.h>
 #include "../../file_names.h" // ofer
 #ifdef _EXPERIMENT_MODE
 #include <boost/unordered_map.hpp>
@@ -37,7 +38,7 @@ struct myEdge {char s[100]; char t[100];};
 
 map<int, string> func_name; // maps index to a function name
 
-string 
+string
 	input_file_name_full,		// original full path (path/file.c => path/file.c)
 	input_file_prefix,			// path/file.c =>  _file 
 	input_file_exe,				// path/file.c => <input_file_prefix>.exe
@@ -204,8 +205,8 @@ void define_file_prefixes(string file_name)
 	fclose(in);
 	assert(input_file_name_full[input_file_name_full.size() - 2]=='.');
 
-	string 
-		input_file_name_base, // path/file.c => file
+	string
+        input_file_name_base,
 		input_file_path; // path/file.c => path
 	int len = input_file_name_full.length();	
 	int i;
@@ -304,7 +305,7 @@ void preprocess_source() {
           "sed -e \"1i\\\\\n\\#include \\\"learn.c\\\"\" " << input_file_name_full << " > " <<  input_file_working_copy; 
 #endif
 
-	run(tmp.str().c_str());	
+	//run(tmp.str().c_str());
 	/*tmp.str("");		
 	tmp << "cp tmp " << input_file_working_copy;
 	run(tmp.str().c_str());	*/
@@ -410,6 +411,22 @@ int run(const char* cmd) {
 	if (verbose) {cout << endl << "---------------------------------------" << endl;}
 	cout.flush();
 	return res;
+}
+
+std::string run_with_result(const char* cmd) {
+    if (verbose) {cout << endl << "---------- external command -----------" << endl << cmd << endl;}
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) return "ERROR";
+    char buffer[256];
+    std::string result = "";
+    while(!feof(pipe)) {
+        if(fgets(buffer, 256, pipe) != NULL)
+        result += buffer;
+    }
+    pclose(pipe);
+    if (verbose) {cout << endl << "---------------------------------------" << endl;}
+    cout.flush();
+    return result;
 }
 
 int run_cbmc(bool membership) {
@@ -837,7 +854,7 @@ void copy_file(const char *source, const char *destination) {
   dst << src.rdbuf();
 }
 
-int countNodes(const char* filename) {
+int count_nodes(const char* filename) {
     int nodes = 0;
     std::ifstream input(filename);
     std::string line;
@@ -848,7 +865,7 @@ int countNodes(const char* filename) {
     return nodes;
 }
 
-int countEdges(const char* filename) {
+int count_edges(const char* filename) {
     int edges = -1;
     std::ifstream input(filename);
     std::string line;
@@ -859,7 +876,7 @@ int countEdges(const char* filename) {
     return edges;
 }
 
-bool hasBackedges(const char* filename) {
+bool has_backedges(const char* filename) {
     std::ifstream input(filename);
     std::string line;
    
@@ -871,7 +888,7 @@ bool hasBackedges(const char* filename) {
     return false;
 }
 
-bool hasLoops() {
+bool has_loops() {
     stringstream tmp;
     tmp.str("");
     tmp <<
@@ -894,14 +911,63 @@ bool hasLoops() {
     return false;
 }
 
-bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
-    // ~MDC: Number of automata that must match to signal convergence 
-    int NUMBER_MATCHING = 1;
+int estimate_wordlength() {
+    
+    stringstream tmp;
+    
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-cl " << input_file_name_full << " /Fo" << input_file_exe << "\"";
+#else
+    "goto-cc " << input_file_name_full << " -o " << input_file_exe;
+#endif
+    
+    run(tmp.str().c_str());
+    
+    //
+    
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-instrument --learn " << input_file_exe << " " << input_file_exe << "\"";
+#else
+    "goto-instrument --learn " << input_file_exe << " " << input_file_exe;
+#endif
+    
+    run(tmp.str().c_str());
+    
+    //
+    
+    tmp.str("");
+#ifdef _MYWIN32
+    temp << "cmd /c \"goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe << "\"";
+#else
+    tmp << "goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe;
+#endif
+    
+    std::string result = run_with_result(tmp.str().c_str());
+    
+    std::stringstream ss(result);
+    std::string item;
+    while (std::getline(ss, item, '\n')) {
+        if (isdigit(item.c_str()[0])) {
+            return stoi(item);
+        }
+    }
+    
+    return -1;
+    
+}
+
+bool test_convergence(int lowest_word_length, int word_length, int user_bound) {
+    // ~MDC: Sets of automata that must match to signal convergence (i.e. 1 = 1 set = 2 automata)
+    int NUMBER_MATCHING = 2;
     bool matching = false;
     if ( (word_length - lowest_word_length) >= NUMBER_MATCHING ) {
         matching = true;
         
-        for ( int remove_length = lowest_word_length; remove_length < word_length - ( NUMBER_MATCHING - 1 ); remove_length++ ) {
+        for ( int remove_length = lowest_word_length; remove_length < (word_length - NUMBER_MATCHING); remove_length++ ) {
             stringstream st;
             st << "rm " << " learn_output/" << input_file_prefix << "-" << user_bound << "-" << remove_length << ".dot";
             //run(st.str().c_str());
@@ -913,17 +979,17 @@ bool testConvergence(int lowest_word_length, int word_length, int user_bound) {
             std::stringstream file_b_path;
             file_b_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << (current_length + 1) << ".dot";
             
-            if (hasBackedges(file_a_path.str().c_str())) {
+            if (has_backedges(file_a_path.str().c_str())) {
                 matching = false;
                 break;
             }
             
-            if (hasBackedges(file_b_path.str().c_str())) {
+            if (has_backedges(file_b_path.str().c_str())) {
                 matching = false;
                 break;
             }
             
-            if (countNodes(file_a_path.str().c_str()) != countNodes(file_b_path.str().c_str()) || countEdges(file_a_path.str().c_str()) != countEdges(file_b_path.str().c_str())) {
+            if (count_nodes(file_a_path.str().c_str()) != count_nodes(file_b_path.str().c_str()) || count_edges(file_a_path.str().c_str()) != count_edges(file_b_path.str().c_str())) {
                 matching = false;
                 break;
             }
@@ -942,6 +1008,10 @@ int main(int argc, const char**argv) {
     
 #ifdef _EXPERIMENT_MODE
     
+    define_file_prefixes(argv[1]);
+    
+    int lower_bound = estimate_wordlength();
+    
     for(int user_bound = 1; user_bound < 4; ++user_bound) {
         
 #endif
@@ -949,8 +1019,7 @@ int main(int argc, const char**argv) {
         
 #ifdef _EXPERIMENT_MODE
         
-        // ~MDC initial value of word_length should be estimate of lower bound
-        for(int word_length = 1; word_length < 50; ++word_length) {
+        for(int word_length = lower_bound; word_length < 50; ++word_length) {
             
             std::ostringstream ss;
             ss << user_bound;
@@ -975,8 +1044,8 @@ int main(int argc, const char**argv) {
             reset(ss);
             ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
             copy_file("a.dot", ss.str().c_str());
-            // ~MDC Replace 1 with lower bound estimation
-            if (testConvergence(1, word_length, user_bound) || LOG_EACH_LENGTH) {
+
+            if (test_convergence(lower_bound, word_length, user_bound) || LOG_EACH_LENGTH) {
                 
 #endif
                 clock_t end = clock();
@@ -997,7 +1066,7 @@ int main(int argc, const char**argv) {
                 
                 std::stringstream final_automaton_stats_info;
                 // Name, Nodes, Edges, Lower Bound, Convergence Bound, User Bound, Seconds gone, CBMC mem queries / total queries, Conjectures, Iterations
-                final_automaton_stats_info << input_file_prefix << " & " << countNodes(final_automaton_path.str().c_str()) << " & " << countEdges(final_automaton_path.str().c_str()) << " & " << 1 << " & " << word_length << " & " << user_bound << " & " << elapsed_secs << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << conjectures << " & " << word_length - 1;
+                final_automaton_stats_info << input_file_prefix << " & " << count_nodes(final_automaton_path.str().c_str()) << " & " << count_edges(final_automaton_path.str().c_str()) << " & " << lower_bound << " & " << word_length << " & " << user_bound << " & " << elapsed_secs << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << conjectures << " & " << word_length - 1;
                 
                 final_automaton_stats_file << final_automaton_stats_info.str();
                 final_automaton_stats_file.close();
@@ -1008,14 +1077,15 @@ int main(int argc, const char**argv) {
             
         }
         
-        if ( !hasLoops() )
+        if ( !has_loops() )
         break;
         
     }
     
+    remove_positive_queries();
+    
 #endif
     
-    remove_positive_queries();
     return 0;
     
 }
