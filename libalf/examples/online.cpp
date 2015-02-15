@@ -1053,9 +1053,9 @@ int main(int argc, const char**argv) {
                 final_automaton_stats_file << final_automaton_stats_info.str();
                 final_automaton_stats_file.close();
               
-                // ~MDC Uncomment to break after first convergence
-                //if ( !LOG_EACH_BOUND )
-                    //break;
+                // ~MDC Comment to not break after first convergence
+                if ( !LOG_EACH_BOUND )
+                    break;
 
             }
             
@@ -1071,7 +1071,7 @@ int main(int argc, const char**argv) {
         
     }
     
-    exit_learn();
+    //exit_learn();
     //remove_positive_queries();
     
 #endif

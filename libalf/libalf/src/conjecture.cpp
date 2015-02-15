@@ -583,7 +583,7 @@ bool Graph::scc_util(int u, int disc[], int low[], std::stack<int> *st,
     int w = 0;  // To store stack extracted vertices
     if (low[u] == disc[u])
     {
-        if (st->top() != u) return true;
+        if (st->top() != u) return true; //~MDC
         /*while (st->top() != u)
          {
          w = (int) st->top();
