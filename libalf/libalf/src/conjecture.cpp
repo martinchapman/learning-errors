@@ -37,6 +37,9 @@
 #endif
 
 #include <stdlib.h>
+#include <iostream> // ~MDC
+#include <list> // ~MDC
+#include <stack> // ~MDC
 
 #include "libalf/conjecture.h"
 #include "libalf/serialize.h"
@@ -44,8 +47,7 @@
 #include<string.h>
 
 namespace libalf {
-
-
+    
 using namespace std;
 
 
@@ -312,7 +314,7 @@ string finite_automaton::write() const  // ofer. Original below.
 	
 	return ret;
 }}}
-
+    
 /* original:
 
 
@@ -440,7 +442,188 @@ string finite_automaton::write_min() const  //ofer
 	return ret;
 }}}
 
+bool finite_automaton::has_circuit() const  // ~MDC
+{{{
+    Graph g1(this->state_count);
+    
+    int edges = 0;
+    int v;
+    set<int> roots_set;
+    
+    FILE *roots = fopen(ROOTS, "r");
+    if (roots) {
+        while (!feof(roots ))
+        {
+            if (fscanf(roots , "%d", &v) != 1) continue;
+            roots_set.insert(v);
+        }
+        fclose(roots );
+    }
+    
+    map<int, map<int, set<int> > >::const_iterator mmsi;
+    map<int, set<int> >::const_iterator msi;
+    set<int>::const_iterator si;
+    for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
+        for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
+            for(si = msi->second.begin(); si != msi->second.end(); ++si)
+            {
+                if (roots_set.find(mmsi->first)  == roots_set.end() && roots_set.find(*si)  == roots_set.end())
+                {
+                    g1.add_edge(mmsi->first, *si);
+                }
+            }
+    
+    return g1.scc();
+    
+}}}
 
+int finite_automaton::count_transitions() const  // ~MDC
+{{{
+    int edges = 0;
+    int v;
+    set<int> roots_set;
+    
+    FILE *roots = fopen(ROOTS, "r");
+    if (roots) {
+        while (!feof(roots ))
+        {
+            if (fscanf(roots , "%d", &v) != 1) continue;
+            roots_set.insert(v);
+        }
+        fclose(roots );
+    }
+    
+    map<int, map<int, set<int> > >::const_iterator mmsi;
+    map<int, set<int> >::const_iterator msi;
+    set<int>::const_iterator si;
+    for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
+        for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
+            for(si = msi->second.begin(); si != msi->second.end(); ++si)
+            {
+                if (roots_set.find(mmsi->first)  == roots_set.end() && roots_set.find(*si)  == roots_set.end())
+                {
+                    edges++;
+                }
+            }
+    
+    
+    return edges;
+}}}
+
+// ~MDC Source: http://www.geeksforgeeks.org/tarjan-algorithm-find-strongly-connected-components/
+
+Graph::Graph(int V)
+{
+    this->V = V;
+    adj = new std::list<int>[V];
+}
+
+void Graph::add_edge(int v, int w)
+{
+    adj[v].push_back(w);
+}
+
+int Graph::count_edges()
+{
+    int edges = 0;
+    for (int v=0; v<this->V; v++) {
+        edges += adj[v].size();
+    }
+    return edges;
+}
+
+// A recursive function that finds and prints strongly connected
+// components using DFS traversal
+// u --> The vertex to be visited next
+// disc[] --> Stores discovery times of visited vertices
+// low[] -- >> earliest visited vertex (the vertex with minimum
+//             discovery time) that can be reached from subtree
+//             rooted with current vertex
+// *st -- >> To store all the connected ancestors (could be part
+//           of SCC)
+// stackMember[] --> bit/index array for faster check whether
+//                  a node is in stack
+bool Graph::scc_util(int u, int disc[], int low[], std::stack<int> *st,
+                     bool stackMember[])
+{
+    // A static variable is used for simplicity, we can avoid use
+    // of static variable by passing a pointer.
+    static int time = 0;
+    
+    // Initialize discovery time and low value
+    disc[u] = low[u] = ++time;
+    st->push(u);
+    stackMember[u] = true;
+    
+    // Go through all vertices adjacent to this
+    std::list<int>::iterator i;
+    for (i = adj[u].begin(); i != adj[u].end(); ++i)
+    {
+        int v = *i;  // v is current adjacent of 'u'
+        
+        // If v is not visited yet, then recur for it
+        if (disc[v] == -1)
+        {
+            scc_util(v, disc, low, st, stackMember);
+            
+            // Check if the subtree rooted with 'v' has a
+            // connection to one of the ancestors of 'u'
+            // Case 1 (per above discussion on Disc and Low value)
+            low[u]  = std::min(low[u], low[v]);
+        }
+        
+        // Update low value of 'u' only of 'v' is still in stack
+        // (i.e. it's a back edge, not cross edge).
+        // Case 2 (per above discussion on Disc and Low value)
+        else if (stackMember[v] == true)
+            low[u]  = std::min(low[u], disc[v]);
+    }
+    
+    // head node found, pop the stack and print an SCC
+    int w = 0;  // To store stack extracted vertices
+    if (low[u] == disc[u])
+    {
+        if (st->top() != u) return true;
+        /*while (st->top() != u)
+         {
+         w = (int) st->top();
+         std::cout << w << " ";
+         stackMember[w] = false;
+         st->pop();
+         }*/
+        w = (int) st->top();
+        //std::cout << w << "\n";
+        stackMember[w] = false;
+        st->pop();
+    }
+    
+    return false;
+};
+
+// The function to do DFS traversal. It uses SCCUtil()
+bool Graph::scc()
+{
+    int *disc = new int[V];
+    int *low = new int[V];
+    bool *stackMember = new bool[V];
+    std::stack<int> *st = new std::stack<int>();
+    
+    // Initialize disc and low, and stackMember arrays
+    for (int i = 0; i < V; i++)
+    {
+        disc[i] = NIL;
+        low[i] = NIL;
+        stackMember[i] = false;
+    }
+    
+    // Call the recursive helper function to find strongly
+    // connected components in DFS tree with vertex 'i'
+    for (int i = 0; i < V; i++)
+        if (disc[i] == NIL)
+            return scc_util(i, disc, low, st, stackMember);
+};
+
+// ~MDC End
 
 bool finite_automaton::read(string input)
 {{{

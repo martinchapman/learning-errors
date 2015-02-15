@@ -14,7 +14,7 @@
 #include <ctime>
 #include <ctype.h>
 #include "../../file_names.h" // ofer
-#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string.hpp> // ~MDC
 #ifdef _EXPERIMENT_MODE
 #include <boost/unordered_map.hpp>
 #endif
@@ -381,7 +381,7 @@ void show_result(conjecture *result) {
 	dot.close();
     
 	cout.rdbuf (strm_buffer);
-
+    
     // Temporarily disabled immediate visual feedback of automaton.
 	//run("dotty a.dot");	
 }
@@ -769,7 +769,7 @@ bool answer_Membership(list<int> query) {
 	return cbmc_result;	
 }
 
-void learn() {
+finite_automaton* learn() {
 	// Create new knowledge-base. In this case, we choose bool as type for the knowledge-base.
 	knowledgebase<bool> base;
 	conjecture *result = NULL;	
@@ -834,10 +834,12 @@ void learn() {
 	
 	show_result(result);	// we do it inside learn because result is a pointer to a local object. 
 	
-	delete result;	
+    //delete result;
+    
+	return dynamic_cast<finite_automaton*> (result);
 }
 
-void exitLearn() {
+void exit_learn() {
     
     string rm_input_file_exe = "rm " + input_file_exe;
     run(rm_input_file_exe.c_str());
@@ -871,38 +873,24 @@ void copy_file(const char *source, const char *destination) {
   dst << src.rdbuf();
 }
 
-int count_nodes(const char* filename) {
-    int nodes = 0;
-    std::ifstream input(filename);
-    std::string line;
-    while( std::getline( input, line ) ) {
-        if ( line.find("shape=circle") != std::string::npos || line.find("shape=doublecircle") != std::string::npos )
-        nodes++;
-    }
-    return nodes;
+int count_nodes(finite_automaton* conjectured_automaton) {
+    
+    return conjectured_automaton->state_count - 1;
+    
 }
 
-int count_edges(const char* filename) {
-    int edges = -1;
-    std::ifstream input(filename);
-    std::string line;
-    while( std::getline( input, line ) ) {
-        if ( line.find("->") != std::string::npos )
-            edges++;
-    }
-    return edges;
+int count_edges(finite_automaton* conjectured_automaton) {
+    
+    return conjectured_automaton->count_transitions();
+    
 }
 
-bool has_backedges(const char* filename) {
-    std::ifstream input(filename);
-    std::string line;
-   
-    while( std::getline( input, line ) ) {
-        if ( line.find("q0 -> q0") != std::string::npos && line.find("blue") == std::string::npos ) {
-            return true;
-        }
-    }
-    return false;
+bool has_backedges(finite_automaton* conjectured_automaton) {
+    
+    if ( conjectured_automaton->state_count == 1) return true;
+    
+    return conjectured_automaton->has_circuit();
+    
 }
 
 bool has_loops() {
@@ -939,39 +927,30 @@ int estimate_wordlength() {
     
 }
 
-bool test_convergence(int lowest_word_length, int word_length, int user_bound) {
+bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_length, int word_length, int user_bound) {
     // ~MDC: Sets of automata that must match to signal convergence (i.e. 1 = 1 set = 2 automata)
-    int NUMBER_MATCHING = 2;
+    int NUMBER_MATCHING = 1;
     bool matching = false;
     if ( (word_length - lowest_word_length) >= NUMBER_MATCHING ) {
         matching = true;
         
-        for ( int remove_length = lowest_word_length; remove_length < (word_length - NUMBER_MATCHING); remove_length++ ) {
-            stringstream st;
-            st << "rm " << " learn_output/" << input_file_prefix << "-" << user_bound << "-" << remove_length << ".dot";
-            run(st.str().c_str());
-        }
-        
         for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
-            std::stringstream file_a_path;
-            file_a_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << current_length << ".dot";
-            std::stringstream file_b_path;
-            file_b_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << (current_length + 1) << ".dot";
-            
-            if (has_backedges(file_a_path.str().c_str())) {
+        
+            if (has_backedges(conjectured_automata[current_length])) {
                 matching = false;
                 break;
             }
             
-            if (has_backedges(file_b_path.str().c_str())) {
+            if (has_backedges(conjectured_automata[current_length + 1])) {
+                matching = false;
+                break;
+            }
+          
+            if (count_nodes(conjectured_automata[current_length]) != count_nodes(conjectured_automata[current_length + 1]) || count_edges(conjectured_automata[current_length]) != count_edges(conjectured_automata[current_length + 1])) {
                 matching = false;
                 break;
             }
             
-            if (count_nodes(file_a_path.str().c_str()) != count_nodes(file_b_path.str().c_str()) || count_edges(file_a_path.str().c_str()) != count_edges(file_b_path.str().c_str())) {
-                matching = false;
-                break;
-            }
         }
     }
     return matching;
@@ -979,7 +958,7 @@ bool test_convergence(int lowest_word_length, int word_length, int user_bound) {
 
 #define WORD_LENGTH_ARGUMENT_INDEX 2
 #define USER_BOUND_ARGUMENT_INDEX 7
-#define LOG_EACH_LENGTH false
+#define LOG_EACH_BOUND false
 #endif
 
 /*******************************  main  ****************************/
@@ -990,17 +969,21 @@ int main(int argc, const char**argv) {
     parse_options(argc, argv);
 
     int lower_bound = estimate_wordlength();
+    int MAX_UPPER_BOUND = lower_bound + 30;
     
     cout << "Estimating lower_bound as: " << lower_bound << endl;
+
+#endif
+    
+    clock_t begin = clock();
+
+#ifdef _EXPERIMENT_MODE
     
     for(int user_bound = 1; user_bound < 4; ++user_bound) {
         
-#endif
-        clock_t begin = clock();
+        finite_automaton** conjectured_automata = new finite_automaton*[MAX_UPPER_BOUND];
         
-#ifdef _EXPERIMENT_MODE
-        
-        for(int word_length = lower_bound; word_length < 50; ++word_length) {
+        for(int word_length = lower_bound; word_length <= MAX_UPPER_BOUND; ++word_length) {
             
             std::ostringstream ss;
             ss << user_bound;
@@ -1011,6 +994,7 @@ int main(int argc, const char**argv) {
             const std::string word_length_argument(ss.str());
             argv[WORD_LENGTH_ARGUMENT_INDEX] = word_length_argument.c_str();
             reset_global_variables();
+            
 #endif
             
             parse_options(argc, argv);
@@ -1018,20 +1002,37 @@ int main(int argc, const char**argv) {
             preprocess_source();
             init_auto_instrumentation();
             init_word_length_file();
-
-            learn();
             
 #ifdef _EXPERIMENT_MODE
+            
+            conjectured_automata[word_length] = learn();
+            
+#else
+            learn();
+            
+#endif
+            
+#ifdef _EXPERIMENT_MODE
+            
             reset(ss);
-            ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
-            copy_file("a.dot", ss.str().c_str());
-
-            if (test_convergence(lower_bound, word_length, user_bound) || LOG_EACH_LENGTH) {
+            
+            if (test_convergence(conjectured_automata, lower_bound, word_length, user_bound) || LOG_EACH_BOUND) {
                 
 #endif
                 clock_t end = clock();
-                double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-                cout << " membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " total conjectures: " << conjectures << endl;
+                
+                double elapsed_secs = ((double)end - (double)begin) / CLOCKS_PER_SEC;
+                
+                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
+                copy_file("a.dot", ss.str().c_str());
+                
+#ifdef _EXPERIMENT_MODE
+                
+                cout << "Converged at: bwl = " << word_length << " b = " << user_bound << endl;
+                
+#endif
+                
+                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " total conjectures: " << conjectures << endl;
                 cout << "Time: " << elapsed_secs << endl;
                 
 #ifdef _EXPERIMENT_MODE
@@ -1046,24 +1047,32 @@ int main(int argc, const char**argv) {
                 final_automaton_stats_file.open(final_automaton_stats_filename.str().c_str());
                 
                 std::stringstream final_automaton_stats_info;
-                // Name, Nodes, Edges, Lower Bound, Convergence Bound, User Bound, Seconds gone, CBMC mem queries / total queries, Conjectures, Iterations
-                final_automaton_stats_info << input_file_prefix << " & " << count_nodes(final_automaton_path.str().c_str()) << " & " << count_edges(final_automaton_path.str().c_str()) << " & " << lower_bound << " & " << word_length << " & " << user_bound << " & " << elapsed_secs << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << conjectures << " & " << word_length - 1;
+                // Name, Lower Bound, Convergence Bound, Iterations (~MDC Needs updating_, User Bound,  Nodes, Edges, Seconds gone (CPU), CBMC mem queries / total queries, Conjectures
+                final_automaton_stats_info << input_file_prefix << " & " << lower_bound << " & " << word_length << " & " << (word_length - lower_bound) << " & " << user_bound << " & " << count_nodes(conjectured_automata[word_length]) << " & " << count_edges(conjectured_automata[word_length]) << " & " << elapsed_secs << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << conjectures;
                 
                 final_automaton_stats_file << final_automaton_stats_info.str();
                 final_automaton_stats_file.close();
-                
-                break;
-                
+              
+                // ~MDC Uncomment to break after first convergence
+                //if ( !LOG_EACH_BOUND )
+                    //break;
+
             }
             
         }
+
+        for (int a = lower_bound; a <= MAX_UPPER_BOUND; a++) {
+            delete conjectured_automata[a];
+        }
         
-        if ( !has_loops() )
-        break;
+        if ( !has_loops() ) {
+            break;
+        }
         
     }
     
-    remove_positive_queries();
+    exit_learn();
+    //remove_positive_queries();
     
 #endif
     

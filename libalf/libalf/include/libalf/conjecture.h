@@ -24,6 +24,7 @@
 
 #ifndef __libalf_conjecture_h__
 # define __libalf_conjecture_h__
+#define NIL -1 // ~MDC
 
 #include <set>
 #include <list>
@@ -37,6 +38,9 @@
 
 #include <libalf/serialize.h>
 #include <libalf/set.h>
+
+#include <list> // ~MDC
+#include <stack> // ~MDC
 
 namespace libalf {
 
@@ -98,9 +102,7 @@ class conjecture {
 		// visual version (dotfile preferred)
 		virtual std::string visualize() const = 0;
 };
-
-
-
+    
 template <typename output_alphabet>
 class finite_state_machine: public conjecture {
 	public: // data
@@ -670,6 +672,8 @@ class finite_automaton : public moore_machine<bool> {
 		virtual bool deserialize(serial_stretch & serial);
 		virtual std::string write() const;
 		virtual std::string write_min() const;
+        virtual int count_transitions() const; // ~MDC
+        virtual bool has_circuit() const; // ~MDC
 		virtual bool read(std::string input);
 		virtual std::string visualize() const;
 
@@ -683,8 +687,23 @@ class finite_automaton : public moore_machine<bool> {
 		// parse a single, human readable transition and store it in this->transitions
 		bool parse_transition(std::string single);
 };
-
-
+    
+// ~MDC A class that represents an directed graph: http://www.geeksforgeeks.org/tarjan-algorithm-find-strongly-connected-components/
+class Graph
+{
+    public:
+        int V;    // No. of vertices
+        std::list<int> *adj;    // A dynamic array of adjacency lists
+        
+        // A Recursive DFS based function used by SCC()
+        bool scc_util(int u, int disc[], int low[],
+                     std::stack<int> *st, bool stackMember[]);
+    public:
+        Graph(int V);   // Constructor
+        void add_edge(int v, int w);   // function to add an edge to graph
+        int count_edges();
+        bool scc();    // prints strongly connected components
+};
 
 class simple_mVCA : public mVCA<bool> {
 	// a type for simple mVCA (accepting or rejecting a word only)
