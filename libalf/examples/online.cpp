@@ -982,8 +982,8 @@ int main(int argc, const char**argv) {
     
     for(int user_bound = 1; user_bound < 4; ++user_bound) {
         
-        int MAX_UPPER_BOUND = lower_bound + 35;
-        finite_automaton** conjectured_automata = new finite_automaton*[MAX_UPPER_BOUND];
+        int MAX_UPPER_BOUND = 30;
+        finite_automaton** conjectured_automata = new finite_automaton*[MAX_UPPER_BOUND + 1];
         
         for(int word_length = lower_bound; word_length <= MAX_UPPER_BOUND; ++word_length) {
             
@@ -1018,7 +1018,9 @@ int main(int argc, const char**argv) {
             
             reset(ss);
             
-            if (test_convergence(conjectured_automata, lower_bound, word_length, user_bound) || LOG_EACH_BOUND) {
+            bool hasConverged = test_convergence(conjectured_automata, lower_bound, word_length, user_bound);
+            
+            if (hasConverged || LOG_EACH_BOUND) {
                 
 #endif
                 clock_t end = clock();
@@ -1026,10 +1028,9 @@ int main(int argc, const char**argv) {
                 double elapsed_secs = ((double)end - (double)begin) / CLOCKS_PER_SEC;
                 
 #ifdef _EXPERIMENT_MODE
+                
                 ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
                 copy_file("a.dot", ss.str().c_str());
-                
-                cout << "Converged at: bwl = " << word_length << " b = " << user_bound << endl;
                 
 #endif
                 cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << endl;
@@ -1053,11 +1054,12 @@ int main(int argc, const char**argv) {
                 final_automaton_stats_file << final_automaton_stats_info.str();
                 final_automaton_stats_file.close();
                 
-                MAX_UPPER_BOUND = word_length;
-                
-                // ~MDC Comment to not break after first convergence
-                if ( !LOG_EACH_BOUND )
+                if ( hasConverged ) {
+                    cout << "Converged at: bwl = " << word_length << " b = " << user_bound << endl;
+                    // ~MDC Comment to not break after first convergence
+                    MAX_UPPER_BOUND = word_length;
                     break;
+                }
                 
             }
             
