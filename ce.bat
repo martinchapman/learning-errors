@@ -1,3 +1,4 @@
+@echo off
 REM from this we figure if this is a negative (0) or positive (1) feedback:
 echo -1 > model.txt
 grep -A 5 "display_name=\"Assert::feedback\"" %1 | tail -n 1 | sed -e s/"<value>"// -e s/"<\/value>"// > model.txt

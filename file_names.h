@@ -24,6 +24,7 @@
 #define CONJECTURE_DATA_H "conjecture_data.h" // included from learn_code.c
 #define MEMBERSHIP_DATA "membership_data.c"
 #define MEMBERSHIP_DATA_H "membership_data.h"
+
 #define WORD_LENGTH "word_length.c" 
 #define MODE "mode.c"
 

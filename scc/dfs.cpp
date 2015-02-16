@@ -11,7 +11,7 @@
 int numOfVertices, current_state = 0; 
 int **matrix;
 bool *visited;
-
+ 
 void dfs(int s) {
 	visited[s] = true;
 	for (int t = 0; t < numOfVertices; ++t)
