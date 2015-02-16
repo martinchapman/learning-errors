@@ -707,7 +707,7 @@ Index: src/goto-instrument/learn.cpp
 +  bool is_first;
 +public:
 +  call_stack_slittert(call_stackst &call_stacks, frontier_itemt &item) 
-+    : call_stacks(call_stacks), original_call_stack(*item.second), should_split(item.first->PC->is_goto() && !item.first->PC->guard.is_true()) {
++    : call_stacks(call_stacks), original_call_stack(*item.second), should_split(item.first->PC->is_goto() && !item.first->PC->guard.is_true()), is_first(true) {
 +  }
 +  call_stackt *operator()() {
 +    if (!should_split) { return &original_call_stack; }
