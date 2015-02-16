@@ -25,7 +25,7 @@ using namespace libalf;
 int alphabet_size; 
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
-int mem_queries, conjectures, cbmc_mem_queries, cfg_queries, cfg_prefix;
+int mem_queries, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
 int feedback = -1;
 
 void Abort(string msg);
@@ -705,6 +705,7 @@ bool answer_Membership(list<int> query) {
   const membership_query_cache_resultt cached_result(lookup_query(query));
   if(NO_ENTRY_FOUND != cached_result) {
     cout << "Cached membership query!" << endl;
+    ++cache_mem_queries;
     return IN_LANGUAGE == cached_result;
   }
 #endif
@@ -1032,7 +1033,7 @@ int main(int argc, const char**argv) {
                 
 #endif
                 
-                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " total conjectures: " << conjectures << endl;
+                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << endl;
                 cout << "Time: " << elapsed_secs << endl;
                 
 #ifdef _EXPERIMENT_MODE
