@@ -700,13 +700,13 @@ Index: src/goto-instrument/learn.cpp
 +  return false;
 +}
 +
-+class call_stack_slittert {
++class call_stack_splittert {
 +  call_stackst &call_stacks;
 +  call_stackt &original_call_stack;
 +  bool should_split;
 +  bool is_first;
 +public:
-+  call_stack_slittert(call_stackst &call_stacks, frontier_itemt &item) 
++  call_stack_splittert(call_stackst &call_stacks, frontier_itemt &item) 
 +    : call_stacks(call_stacks), original_call_stack(*item.second), should_split(item.first->PC->is_goto() && !item.first->PC->guard.is_true()), is_first(true) {
 +  }
 +  call_stackt *operator()() {
@@ -723,10 +723,10 @@ Index: src/goto-instrument/learn.cpp
 +void search_bfs(frontiert &frontier, call_stackst &call_stacks, frontier_itemt &item) {
 +  cfgt::entryt &node(*item.first);
 +  cfgt::entriest &s(node.successors);
-+  call_stack_slittert call_stack_slitter(call_stacks, item);
++  call_stack_splittert call_stack_splitter(call_stacks, item);
 +  for (typeof(s.begin()) it(s.begin()); it != s.end(); ++it) {
 +    if (!(*it)->is_visited()) {
-+      call_stackt *call_stack(call_stack_slitter());
++      call_stackt *call_stack(call_stack_splitter());
 +      frontier.push(make_frontier_itemt(*it, call_stack));
 +    }
 +  }
