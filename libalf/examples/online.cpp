@@ -28,10 +28,7 @@ bool instrument_branches = false, instrument_functions = false;
 int mem_queries, conjectures, cbmc_mem_queries, cfg_queries, cfg_prefix;
 int feedback = -1;
 
-void predecessors(int m, int current, int *predecessors_list);
-void instrument();
 void Abort(string msg);
-void exitLearn();
 int run(const char* cmd);
 bool verbose = false;
 
@@ -55,13 +52,13 @@ ostringstream unwind_setlimit;
 
 // CBMC membership query cache
 #ifdef _EXPERIMENT_MODE
-boost::unordered_map<std::list<int>, bool> MEMBERSHIP_QUERY_CACHE;
-
 enum membership_query_cache_resultt {
   IN_LANGUAGE,
   NOT_IN_LANGUAGE,
   NO_ENTRY_FOUND
 };
+#ifndef _DISABLE_CACHE
+boost::unordered_map<std::list<int>, bool> MEMBERSHIP_QUERY_CACHE;
 
 membership_query_cache_resultt lookup_query(const std::list<int> &query) {
   const typeof(MEMBERSHIP_QUERY_CACHE.begin()) it(MEMBERSHIP_QUERY_CACHE.find(query));
@@ -70,6 +67,10 @@ membership_query_cache_resultt lookup_query(const std::list<int> &query) {
 }
 
 void remember_query(const std::list<int> &query, bool result) { MEMBERSHIP_QUERY_CACHE.insert(std::make_pair(query, result)); }
+#else
+membership_query_cache_resultt lookup_query(const std::list<int> &query) { return NO_ENTRY_FOUND; }
+void remember_query(const std::list<int> &query, bool result) { }
+#endif
 #endif
 
 //~MDC Needs to be addressed
@@ -439,7 +440,7 @@ int run_with_numeric_result(const char* cmd) {
     while (std::getline(ss, item, '\n')) {
         boost::trim(item);
         if (isdigit(item.c_str()[0])) {
-            return stoi(item);
+            return atoi(item.c_str());
         }
     }
 
@@ -711,7 +712,7 @@ bool answer_Membership(list<int> query) {
 	// if instrumenting function calls, word has to be compatible with the cfg
 	if (instrument_functions && !membership_cfg_checks(query)) {
 #ifdef _EXPERIMENT_MODE
-    //remember_query(query, false);
+    remember_query(query, false);
 #endif
     return false;
   }
@@ -758,7 +759,7 @@ bool answer_Membership(list<int> query) {
 	const int res = run_cbmc(true);
   const bool cbmc_result = res == 0;
 #ifdef _EXPERIMENT_MODE
-  if(cbmc_result) { /*remember_query(query, cbmc_result);*/ }
+  if(cbmc_result) { remember_query(query, cbmc_result); }
 #endif	
 	
 	cout << " " << (cbmc_result ? "(yes)" : "(no)") << endl;
@@ -1023,11 +1024,10 @@ int main(int argc, const char**argv) {
                 
                 double elapsed_secs = ((double)end - (double)begin) / CLOCKS_PER_SEC;
                 
+#ifdef _EXPERIMENT_MODE
                 ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
                 copy_file("a.dot", ss.str().c_str());
-                
-#ifdef _EXPERIMENT_MODE
-                
+
                 cout << "Converged at: bwl = " << word_length << " b = " << user_bound << endl;
                 
 #endif
