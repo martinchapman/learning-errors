@@ -1,0 +1,21 @@
+digraph finite_automaton {
+	graph[fontsize=8]
+	rankdir=LR;
+	size=8;
+
+node [shape=rectangle, color = green, label= "Dominating edges: "]; dom_edges;
+	node [shape=circle, style="", color=green, label = D]; q0;
+	node [shape=plaintext, label="", style=""]; iq0;
+	iq0 -> q0 [color=blue];
+	q0 -> q0 [label="Non_Crossing_Biased_Descend"];
+	q0 -> q0 [label="Own_Below_Threat"];
+	q0 -> q0 [label="alt_sep_test"];
+	q0 -> q0 [label="ALIM"];
+	q0 -> q0 [label="Inhibit_Biased_Climb"];
+	q0 -> q0 [label="Non_Crossing_Biased_Climb"];
+	q0 -> q0 [label="Own_Above_Threat"];
+	q0 -> q0 [label="initialize"];
+	q0 -> q0 [label="fake0"];
+	q0 -> q0 [label="fake1"];
+	q0 -> q0 [label="Learn_Assert"];
+};

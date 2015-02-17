@@ -1,0 +1,18 @@
+digraph finite_automaton {
+	graph[fontsize=8]
+	rankdir=LR;
+	size=8;
+
+node [shape=rectangle, color = green, label= "Dominating edges: "]; dom_edges;
+	node [shape=circle, style="", color=green, label = D]; q0;
+	node [shape=plaintext, label="", style=""]; iq0;
+	iq0 -> q0 [color=blue];
+	q0 -> q0 [label="chain_node"];
+	q0 -> q0 [label="create_sll"];
+	q0 -> q0 [label="init_back_link"];
+	q0 -> q0 [label="reverse_dll"];
+	q0 -> q0 [label="remove_fw_link"];
+	q0 -> q0 [label="check_seq_next"];
+	q0 -> q0 [label="check_seq_prev"];
+	q0 -> q0 [label="Learn_Assert"];
+};
