@@ -984,7 +984,7 @@ int main(int argc, const char**argv) {
         
     	int MAX_UPPER_BOUND = 30;
 
-		finite_automaton *conjectured_automata[MAX_UPPER_BOUND];
+		finite_automaton *conjectured_automata[MAX_UPPER_BOUND + 1];
 		std::fill(conjectured_automata, conjectured_automata + sizeof(conjectured_automata) / sizeof(conjectured_automata[0]), (finite_automaton *) 0);
 
         
