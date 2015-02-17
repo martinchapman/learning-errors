@@ -45,6 +45,36 @@ input_file_is, 				// path/file.c => <input_file_prefix>.is
 input_file_working_copy,	// path/file.c => <input_file_prefix>.c
 input_file_no_extention;	// path/file.c => path/file
 
+#if defined(_EXPERIMENT_MODE) || defined(_QUERY_LOG)
+void copy_file(const char *source, const char *destination) {
+    std::ifstream  src(source, std::ios::binary);
+    std::ofstream  dst(destination, std::ios::binary);
+    dst << src.rdbuf();
+}
+#endif
+#ifdef _QUERY_LOG
+std::ofstream QUERY_LOG("queries.log");
+
+bool report_query(const list<int> &word, bool result, const char type, const char *respondent) {
+  QUERY_LOG << type << ';';
+  std::copy(word.begin(), word.end(), std::ostream_iterator<int>(QUERY_LOG, " "));
+  QUERY_LOG << ';' << std::boolalpha << result << ';' << respondent << std::endl;
+  return result;
+}
+
+bool report_membership(const list<int> &word, bool result, const char *respondent) {
+  return report_query(word, result, 'M', respondent);
+}
+
+bool report_conjecture(const std::list<int> &word, int result) {
+  return report_query(word, result, 'C', "run_backend");
+}
+#else
+bool report_membership(const list<int> &word, bool result, const char *respondent) { return result; }
+
+bool report_conjecture(const std::list<int> &word, int result) { return result; }
+#endif
+
 unsigned word_length, unwind = 0;
 // ~MDC 'User bound'
 ostringstream unwind_s;
@@ -699,14 +729,14 @@ bool answer_Membership(list<int> query) {
     
     // cheap pre-checks
     char pre_res = membership_pre_checks(query);  // 0 - false, 1 - true, 2 - no finding
-    if (pre_res != 2) return (bool) pre_res;
+    if (pre_res != 2) return report_membership(query, (bool) pre_res, "membership_pre_checks");
     
 #ifdef _EXPERIMENT_MODE
     const membership_query_cache_resultt cached_result(lookup_query(query));
     if(NO_ENTRY_FOUND != cached_result) {
         cout << "Cached membership query!" << endl;
         ++cache_mem_queries;
-        return IN_LANGUAGE == cached_result;
+        return report_membership(query, IN_LANGUAGE == cached_result, "membership_pre_checks_cache";
     }
 #endif
     
@@ -715,7 +745,7 @@ bool answer_Membership(list<int> query) {
 #ifdef _EXPERIMENT_MODE
         remember_query(query, false);
 #endif
-        return false;
+        return report_membership(query, false, "membership_cfg_checks");
     }
     
     cout.flush();
@@ -731,7 +761,7 @@ bool answer_Membership(list<int> query) {
         if (!instrument_functions)
         {	// cannot have two 'asserts' in the word
             if (*it == Assert_letter) {
-                if (saw_assert_test_letter) {cout << *it << " ! \n"; return false;}
+                if (saw_assert_test_letter) {cout << *it << " ! \n"; return report_membership(query, false, "saw_assert_test_letter");;}
                 saw_assert_test_letter = true;
             }
         }
@@ -767,8 +797,8 @@ bool answer_Membership(list<int> query) {
     
     // updating the positive_queries_file: this will block paths that correspond to membership that we already answered positively.
     if (cbmc_result) positive_queries(query);
-    
-    return cbmc_result;
+
+    return report_membership(query, cbmc_result, "run_backend");
 }
 
 finite_automaton* learn() {
@@ -813,11 +843,13 @@ finite_automaton* learn() {
             bool is_equivalent = answer_Conjecture(cj);
             //			if (counter == 2) exit(1);
             if (is_equivalent) {
+            	report_conjecture(std::list<int>(), -1);
                 result = cj;
             } else {
                 // Get a counter-example
                 //exit(1);
                 list<int> ce = get_CounterExample(alphabet_size, &feedback);
+                report_conjecture(ce, feedback);
                 //++counter;
                 //if (counter == 1) exit(1);
                 
@@ -871,12 +903,6 @@ void reset_global_variables() {
     reset(unwind_s);
     reset(unwind_setlimit);
     alphabet_size = 0;
-}
-
-void copy_file(const char *source, const char *destination) {
-    std::ifstream  src(source, std::ios::binary);
-    std::ofstream  dst(destination, std::ios::binary);
-    dst << src.rdbuf();
 }
 
 int count_nodes(finite_automaton* conjectured_automaton) {
