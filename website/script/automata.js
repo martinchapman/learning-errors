@@ -2,7 +2,7 @@ function update_automaton(name) {
 	var user_bound = document.getElementById(name + "_user_bound").value;
 	var max_word_length = document.getElementById(name + "_max_word_length").value;
 	document.getElementById(name).src = "automata/" + name + "-" + user_bound
-			+ "-" + max_word_length + ".png";
+			+ "-" + max_word_length + ".svg";
 	document.getElementById(name + "_user_bound_lexical").innerHTML = user_bound;
 	document.getElementById(name + "_max_word_length_lexical").innerHTML = max_word_length;
 }
