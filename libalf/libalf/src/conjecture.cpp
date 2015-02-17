@@ -446,20 +446,6 @@ bool finite_automaton::has_circuit() const  // ~MDC
 {{{
     Graph g1(this->state_count);
     
-    int edges = 0;
-    int v;
-    set<int> roots_set;
-    
-    FILE *roots = fopen(ROOTS, "r");
-    if (roots) {
-        while (!feof(roots ))
-        {
-            if (fscanf(roots , "%d", &v) != 1) continue;
-            roots_set.insert(v);
-        }
-        fclose(roots );
-    }
-    
     map<int, map<int, set<int> > >::const_iterator mmsi;
     map<int, set<int> >::const_iterator msi;
     set<int>::const_iterator si;
@@ -467,7 +453,7 @@ bool finite_automaton::has_circuit() const  // ~MDC
         for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
             for(si = msi->second.begin(); si != msi->second.end(); ++si)
             {
-                if (roots_set.find(mmsi->first)  == roots_set.end() && roots_set.find(*si)  == roots_set.end())
+                if (this->roots_set.find(mmsi->first)  == this->roots_set.end() && this->roots_set.find(*si)  == this->roots_set.end())
                 {
                     g1.add_edge(mmsi->first, *si);
                 }
@@ -479,22 +465,9 @@ bool finite_automaton::has_circuit() const  // ~MDC
 
 int finite_automaton::count_transitions()  // ~MDC
 {{{
-    
     if ( this->edge_count != 0) return edge_count;
     
     int edges = 0;
-    int v;
-    set<int> roots_set;
-    
-    FILE *roots = fopen(ROOTS, "r");
-    if (roots) {
-        while (!feof(roots ))
-        {
-            if (fscanf(roots , "%d", &v) != 1) continue;
-            roots_set.insert(v);
-        }
-        fclose(roots );
-    }
     
     map<int, map<int, set<int> > >::const_iterator mmsi;
     map<int, set<int> >::const_iterator msi;
@@ -503,7 +476,7 @@ int finite_automaton::count_transitions()  // ~MDC
         for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
             for(si = msi->second.begin(); si != msi->second.end(); ++si)
             {
-                if (roots_set.find(mmsi->first)  == roots_set.end() && roots_set.find(*si)  == roots_set.end())
+                if (this->roots_set.find(mmsi->first)  == this->roots_set.end() && this->roots_set.find(*si)  == this->roots_set.end())
                 {
                     edges++;
                 }
@@ -782,7 +755,7 @@ string finite_automaton::visualize() const  // ofer
 {{{
 	stringstream str, tmp, dom_edges;
 	int v;
-	set<int> dominator_set, doomed_set, roots_set, dominating_edges_set;	
+	set<int> dominator_set, roots_set, doomed_set, dominating_edges_set;
 #define MaxAlphabet 200
 	char * label[MaxAlphabet]; // 200 = max alphabet size. // should replace this with a map
 
@@ -840,7 +813,7 @@ string finite_automaton::visualize() const  // ofer
 			{
 				if (fscanf(roots , "%d", &v) != 1) continue;
 				roots_set.insert(v);
-			}
+            }
 			fclose(roots );
 			printf("read %s with %d roots \n", ROOTS, roots_set.size() );
 		}
@@ -951,6 +924,22 @@ string finite_automaton::visualize() const  // ofer
 
 	return str.str();
 }}}
+    
+void finite_automaton::record_roots() {
+    
+    int v;
+    FILE *roots = fopen(ROOTS, "r");
+    if (roots) {
+        while (!feof(roots ))
+        {
+            if (fscanf(roots , "%d", &v) != 1) continue;
+            this->roots_set.insert(v);
+        }
+        fclose(roots );
+        printf("read %s with %d roots \n", ROOTS, this->roots_set.size() );
+    }
+    
+}
 
 bool finite_automaton::contains(const list<int> & word) const
 {{{

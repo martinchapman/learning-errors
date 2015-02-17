@@ -838,7 +838,11 @@ finite_automaton* learn() {
     
     //delete result;
     
-    return dynamic_cast<finite_automaton*> (result);
+    finite_automaton* result_as_automaton = dynamic_cast<finite_automaton*> (result);
+    
+    result_as_automaton->record_roots();
+    
+    return result_as_automaton;
 }
 
 void exit_learn() {

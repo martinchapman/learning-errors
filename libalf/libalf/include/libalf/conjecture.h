@@ -110,6 +110,7 @@ class finite_state_machine: public conjecture {
 		int input_alphabet_size;
 		int state_count;
         int edge_count;
+        std::set<int> roots_set; //~MDC
 		std::set<int> initial_states;
 		bool omega; // is this machine for infinite words?
 	public: // methods
@@ -679,6 +680,7 @@ class finite_automaton : public moore_machine<bool> {
         virtual bool has_circuit() const; // ~MDC
 		virtual bool read(std::string input);
 		virtual std::string visualize() const;
+        virtual void record_roots(); // ~MDC
 
 		// checks if a word is accepted by this automaton.
 		virtual bool contains(const std::list<int> & word) const;
