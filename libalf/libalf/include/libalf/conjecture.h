@@ -109,6 +109,7 @@ class finite_state_machine: public conjecture {
 		bool is_deterministic;
 		int input_alphabet_size;
 		int state_count;
+        int edge_count;
 		std::set<int> initial_states;
 		bool omega; // is this machine for infinite words?
 	public: // methods
@@ -117,6 +118,7 @@ class finite_state_machine: public conjecture {
 			is_deterministic = true;
 			input_alphabet_size = 0;
 			state_count = 0;
+            edge_count = 0;
 			omega = false;
 		}}}
 		virtual ~finite_state_machine()
@@ -127,6 +129,7 @@ class finite_state_machine: public conjecture {
 			is_deterministic = true;
 			input_alphabet_size = 0;
 			state_count = 0;
+            edge_count = 0; // ~MDC
 			initial_states.clear();
 			omega = false;
 		}}}
@@ -660,7 +663,7 @@ class finite_automaton : public moore_machine<bool> {
 	// XXX NOTE that the serialization-format is not conforming to the
 	// standard (wrapping the parent-type), but is different to be
 	// compatible with to the serialization format of libAMoRE++.
-	public:
+    public:
 		finite_automaton()
 		{ this->omega = false; };
 		virtual ~finite_automaton()
@@ -672,7 +675,7 @@ class finite_automaton : public moore_machine<bool> {
 		virtual bool deserialize(serial_stretch & serial);
 		virtual std::string write() const;
 		virtual std::string write_min() const;
-        virtual int count_transitions() const; // ~MDC
+        virtual int count_transitions(); // ~MDC
         virtual bool has_circuit() const; // ~MDC
 		virtual bool read(std::string input);
 		virtual std::string visualize() const;

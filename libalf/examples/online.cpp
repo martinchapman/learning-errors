@@ -27,7 +27,7 @@ int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 int mem_queries, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
 int feedback = -1;
-
+void exit_learn();
 void Abort(string msg);
 int run(const char* cmd);
 bool verbose = false;
@@ -937,7 +937,7 @@ bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_l
         matching = true;
         
         for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
-            
+          
             if (has_backedges(conjectured_automata[current_length])) {
                 matching = false;
                 break;
@@ -947,7 +947,7 @@ bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_l
                 matching = false;
                 break;
             }
-            
+           
             if (count_nodes(conjectured_automata[current_length]) != count_nodes(conjectured_automata[current_length + 1]) || count_edges(conjectured_automata[current_length]) != count_edges(conjectured_automata[current_length + 1])) {
                 matching = false;
                 break;

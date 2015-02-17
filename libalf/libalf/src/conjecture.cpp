@@ -477,8 +477,11 @@ bool finite_automaton::has_circuit() const  // ~MDC
     
 }}}
 
-int finite_automaton::count_transitions() const  // ~MDC
+int finite_automaton::count_transitions()  // ~MDC
 {{{
+    
+    if ( this->edge_count != 0) return edge_count;
+    
     int edges = 0;
     int v;
     set<int> roots_set;
@@ -506,7 +509,7 @@ int finite_automaton::count_transitions() const  // ~MDC
                 }
             }
     
-    
+    this->edge_count = edges;
     return edges;
 }}}
 
