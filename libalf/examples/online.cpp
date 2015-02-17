@@ -972,6 +972,8 @@ int main(int argc, const char**argv) {
     
 #ifdef _EXPERIMENT_MODE
     
+    remove_positive_queries();
+    
     parse_options(argc, argv);
     
     int lower_bound = estimate_wordlength();
@@ -1034,6 +1036,7 @@ int main(int argc, const char**argv) {
                 
                 double elapsed_secs = ((double)end - (double)begin) / CLOCKS_PER_SEC;
                 
+                
 #ifdef _EXPERIMENT_MODE
                 
                 ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
@@ -1085,7 +1088,6 @@ int main(int argc, const char**argv) {
     }
     
     //exit_learn();
-    //remove_positive_queries();
     
 #endif
     
