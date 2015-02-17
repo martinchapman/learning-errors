@@ -27,7 +27,7 @@ int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 int mem_queries, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
 int feedback = -1;
-void exit_learn();
+
 void Abort(string msg);
 int run(const char* cmd);
 bool verbose = false;
@@ -982,8 +982,11 @@ int main(int argc, const char**argv) {
     
     for(int user_bound = 1; user_bound < 4; ++user_bound) {
         
-        int MAX_UPPER_BOUND = 30;
-        finite_automaton** conjectured_automata = new finite_automaton*[MAX_UPPER_BOUND + 1];
+    	int MAX_UPPER_BOUND = 30;
+
+		finite_automaton *conjectured_automata[MAX_UPPER_BOUND];
+		std::fill(conjectured_automata, conjectured_automata + sizeof(conjectured_automata) / sizeof(conjectured_automata[0]), (finite_automaton *) 0);
+
         
         for(int word_length = lower_bound; word_length <= MAX_UPPER_BOUND; ++word_length) {
             
@@ -1066,8 +1069,10 @@ int main(int argc, const char**argv) {
         }
         
         for (int a = lower_bound; a <= MAX_UPPER_BOUND; a++) {
-            delete conjectured_automata[a];
-        }
+			if (conjectured_automata[a]) {
+				delete conjectured_automata[a];
+			}
+		}
         
         if ( !has_loops() ) {
             break;
