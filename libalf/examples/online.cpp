@@ -736,7 +736,7 @@ bool answer_Membership(list<int> query) {
     if(NO_ENTRY_FOUND != cached_result) {
         cout << "Cached membership query!" << endl;
         ++cache_mem_queries;
-        return report_membership(query, IN_LANGUAGE == cached_result, "membership_pre_checks_cache";
+        return report_membership(query, IN_LANGUAGE == cached_result, "membership_pre_checks_cache");
     }
 #endif
     
@@ -997,9 +997,7 @@ bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_l
 int main(int argc, const char**argv) {
     
 #ifdef _EXPERIMENT_MODE
-    
-    remove_positive_queries();
-    
+   
     parse_options(argc, argv);
     
     int lower_bound = estimate_wordlength();
@@ -1019,6 +1017,7 @@ int main(int argc, const char**argv) {
 		finite_automaton *conjectured_automata[MAX_UPPER_BOUND + 1];
 		std::fill(conjectured_automata, conjectured_automata + sizeof(conjectured_automata) / sizeof(conjectured_automata[0]), (finite_automaton *) 0);
 
+        remove_positive_queries();
         
         for(int word_length = lower_bound; word_length <= MAX_UPPER_BOUND; ++word_length) {
             
@@ -1068,7 +1067,18 @@ int main(int argc, const char**argv) {
                 ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
                 copy_file("a.dot", ss.str().c_str());
                 
+#ifdef _QUERY_LOG
+                
+                reset(ss);
+                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << "-query.log";
+                copy_file("query.log", ss.str().c_str());
+                std::ofstream remove_log;
+                remove_log.open("queries.log", std::ofstream::out | std::ofstream::trunc);
+                remove_log.close();
 #endif
+                
+#endif
+                
                 cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << endl;
                 cout << "Time: " << elapsed_secs << endl;
                 
