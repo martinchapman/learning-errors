@@ -1,8 +1,11 @@
 function update_automaton(name) {
 	var user_bound = document.getElementById(name + "_user_bound").value;
 	var max_word_length = document.getElementById(name + "_max_word_length").value;
-	document.getElementById(name).src = "automata/" + name + "-" + user_bound
-			+ "-" + max_word_length + ".svg";
+	var path = "automata/" + name + "-" + user_bound + "-" + max_word_length;
+	var svg_path = path + ".svg";
+	var png_path = path + ".png";
+	document.getElementById(name).onerror = "this.src='" + png_path + "'";
+	document.getElementById(name).src = svg_path;
 	document.getElementById(name + "_user_bound_lexical").innerHTML = user_bound;
 	document.getElementById(name + "_max_word_length_lexical").innerHTML = max_word_length;
 }
@@ -29,4 +32,8 @@ function update_tcas_auto_instrumented() {
 
 function update_tree_false() {
 	update_automaton("_tree_false");
+}
+
+function update_DockingApproachExample_Ext() {
+	update_automaton("_DockingApproachExample_Ext");
 }

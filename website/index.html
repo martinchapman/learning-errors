@@ -5,6 +5,15 @@
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 <link rel="stylesheet" type="text/css" href="/style/cprover.css">
 <script language="javascript" src="script/automata.js"></script>
+<style>
+.accessory_section {
+	margin-top: 3em;
+}
+
+.disabled_gray {
+	color: #C8C8C8;
+}
+</style>
 <title>Learning the Language of Error: Accessory Homepage</title>
 </head>
 
@@ -13,21 +22,40 @@
 		<div id="main">
 			<h1>Learning the Language of Error: Accessory Information</h1>
 
-			<h2>Demos</h2>
+			<h2 class="accessory_section">Paper</h2>
+			<ul>
+				<li><a
+					href="learning-the-language-of-error-including-a-proof-supplement.pdf">Learning
+						the language of error (including a proof supplement)</a></li>
+			</ul>
+
+			<h2 class="accessory_section">Demos</h2>
 
 			<h3>DockingApproachExample_Ext</h3>
-			<h4>Source Code</h4>
-			<a href="source/DockingApproachExample_Ext_Code_original.tar.gz">DockingApproachExample_Ext_Code
-				(original)</a>
-			<ul>
-				<li>The original source project.</li>
-			</ul>
-			<a href="source/DockingApproachExample_Ext_Code_goto.tar.gz">DockingApproachExample_Ext_Code
-				(goto)</a>
-			<ul>
-				<li>Full project merged into a single, CBMC-compatible source file.</li>
-			</ul>
-
+			<form>
+				<table>
+					<tr>
+						<td>User bound:</td>
+						<td><input id="_DockingApproachExample_Ext_user_bound" type="range"
+							step="1" min="1" value="2" max="4"
+							onchange="update_DockingApproachExample_Ext()"
+							oninput="update_DockingApproachExample_Ext()"></td>
+						<td id="_DockingApproachExample_Ext_user_bound_lexical">2</td>
+					</tr>
+					<tr>
+						<td>Maximum word length:</td>
+						<td><input id="_DockingApproachExample_Ext_max_word_length"
+							type="range" step="1" min="5" value="9" max="14"
+							onchange="update_DockingApproachExample_Ext()"
+							oninput="update_DockingApproachExample_Ext()"></td>
+						<td id="_DockingApproachExample_Ext_max_word_length_lexical">9</td>
+					</tr>
+				</table>
+			</form>
+			<img id="_DockingApproachExample_Ext"
+				src="automata/_DockingApproachExample_Ext-2-9.svg"
+				onerror="this.src='automata/_DockingApproachExample_Ext-2-9.png'"
+				width="1300em">
 
 			<h3>bubble_sort_linux_false</h3>
 			<form>
@@ -51,18 +79,21 @@
 				</table>
 			</form>
 			<img id="_bubble_sort_linux_false"
-				src="automata/_bubble_sort_linux_false-2-15.svg" width="1300em">
+				src="automata/_bubble_sort_linux_false-2-15.svg"
+				onerror="this.src='automata/_bubble_sort_linux_false-2-15.png'"
+				width="1300em">
 
 			<h3>ifstofunctions_defroster</h3>
 			<form>
 				<table>
 					<tr>
-						<td>User bound:</td>
+						<td class="disabled_gray">User bound:</td>
 						<td><input id="_ifstofunctions_defroster_min_user_bound" type="range"
 							step="1" min="1" value="1" max="1" disabled
 							onchange="update_ifstofunctions_defroster_min()"
 							oninput="update_ifstofunctions_defroster_min()"></td>
-						<td id="_ifstofunctions_defroster_min_user_bound_lexical">1</td>
+						<td id="_ifstofunctions_defroster_min_user_bound_lexical"
+							class="disabled_gray">1</td>
 					</tr>
 					<tr>
 						<td>Maximum word length:</td>
@@ -75,7 +106,9 @@
 				</table>
 			</form>
 			<img id="_ifstofunctions_defroster_min"
-				src="automata/_ifstofunctions_defroster_min-1-25.svg" width="1300em">
+				src="automata/_ifstofunctions_defroster_min-1-25.svg"
+				onerror="this.src='automata/_ifstofunctions_defroster_min-1-25.png'"
+				width="1300em">
 
 			<h3>merge_sort_false</h3>
 			<form>
@@ -97,7 +130,7 @@
 				</table>
 			</form>
 			<img id="_merge_sort_false" src="automata/_merge_sort_false-2-7.svg"
-				width="1300em">
+				onerror="this.src='automata/_merge_sort_false-2-7.png'" width="1300em">
 
 			<h3>sll_to_dll_rev_false</h3>
 			<form>
@@ -121,18 +154,18 @@
 				</table>
 			</form>
 			<img id="_sll_to_dll_rev_false" src="automata/_sll_to_dll_rev_false-2-28.svg"
-				width="1300em">
+				onerror="this.src='automata/_sll_to_dll_rev_false-2-28.png'" width="1300em">
 
 			<h3>tcas_auto_instrumented</h3>
 			<form>
 				<table>
 					<tr>
-						<td>User bound:</td>
+						<td class="disabled_gray">User bound:</td>
 						<td><input id="_tcas_auto_instrumented_user_bound" type="range"
 							step="1" min="1" value="1" max="1" disabled
 							onchange="update_tcas_auto_instrumented()"
 							oninput="update_tcas_auto_instrumented()"></td>
-						<td id="_tcas_auto_instrumented_user_bound_lexical">1</td>
+						<td id="_tcas_auto_instrumented_user_bound_lexical" class="disabled_gray">1</td>
 					</tr>
 					<tr>
 						<td>Maximum word length:</td>
@@ -145,7 +178,9 @@
 				</table>
 			</form>
 			<img id="_tcas_auto_instrumented"
-				src="automata/_tcas_auto_instrumented-1-18.svg" width="1300em">
+				src="automata/_tcas_auto_instrumented-1-18.svg"
+				onerror="this.src='automata/_tcas_auto_instrumented-1-18.png'"
+				width="1300em">
 
 			<h3>tree_false</h3>
 			<form>
@@ -166,17 +201,33 @@
 					</tr>
 				</table>
 			</form>
-			<img id="_tree_false" src="automata/_tree_false-1-9.svg" width="1300em">
+			<img id="_tree_false" src="automata/_tree_false-1-9.svg"
+				onerror="this.src='automata/_tree_false-1-9.png'" width="1300em">
 
-			<h2>Resources</h2>
+			<h2 class="accessory_section">Resources</h2>
 			All automata in .dot, .svg and .png format:
 			<ul>
+				<li><a href="automata/_DockingApproachExample_Ext.tar.gz">DockingApproachExample_Ext.tar.gz</a></li>
 				<li><a href="automata/bubble_sort_linux_false.tar.gz">bubble_sort_linux_false.tar.gz</a></li>
 				<li><a href="automata/ifstofunctions_defroster.tar.gz">ifstofunctions_defroster.tar.gz</a></li>
 				<li><a href="automata/merge_sort_false.tar.gz">merge_sort_false.tar.gz</a></li>
 				<li><a href="automata/sll_to_dll_rev_false.tar.gz">sll_to_dll_rev_false.tar.gz</a></li>
 				<li><a href="automata/tcas_auto_instrumented.tar.gz">tcas_auto_instrumented.tar.gz</a></li>
 				<li><a href="automata/tree_false.tar.gz">tree_false.tar.gz</a></li>
+			</ul>
+
+			Open Source Code used in Demos:
+			<ul>
+				<li><a href="source/DockingApproachExample_Ext_Code_original.tar.gz">DockingApproachExample_Ext_Code
+						(original)</a>
+					<ul>
+						<li>Original source project.</li>
+					</ul></li>
+				<li><a href="source/DockingApproachExample_Ext_Code_goto.tar.gz">DockingApproachExample_Ext_Code
+						(goto)</a>
+					<ul>
+						<li>Full project merged into a single, CBMC-compatible source file.</li>
+					</ul></li>
 			</ul>
 		</div>
 	</div>

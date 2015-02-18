@@ -1,0 +1,23 @@
+digraph finite_automaton {
+	graph[fontsize=8]
+	rankdir=LR;
+	size=8;
+
+node [shape=rectangle, color = green, label= "Dominating edges: "]; dom_edges;
+	node [shape=circle, style="", color=green, label = D]; q0;
+	node [shape=plaintext, label="", style=""]; iq0;
+	iq0 -> q0 [color=blue];
+	q0 -> q0 [label="rt_OneStep"];
+	q0 -> q0 [label="DockingApproach_DockingApproach"];
+	q0 -> q0 [label="DockingAppro_InertialNavigation"];
+	q0 -> q0 [label="DockingAppro_MissionPhaseStates"];
+	q0 -> q0 [label="DockingApproachExample_Ext"];
+	q0 -> q0 [label="DockingAppr_OrbitalState_Active"];
+	q0 -> q0 [label="D_exit_internal_CaptureApproach"];
+	q0 -> q0 [label="D_exit_internal_DockingApproach"];
+	q0 -> q0 [label="DockingApproachExample_Ext_initialize"];
+	q0 -> q0 [label="DockingApproachExample_Ext_output"];
+	q0 -> q0 [label="DockingApproachExample_Ext_update"];
+	q0 -> q0 [label="enter_internal_OrbitalState_Act"];
+	q0 -> q0 [label="Learn_Assert"];
+};
