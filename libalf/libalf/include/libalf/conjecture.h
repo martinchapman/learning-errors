@@ -699,15 +699,17 @@ class Graph
     public:
         int V;    // No. of vertices
         std::list<int> *adj;    // A dynamic array of adjacency lists
+        std::map<std::vector<int>,int> edge_alphabet;
         // A Recursive DFS based function used by SCC()
         bool scc_util(int u, int disc[], int low[],
-                     std::stack<int> *st, bool stackMember[]);
+            std::stack<int> *st, bool stackMember[]);
         std::vector<bool> visited; 
+        int edge_to_alphabet(int v, int w);
 		bool get_path(int s, int target, std::list<int>& path, bool inclusive = true);
 		
     public:
         Graph(int V);   // Constructor
-        void add_edge(int v, int w);   // function to add an edge to graph
+        void add_edge(int v, int w, int letter);   // function to add an edge to graph
         int count_edges();
         bool scc();    // prints strongly connected components
 };

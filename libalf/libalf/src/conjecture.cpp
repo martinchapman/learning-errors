@@ -455,7 +455,7 @@ bool finite_automaton::has_circuit() const  // ~MDC
             {
                 if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
                 {
-                    g1.add_edge(mmsi->first, *si);
+                    g1.add_edge(mmsi->first, *si, msi->first);
                 }
             }
     
@@ -494,11 +494,26 @@ Graph::Graph(int V)
     adj = new std::list<int>[V];
 }
 
-void Graph::add_edge(int v, int w)
+void Graph::add_edge(int v, int w, int letter)
 {
     adj[v].push_back(w);
+    std::vector<int> node_to_node;
+    node_to_node.push_back(v);
+    node_to_node.push_back(w);
+    
+    edge_alphabet[node_to_node] = letter;
 }
+    
+int Graph::edge_to_alphabet(int v, int w) {
+        
+    std::vector<int> node_to_node;
+    node_to_node.push_back(v);
+    node_to_node.push_back(w);
+    
+    return edge_alphabet[node_to_node];
 
+}
+    
 int Graph::count_edges()
 {
     int edges = 0;
@@ -507,9 +522,6 @@ int Graph::count_edges()
     }
     return edges;
 }
-
-
-
 
 bool Graph::get_path(int s, int target, std::list<int>& path, bool inclusive) { // inclusive = in the top recursive frame s can be the target. 
 	cout << "in get_path " << s << "," << target << ", V = " << V << " inclusive = " << inclusive << endl;
@@ -554,7 +566,7 @@ bool finite_automaton::find_lasso(std::list<int>& path)  // ~MDC
             {
                 if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
                 {
-                    g1.add_edge(mmsi->first, *si);  // we add edges not connecting to the sink n on-accepting state. 
+                    g1.add_edge(mmsi->first, *si, msi->first);  // we add edges not connecting to the sink n on-accepting state. 
 					cout << mmsi->first << "-> " << *si << endl;
                 }
             }
