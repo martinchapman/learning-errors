@@ -25,7 +25,7 @@ using namespace libalf;
 int alphabet_size;
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
-int mem_queries, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
+int mem_queries, cbmc_conjectures, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
 int feedback = -1;
 
 void Abort(string msg);
@@ -547,17 +547,31 @@ int run_cbmc(bool membership) {
     return 0; //unreachable
 }
 
-bool answer_Conjecture(conjecture * cj) {
-    
-    assert(cj != NULL);
-    
-    conjectures++;
-    
-    finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
+
+
+bool answer_Conjecture_pre_check(conjecture * cj, std::list<int>& path) {
+	
+	cout << "in conjecture_pre_check" << endl;
+	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);	
+	bool res = a-> find_lasso(path);
+	std::list<int>::iterator it;
+	if (res) {
+		for ( it = path.begin(); it != path.end(); ++it) cout << *it << ",";
+	}
+	cout << endl;
+	cout << "result is " << res << endl;	
+	return !res; // false if path found, to be compatible with answer_Conjecture_cbmc. 
+}
+
+
+bool answer_Conjecture_cbmc(conjecture * cj) {    
+    assert(cj != NULL);    
+    cbmc_conjectures++;
     cout << endl << "Conjecture:" << endl << endl;
+	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);	
     cout << a->visualize();
     streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
-    // ~MDC Temporary disable of visualising intermediate conjectures
+    // ~MDC Temporary disable of visualising intermediate cbmc_conjectures
     //ofstream dot("a.dot");
     //cout.rdbuf (dot.rdbuf());
     //cout << a->visualize();
@@ -568,7 +582,10 @@ bool answer_Conjecture(conjecture * cj) {
     cout << a->write(); // write() is a rewrite of the original lib function.
     candidate.close();
     cout.rdbuf (strm_buffer); // reverting cout to its normal behavior.
-    int res = run_cbmc(false);
+    string st;
+	//cout << "press enter to continue" << endl;
+	//cin >>  st;
+	int res = run_cbmc(false);
     cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;
     return (res != 0);
 }
@@ -810,7 +827,7 @@ finite_automaton* learn() {
     angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
     
     bool conjectured = false;
-    int counter = 0;
+    //int counter = 0;
     do {
         // Advance the learning algorithm
         conjecture *cj = algorithm.advance();
@@ -837,18 +854,24 @@ finite_automaton* learn() {
         }
         // Resolve equivalence queries
         else {
-            counter++;
+            //counter++;
+			conjectures++;
+			cout << "conjectures = " << conjectures << endl;
             if (conjectured) Abort(string("last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. "));
             conjectured = true;
-            bool is_equivalent = answer_Conjecture(cj);
-            //			if (counter == 2) exit(1);
+			std::list<int> ce;			
+			bool is_equivalent;
+			//is_equivalent = answer_Conjecture_pre_check(cj, ce); // graph analysis, searches for back edges, and fills ce if found one. 
+			//if (is_equivalent) 
+			is_equivalent = answer_Conjecture_cbmc(cj); //  cbmc call
+            
             if (is_equivalent) {
             	report_conjecture(std::list<int>(), -1);
                 result = cj;
             } else {
                 // Get a counter-example
                 //exit(1);
-                list<int> ce = get_CounterExample(alphabet_size, &feedback);
+                if (ce.size() == 0) ce = get_CounterExample(alphabet_size, &feedback); // this means that we called cbmc rather than found a counterexample with the precheck.
                 report_conjecture(ce, feedback);
                 //++counter;
                 //if (counter == 1) exit(1);
@@ -872,7 +895,7 @@ finite_automaton* learn() {
     
     finite_automaton* result_as_automaton = dynamic_cast<finite_automaton*> (result);
     
-    result_as_automaton->record_roots();
+    result_as_automaton->record_sinks();
     
     return result_as_automaton;
 }
@@ -1049,7 +1072,7 @@ int main(int argc, const char**argv) {
 #endif
             
 #ifdef _EXPERIMENT_MODE
-            
+            cout << "in experiment_mode" << endl;
             reset(ss);
             
             bool hasConverged = test_convergence(conjectured_automata, lower_bound, word_length, user_bound);
@@ -1079,7 +1102,7 @@ int main(int argc, const char**argv) {
                 
 #endif
                 
-                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << endl;
+                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << " cbmc conjectures = " << cbmc_conjectures << endl;
                 cout << "Time: " << elapsed_secs << endl;
                 
 #ifdef _EXPERIMENT_MODE
@@ -1095,7 +1118,7 @@ int main(int argc, const char**argv) {
                 
                 std::stringstream final_automaton_stats_info;
                 // Name, Lower Bound, Convergence Bound, Iterations (~MDC Needs updating), User Bound, Seconds gone (CPU), Nodes, Edges, mem queries, CBMC mem queries / total queries, Cache mem queries / total queries, Conjectures
-                final_automaton_stats_info << input_file_prefix << " & " << lower_bound << " & " << word_length << " & " << (word_length - lower_bound) << " & " << user_bound << " & " << elapsed_secs << " & " << count_nodes(conjectured_automata[word_length]) << " & " << count_edges(conjectured_automata[word_length]) << " & " << mem_queries << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << (float)cache_mem_queries * 100/(float)mem_queries << " & " << conjectures;
+                final_automaton_stats_info << input_file_prefix << " & " << lower_bound << " & " << word_length << " & " << (word_length - lower_bound) << " & " << user_bound << " & " << elapsed_secs << " & " << count_nodes(conjectured_automata[word_length]) << " & " << count_edges(conjectured_automata[word_length]) << " & " << mem_queries << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << (float)cache_mem_queries * 100/(float)mem_queries << " & " << cbmc_conjectures;
                 
                 final_automaton_stats_file << final_automaton_stats_info.str();
                 final_automaton_stats_file.close();

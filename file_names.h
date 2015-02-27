@@ -12,7 +12,7 @@
 #define AUTOMATON "automaton.data"
 #define DOMINATORS "dominators.data"
 #define DOOMED "doomed.data"
-#define ROOTS "roots.data"
+#define SINKS "sinks.data"
 #define DOMINATING_EDGES "dominating_edges.data"
 #define CG "call_graph.data"
 #define CFG_EDGES "cfg_edges.data"

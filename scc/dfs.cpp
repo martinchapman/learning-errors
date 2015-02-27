@@ -20,6 +20,32 @@ void dfs(int s) {
 	}
 }
 
+
+bool get_path(int s, int target, std::vector<int>& path) {
+	path.push_back(s);
+	if (s == target) return true;
+	visited[s] = true;
+	for (int t = 0; t < numOfVertices; ++t)
+	{
+		if (!visited[t] && (matrix[s][t] >=0)) return get_path(t, target, path);
+	}
+	path.pop_back();
+	return false;
+}
+
+bool find_back_edges(std::vector<int> roots, std::vector<int>& path) {	 
+	int target = 0; // assuming accepting state is 0
+	for (int i = 0; i < roots.size(); ++i) {
+		path.clear();
+		if (!get_path(roots[i], target, path)) continue;
+		if (get_path(target, target, path)) return true;
+	}
+	return false;
+}
+
+
+
+
 // can we reach target from s, without using e ? 
 bool reachable_excluding_edge(int s, int e, int target) {
 	if (s == target) return true;
@@ -65,7 +91,7 @@ int main(int argc, char** argv) {
 	
 	
 
-	
+	 
 	visited = new bool[numOfVertices];	
 	reset_visited();
 
@@ -86,16 +112,16 @@ int main(int argc, char** argv) {
 	}
 	//print_m();
 	// finding roots which are not accepting (in the reversed graph)
-	out = fopen(ROOTS, "w");
+	out = fopen(SINKS, "w");
 	std::vector<int> roots;	
 	for (; s < numOfVertices; ++s) {
 		if (s == current_state) continue;
-		bool root = true;
+		bool sink = true;
 		j = 0;
 		for (; j < numOfVertices; ++j) {
-			if (matrix[j][s] >= 0 && s!= j) {root = false; break;}
+			if (matrix[j][s] >= 0 && s!= j) {sink = false; break;}
 		}
-		if (root) {
+		if (sink) {
 			roots.push_back(s);
 			fprintf(out, "%d ", s);
 		}

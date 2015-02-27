@@ -110,7 +110,7 @@ class finite_state_machine: public conjecture {
 		int input_alphabet_size;
 		int state_count;
         int edge_count;
-        std::set<int> roots_set; //~MDC
+        std::set<int> sinks_set; //~MDC
 		std::set<int> initial_states;
 		bool omega; // is this machine for infinite words?
 	public: // methods
@@ -680,8 +680,8 @@ class finite_automaton : public moore_machine<bool> {
         virtual bool has_circuit() const; // ~MDC
 		virtual bool read(std::string input);
 		virtual std::string visualize() const;
-        virtual void record_roots(); // ~MDC
-
+        virtual void record_sinks(); // ~MDC
+		virtual bool find_lasso(std::list<int>& path); //ofer
 		// checks if a word is accepted by this automaton.
 		virtual bool contains(const std::list<int> & word) const;
 		virtual void get_final_states(std::set<int> & into) const;
@@ -699,10 +699,12 @@ class Graph
     public:
         int V;    // No. of vertices
         std::list<int> *adj;    // A dynamic array of adjacency lists
-        
         // A Recursive DFS based function used by SCC()
         bool scc_util(int u, int disc[], int low[],
                      std::stack<int> *st, bool stackMember[]);
+        std::vector<bool> visited; 
+		bool get_path(int s, int target, std::list<int>& path, bool inclusive = true);
+		
     public:
         Graph(int V);   // Constructor
         void add_edge(int v, int w);   // function to add an edge to graph

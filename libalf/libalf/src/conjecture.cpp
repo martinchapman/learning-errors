@@ -40,7 +40,7 @@
 #include <iostream> // ~MDC
 #include <list> // ~MDC
 #include <stack> // ~MDC
-
+#include <assert.h>
 #include "libalf/conjecture.h"
 #include "libalf/serialize.h"
 #include "../../../file_names.h" // ofer
@@ -453,7 +453,7 @@ bool finite_automaton::has_circuit() const  // ~MDC
         for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
             for(si = msi->second.begin(); si != msi->second.end(); ++si)
             {
-                if (this->roots_set.find(mmsi->first)  == this->roots_set.end() && this->roots_set.find(*si)  == this->roots_set.end())
+                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
                 {
                     g1.add_edge(mmsi->first, *si);
                 }
@@ -476,7 +476,7 @@ int finite_automaton::count_transitions()  // ~MDC
         for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
             for(si = msi->second.begin(); si != msi->second.end(); ++si)
             {
-                if (this->roots_set.find(mmsi->first)  == this->roots_set.end() && this->roots_set.find(*si)  == this->roots_set.end())
+                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
                 {
                     edges++;
                 }
@@ -507,6 +507,77 @@ int Graph::count_edges()
     }
     return edges;
 }
+
+
+
+
+bool Graph::get_path(int s, int target, std::list<int>& path, bool inclusive) { // inclusive = in the top recursive frame s can be the target. 
+	cout << "in get_path " << s << "," << target << ", V = " << V << " inclusive = " << inclusive << endl;
+	std::vector<bool>::iterator it;
+	cout << "visited = ";
+	for (it=visited.begin(); it!=visited.end(); ++it) cout<< *it <<",";
+	cout << endl;
+	
+	if (inclusive) {  // this condition is false only once: when starting the 2nd search from target to target. Then we do not count the source.  
+		path.push_back(s);
+		if (s == target) return true; 		
+		visited[s] = true; 
+	}
+	std::list<int>::iterator i;
+    for (i = adj[s].begin(); i != adj[s].end(); ++i)
+    {
+        int v;
+		v = *i;  // v is current adjacent of 's'	
+//		cout << "v = " << v << endl;
+		if (!visited[v] && get_path(v, target, path)) return true;
+	}
+	path.pop_back();
+	return false;
+}
+
+
+bool finite_automaton::find_lasso(std::list<int>& path)  // ~MDC
+{
+    std::set<int> accepting = get_final_states();
+	cout << "accepting.size = " << accepting.size() << endl;
+	if (accepting.size() == 0) return false;
+	assert(accepting.size() == 1);
+	
+	Graph g1(this->state_count);
+    
+    map<int, map<int, set<int> > >::const_iterator mmsi;
+    map<int, set<int> >::const_iterator msi;
+    set<int>::const_iterator si;
+    for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
+        for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
+            for(si = msi->second.begin(); si != msi->second.end(); ++si)
+            {
+                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
+                {
+                    g1.add_edge(mmsi->first, *si);  // we add edges not connecting to the sink n on-accepting state. 
+					cout << mmsi->first << "-> " << *si << endl;
+                }
+            }
+	
+	
+	int target = *accepting.begin();
+	std::set<int>::iterator it;
+	for (it=initial_states.begin(); it!=initial_states.end(); ++it) {
+		path.clear(); 
+		g1.visited = std::vector<bool>(this->state_count + 1, false);
+		cout << "calling get_path (1) with " << *it << "," << target << endl;
+		if (!g1.get_path(*it, target, path)) return false; 
+		g1.visited = std::vector<bool>(this->state_count + 1, false);
+		
+		cout << "calling get_path (2) with " << target << "," << target << endl;
+		if (g1.get_path(target, target, path, false)) return true;
+	}
+	return false;    
+}
+
+
+
+
 
 // A recursive function that finds and prints strongly connected
 // components using DFS traversal
@@ -755,7 +826,7 @@ string finite_automaton::visualize() const  // ofer
 {{{
 	stringstream str, tmp, dom_edges;
 	int v;
-	set<int> dominator_set, roots_set, doomed_set, dominating_edges_set;
+	set<int> dominator_set, sinks_set, doomed_set, dominating_edges_set;
 #define MaxAlphabet 200
 	char * label[MaxAlphabet]; // 200 = max alphabet size. // should replace this with a map
 
@@ -807,15 +878,15 @@ string finite_automaton::visualize() const  // ofer
 			printf("read %s with %d labels\n", file, j);		
 		}
 
-		FILE *roots = fopen(ROOTS, "r");
-		if (roots) {
-			while (!feof(roots ))
+		FILE *sinks = fopen(SINKS, "r");
+		if (sinks) {
+			while (!feof(sinks ))
 			{
-				if (fscanf(roots , "%d", &v) != 1) continue;
-				roots_set.insert(v);
+				if (fscanf(sinks , "%d", &v) != 1) continue;
+				sinks_set.insert(v);
             }
-			fclose(roots );
-			printf("read %s with %d roots \n", ROOTS, roots_set.size() );
+			fclose(sinks );
+			printf("read %s with %d sinks \n", SINKS, sinks_set.size() );
 		}
 		
 
@@ -876,7 +947,7 @@ string finite_automaton::visualize() const  // ofer
 
 		if(final_state_count < state_count) {					
 			for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi)
-				if(!oi->second && roots_set.find(oi->first)  == roots_set.end())
+				if(!oi->second && sinks_set.find(oi->first)  == sinks_set.end())
 				{					
 					string color = (dominator_set.find(oi->first) != dominator_set.end())? "green" : "black";
 					string label = (doomed_set.find(oi->first) != doomed_set.end())? "D" : "\"\"";
@@ -911,7 +982,7 @@ string finite_automaton::visualize() const  // ofer
 			for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
 				for(si = msi->second.begin(); si != msi->second.end(); ++si)
 				{
-					if (roots_set.find(mmsi->first)  == roots_set.end() && roots_set.find(*si)  == roots_set.end()) // edge is not from/to a root (root = sink unaccepting state)
+					if (sinks_set.find(mmsi->first)  == sinks_set.end() && sinks_set.find(*si)  == sinks_set.end()) // edge is not from/to a sink unaccepting state.
 					{
 						string color = (dominating_edges_set.find(msi->first) != dominating_edges_set.end()) ? ", color = green": "";
 						str << "\tq" << mmsi->first << " -> q" << *si << " [label=\"" << label[msi->first] << "\"" << color << "];\n";
@@ -925,20 +996,19 @@ string finite_automaton::visualize() const  // ofer
 	return str.str();
 }}}
     
-void finite_automaton::record_roots() {
+void finite_automaton::record_sinks() {
     
     int v;
-    FILE *roots = fopen(ROOTS, "r");
-    if (roots) {
-        while (!feof(roots ))
+    FILE *sinks = fopen(SINKS, "r");
+    if (sinks) {
+        while (!feof(sinks ))
         {
-            if (fscanf(roots , "%d", &v) != 1) continue;
-            this->roots_set.insert(v);
+            if (fscanf(sinks , "%d", &v) != 1) continue;
+            this->sinks_set.insert(v);
         }
-        fclose(roots );
-        printf("read %s with %d roots \n", ROOTS, this->roots_set.size() );
+        fclose(sinks);
+        printf("read %s with %d sinks \n", SINKS, this->sinks_set.size() );
     }
-    
 }
 
 bool finite_automaton::contains(const list<int> & word) const
