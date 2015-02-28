@@ -616,33 +616,35 @@ void positive_queries(list<int> query) {
 }
 
 // returns: 0 = reject, 1 = accept, 2 = don't know.
-char membership_pre_checks(list<int> query) {
-    cout << "in  membership ore_checks" << endl;
-    // empty query
-    
+char membership_pre_checks(list<int> query) {    
+    // empty query    
     if (query.size() == 0)
     {
         cout << "Zero-size!" << endl;
         return 0;
     }
     
-    if (query.size() > word_length)
+    // The query is right after conjecture, and we trust the result. 
+	if (conjecture_result != CONJ_UNKNOWN) {
+		
+	}
+	if (conjecture_result == CONJ_FALSE) {
+		cout << "Feedback from conjecture!" << endl;
+		conjecture_result = CONJ_UNKNOWN;		
+		return 0;
+	}
+	if (conjecture_result == CONJ_TRUE) {	
+		cout << "Feedback from conjecture!" << endl;
+		conjecture_result = CONJ_UNKNOWN;		
+        positive_queries(query);        
+        return 1;
+    }
+
+	if (query.size() > word_length)
     {
         cout << "Word too long!" << endl;
         return 0;
     }
-    
-    // The query is right after conjecture, and we trust the result. 
-	if (conjecture_result != CONJ_UNKNOWN) {
-		cout << "Feedback from conjecture!" << endl;
-		conjecture_result = CONJ_UNKNOWN;		
-	}
-	if (conjecture_result == CONJ_FALSE) return 0;
-	if (conjecture_result == CONJ_TRUE) {	
-        positive_queries(query);        
-        return 1;
-    }
-    
     
     // query longer than word_length. It will be rejected anyway.
     //if (query.size() > word_length)
