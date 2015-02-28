@@ -28,8 +28,7 @@ int alphabet_size;
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 int mem_queries, cbmc_conjectures, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
-int feedback = -1;
-
+enum {CONJ_FALSE, CONJ_TRUE, CONJ_UNKNOWN} conjecture_result = CONJ_UNKNOWN;
 void Abort(string msg);
 int run(const char* cmd);
 bool verbose = false;
@@ -58,6 +57,7 @@ void copy_file(const char *source, const char *destination) {
 std::ofstream QUERY_LOG("queries.log");
 
 bool report_query(const list<int> &word, bool result, const char type, const char *respondent) {
+	cout << "in report_query" << endl;
   QUERY_LOG << type << ';';
   std::copy(word.begin(), word.end(), std::ostream_iterator<int>(QUERY_LOG, " "));
   QUERY_LOG << ';' << std::boolalpha << result << ';' << respondent << std::endl;
@@ -420,14 +420,21 @@ void show_result(conjecture *result) {
 }
 
 /*******************************  Learn  ****************************/
-list<int> get_CounterExample(int alphabetsize, int *feedback) {
+list<int> get_CounterExample(int alphabetsize) {
     
     list<int> ce;
     int  i;
     int length;
+	int feedback[2];
     ifstream read(MODEL);
     read >> *feedback;
-    
+	
+	// We use the result only if it is positive feedback. If it is negative feedback we need to recheck it.
+    // The difference between positive and negative feedback is emenating from how we catch negative feedbacks. We do so by the 'trap', which extends any path reaching the end with an arbitrary sequence.
+    // if that sequence happens to drive us to an accepting state in the current conjecture, we conclude that this is a negative feedback. But there can be a different input that creates exactly the same path
+    // and indeed violates the assertion. So we query the counterexample, to see if it happens to be positive.
+    if (*feedback) conjecture_result = CONJ_TRUE; 
+
     assert(*feedback == 0 || *feedback == 1);
     cout << ((*feedback) ? "Positive " : "Negative ") << "feedback" << endl;
     cout << "Counterexample ";
@@ -439,8 +446,7 @@ list<int> get_CounterExample(int alphabetsize, int *feedback) {
         cout << " read: " << i;
         ce.push_back(i);
     }
-    cout << endl;
-    
+    cout << endl;    
     return ce;
 }
 
@@ -558,11 +564,12 @@ bool answer_Conjecture_pre_check(conjecture * cj, std::list<int>& path) {
 	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);	
 	bool res = a-> find_lasso(path);
 	std::list<int>::iterator it;
-	if (res) {
+	/*if (res) {
 		for ( it = path.begin(); it != path.end(); ++it) cout << *it << ",";
 	}
-	cout << endl;
+	cout << endl; */
 	cout << "result is " << res << endl;	
+	if (res) conjecture_result = CONJ_FALSE;  
 	return !res; // false if path found, to be compatible with answer_Conjecture_cbmc. 
 }
 
@@ -610,7 +617,7 @@ void positive_queries(list<int> query) {
 
 // returns: 0 = reject, 1 = accept, 2 = don't know.
 char membership_pre_checks(list<int> query) {
-    
+    cout << "in  membership ore_checks" << endl;
     // empty query
     
     if (query.size() == 0)
@@ -625,15 +632,14 @@ char membership_pre_checks(list<int> query) {
         return 0;
     }
     
-    // The query is right after conjecture. We know the answer anyway. We use it only if it is positive feedback. If it is negative feedback we recheck anyway.
-    // The difference between positive and negative feedback is emenating from how we catch negative feedbacks. We do so by the 'trap', which extends any path reaching the end with an arbitrary sequence.
-    // if that sequence happens to drive us to an accepting state in the current conjecture, we conclude that this is a negative feedback. But there can be a different input that creates exactly the same path
-    // and indeed violates the assertion. So we query the counterexample, to see if it happens to be positive.
-    if (feedback == 1)
-    {
-        positive_queries(query);
-        cout << "Feedback from conjecture!" << endl;
-        feedback = -1;
+    // The query is right after conjecture, and we trust the result. 
+	if (conjecture_result != CONJ_UNKNOWN) {
+		cout << "Feedback from conjecture!" << endl;
+		conjecture_result = CONJ_UNKNOWN;		
+	}
+	if (conjecture_result == CONJ_FALSE) return 0;
+	if (conjecture_result == CONJ_TRUE) {	
+        positive_queries(query);        
         return 1;
     }
     
@@ -833,7 +839,7 @@ finite_automaton* learn() {
     //int counter = 0;
     do {
         // Advance the learning algorithm
-        conjecture *cj = algorithm.advance();
+        conjecture *cj = algorithm.advance();		
         // Resolve membership queries
         if (cj == NULL) {
             //counter++;
@@ -844,7 +850,7 @@ finite_automaton* learn() {
             list<list<int> >::iterator li;
             for (li = queries.begin(); li != queries.end(); li++) {
                 
-                // Answer query
+                // Answer query				
                 bool a = answer_Membership(*li);
                 
                 // Add answer to knowledge-base
@@ -876,8 +882,12 @@ finite_automaton* learn() {
             } else {
                 // Get a counter-example
                 //exit(1);
-                if (ce.size() == 0) ce = get_CounterExample(alphabet_size, &feedback); // this means that we called cbmc rather than found a counterexample with the precheck.
-                report_conjecture(ce, feedback);
+#ifdef CONJECTURE_PRECHECK
+                if (ce.size() == 0) 
+#endif
+				ce = get_CounterExample(alphabet_size); // this means that we called cbmc rather than found a counterexample with the precheck.
+				
+                report_conjecture(ce, conjecture_result);				
                 //++counter;
                 //if (counter == 1) exit(1);
                 
@@ -885,7 +895,7 @@ finite_automaton* learn() {
                 algorithm.add_counterexample(ce);
                 
                 // Delete old conjecture
-                delete cj;
+                delete cj;				
             }
         }
         

@@ -519,15 +519,12 @@ int Graph::count_edges()
     return edges;
 }
 
-bool Graph::get_path(int s, int target, std::list<int>& path, bool inclusive) { // inclusive = in the top recursive frame s can be the target. 
-	cout << "in get_path " << s << "," << target << ", V = " << V << " inclusive = " << inclusive << endl;
+// finds a path from s to t, and adds it to path. 
+bool Graph::get_path(int s, int t, std::list<int>& path, bool inclusive) { // inclusive = in the top recursive frame s can be the t. 
+	cout << "in get_path " << s << "," << t << ", V = " << V << " inclusive = " << inclusive << endl;
 	std::vector<bool>::iterator it;
-	//cout << "visited = ";
-	//for (it=visited.begin(); it!=visited.end(); ++it) cout<< *it <<",";
-	//cout << endl;
-	
-	if (inclusive) {  // this condition is false only once: when starting the 2nd search from target to target. Then we do not count the source.  		
-		if (s == target) return true; 		
+	if (inclusive) {  // this condition is false only once: when starting the 2nd search from t to t. Then we do not count the source.  		
+		if (s == t) return true; 		
 		visited[s] = true; 
 	}
 	std::list<int>::iterator i;
@@ -538,7 +535,7 @@ bool Graph::get_path(int s, int target, std::list<int>& path, bool inclusive) { 
 //		cout << "v = " << v << endl;
 		if (!visited[v]) {			
 			path.push_back(edge_to_alphabet(s,v));
-			if (get_path(v, target, path)) return true;
+			if (get_path(v, t, path)) return true;
 		}
 	}
 	path.pop_back();
@@ -546,10 +543,10 @@ bool Graph::get_path(int s, int target, std::list<int>& path, bool inclusive) { 
 }
 
 
-bool finite_automaton::find_lasso(std::list<int>& path)  // ~MDC
+bool finite_automaton::find_lasso(std::list<int>& path)  // ofer
 {
     std::set<int> accepting = get_final_states();
-	cout << "accepting.size = " << accepting.size() << endl;
+	// cout << "accepting.size = " << accepting.size() << endl;
 	if (accepting.size() == 0) return false;
 	assert(accepting.size() == 1);
 	
@@ -565,21 +562,19 @@ bool finite_automaton::find_lasso(std::list<int>& path)  // ~MDC
                 if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
                 {
                     g1.add_edge(mmsi->first, *si, msi->first);  // we add edges not connecting to the sink n on-accepting state. 
-					cout << mmsi->first << "-> " << *si << "[" << msi->first <<"]" << endl;
+					//cout << mmsi->first << "-> " << *si << "[" << msi->first <<"]" << endl;
                 }
             }
-	
-	
+		
 	int target = *accepting.begin();
 	std::set<int>::iterator it;
 	for (it=initial_states.begin(); it!=initial_states.end(); ++it) {
 		path.clear(); 
 		g1.visited = std::vector<bool>(this->state_count + 1, false);
-		cout << "calling get_path (1) with " << *it << "," << target << endl;
+		//cout << "calling get_path (1) with " << *it << "," << target << endl;
 		if (!g1.get_path(*it, target, path)) return false; 
-		g1.visited = std::vector<bool>(this->state_count + 1, false);
-		
-		cout << "calling get_path (2) with " << target << "," << target << endl;
+		g1.visited = std::vector<bool>(this->state_count + 1, false);		
+		//cout << "calling get_path (2) with " << target << "," << target << endl;
 		if (g1.get_path(target, target, path, false)) return true;
 	}
 	return false;    
