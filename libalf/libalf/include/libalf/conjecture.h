@@ -699,7 +699,7 @@ class Graph
     public:
         int V;    // No. of vertices
         std::list<int> *adj;    // A dynamic array of adjacency lists
-        std::map<std::vector<int>,int> edge_alphabet;
+        std::map<std::pair<int,int>,int> edge_alphabet;
         // A Recursive DFS based function used by SCC()
         bool scc_util(int u, int disc[], int low[],
             std::stack<int> *st, bool stackMember[]);

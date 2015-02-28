@@ -19,6 +19,8 @@
 #include <boost/unordered_map.hpp>
 #endif
 
+#define CONJECTURE_PRECHECK
+
 int Assert_letter;
 using namespace std;
 using namespace libalf;
@@ -548,7 +550,8 @@ int run_cbmc(bool membership) {
 }
 
 
-
+// searches for a lasso-shaped path starting at an initial state and the loop goes through an accepting state. If found, this is a negative feedback
+// and we answer false to the conjecture. If the answer is true (no path was found), then we cannot conclude anything. 
 bool answer_Conjecture_pre_check(conjecture * cj, std::list<int>& path) {
 	
 	cout << "in conjecture_pre_check" << endl;
@@ -861,8 +864,10 @@ finite_automaton* learn() {
             conjectured = true;
 			std::list<int> ce;			
 			bool is_equivalent;
-			//is_equivalent = answer_Conjecture_pre_check(cj, ce); // graph analysis, searches for back edges, and fills ce if found one. 
-			//if (is_equivalent) 
+#ifdef CONJECTURE_PRECHECK
+			is_equivalent = answer_Conjecture_pre_check(cj, ce); // graph analysis, searches for back edges, and fills ce if found one. 
+			if (is_equivalent) 
+#endif
 			is_equivalent = answer_Conjecture_cbmc(cj); //  cbmc call
             
             if (is_equivalent) {

@@ -497,20 +497,16 @@ Graph::Graph(int V)
 void Graph::add_edge(int v, int w, int letter)
 {
     adj[v].push_back(w);
-    std::vector<int> node_to_node;
-    node_to_node.push_back(v);
-    node_to_node.push_back(w);
     
-    edge_alphabet[node_to_node] = letter;
+	std:pair<int,int> p(v,w);
+    edge_alphabet[p] = letter;
 }
     
 int Graph::edge_to_alphabet(int v, int w) {
         
-    std::vector<int> node_to_node;
-    node_to_node.push_back(v);
-    node_to_node.push_back(w);
     
-    return edge_alphabet[node_to_node];
+    std:pair<int,int> p(v,w);
+    return edge_alphabet[p];
 
 }
     
@@ -526,12 +522,11 @@ int Graph::count_edges()
 bool Graph::get_path(int s, int target, std::list<int>& path, bool inclusive) { // inclusive = in the top recursive frame s can be the target. 
 	cout << "in get_path " << s << "," << target << ", V = " << V << " inclusive = " << inclusive << endl;
 	std::vector<bool>::iterator it;
-	cout << "visited = ";
-	for (it=visited.begin(); it!=visited.end(); ++it) cout<< *it <<",";
-	cout << endl;
+	//cout << "visited = ";
+	//for (it=visited.begin(); it!=visited.end(); ++it) cout<< *it <<",";
+	//cout << endl;
 	
-	if (inclusive) {  // this condition is false only once: when starting the 2nd search from target to target. Then we do not count the source.  
-		path.push_back(s);
+	if (inclusive) {  // this condition is false only once: when starting the 2nd search from target to target. Then we do not count the source.  		
 		if (s == target) return true; 		
 		visited[s] = true; 
 	}
@@ -541,7 +536,10 @@ bool Graph::get_path(int s, int target, std::list<int>& path, bool inclusive) { 
         int v;
 		v = *i;  // v is current adjacent of 's'	
 //		cout << "v = " << v << endl;
-		if (!visited[v] && get_path(v, target, path)) return true;
+		if (!visited[v]) {			
+			path.push_back(edge_to_alphabet(s,v));
+			if (get_path(v, target, path)) return true;
+		}
 	}
 	path.pop_back();
 	return false;
@@ -567,7 +565,7 @@ bool finite_automaton::find_lasso(std::list<int>& path)  // ~MDC
                 if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
                 {
                     g1.add_edge(mmsi->first, *si, msi->first);  // we add edges not connecting to the sink n on-accepting state. 
-					cout << mmsi->first << "-> " << *si << endl;
+					cout << mmsi->first << "-> " << *si << "[" << msi->first <<"]" << endl;
                 }
             }
 	
