@@ -957,14 +957,6 @@ int count_edges(finite_automaton* conjectured_automaton) {
     
 }
 
-bool has_backedges(finite_automaton* conjectured_automaton) {
-    
-    if ( conjectured_automaton->state_count == 1) return true;
-    
-    return conjectured_automaton->has_circuit();
-    
-}
-
 bool has_loops() {
     stringstream tmp;
     tmp.str("");
@@ -1007,16 +999,6 @@ bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_l
         matching = true;
         
         for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
-          
-            if (has_backedges(conjectured_automata[current_length])) {
-                matching = false;
-                break;
-            }
-            
-            if (has_backedges(conjectured_automata[current_length + 1])) {
-                matching = false;
-                break;
-            }
            
             if (count_nodes(conjectured_automata[current_length]) != count_nodes(conjectured_automata[current_length + 1]) || count_edges(conjectured_automata[current_length]) != count_edges(conjectured_automata[current_length + 1])) {
                 matching = false;
@@ -1046,7 +1028,9 @@ int main(int argc, const char**argv) {
     
 #endif
     
-    clock_t begin = clock();
+    struct timeval begin;
+    
+    gettimeofday(&begin, NULL);
     
 #ifdef _EXPERIMENT_MODE
     
@@ -1097,10 +1081,9 @@ int main(int argc, const char**argv) {
             if (hasConverged || LOG_EACH_BOUND) {
                 
 #endif
-                clock_t end = clock();
-                
-                double elapsed_secs = ((double)end - (double)begin) / CLOCKS_PER_SEC;
-                
+                struct timeval end;
+                gettimeofday(&end, NULL);
+                double elapsed_secs = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) / 1000000.0;
                 
 #ifdef _EXPERIMENT_MODE
                 
