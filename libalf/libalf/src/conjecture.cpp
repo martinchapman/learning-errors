@@ -264,7 +264,7 @@ string finite_automaton::write() const  // ofer. Original below.
 		ab_size_s << this->input_alphabet_size;
 
 		snprintf(buf, 256, "#define states %d\n", this->state_count);
-		fprintf(header, "#define states %d\nextern bool accept[states];\nextern char A[states][AlphaBetSize];\n", this->state_count);		
+		fprintf(header, "#define states %d\nextern bool accept[states];\nextern char A[states * AlphaBetSize];\n", this->state_count);
 		fclose(header);
 
 		fprintf(analyzer, "%d %d\n", this->state_count, this->input_alphabet_size);
@@ -292,7 +292,7 @@ string finite_automaton::write() const  // ofer. Original below.
 		fprintf(analyzer,"\n");
 		ret += "};\n";
 		
-		ret += "char A[states][" + ab_size_s.str() + "] = {";
+		ret += "char A[states * " + ab_size_s.str() + "] = {";
 		first_komma = true;
 		int i=0;
 		for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi, ++i) {

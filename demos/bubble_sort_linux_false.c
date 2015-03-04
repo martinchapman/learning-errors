@@ -157,6 +157,10 @@ static void gl_sort()
 
 int main()
 {
+	int __CPROVER_nondet_exit;
+	if (__CPROVER_nondet_exit) {
+		return 0;
+	}
     gl_read();
     inspect(&gl_list);
 

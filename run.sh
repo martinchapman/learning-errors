@@ -3,10 +3,13 @@
 
 if [ -z "$2" ]
 then
-libalf/examples/online $1 0 --auto f --v --user-unwind 1
+echo 0 >word_length
+libalf/examples/online $1 0 --auto f --v --user-unwind 1 $2
 elif [ -z "$3" ]
 then
-libalf/examples/online $1 $2 --auto f --v --user-unwind 1
+echo $2 >word_length
+libalf/examples/online $1 $2 --auto f --v --user-unwind 1 $3
 else
-libalf/examples/online $1 $2 --auto f --v --user-unwind $3
+echo $2 >word_length
+libalf/examples/online $1 $2 --auto f --v --user-unwind $3 $4
 fi

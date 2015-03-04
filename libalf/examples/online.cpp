@@ -105,6 +105,11 @@ void remember_query(const std::list<int> &query, bool result) { }
 #endif
 #endif
 
+// Backend modes
+static enum {
+  CBMC, SYMEX, MIXED
+} backend = CBMC;
+
 //~MDC Needs to be addressed
 void rewrite_branch( string name, int num)
 {
@@ -307,6 +312,8 @@ void parse_options(int argc, const char**argv) {
             if (argc == i || !isdigit(argv[i][0])) Abort("missing number after --unwind\n");
             unwind = atoi(argv[i]);
         }
+        else if (!strcmp(argv[i], "--symex")) { backend = SYMEX; }
+        else if (!strcmp(argv[i], "--mixed")) { backend = MIXED; }
         else Abort(string("wrong argument: ") + string(argv[i]));
     }
     
@@ -555,6 +562,103 @@ int run_cbmc(bool membership) {
     return 0; //unreachable
 }
 
+int run_symex(bool membership) {
+    stringstream tmp;
+    string tmp_file("tmpfile");
+    tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
+    run(tmp.str().c_str());
+
+    // ~MDC Convert learn code per run of cbmc to account for changes
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-cl -c learn_code.c /Folearn_code.o \"";
+#else
+    "goto-cc -c learn_code.c -o learn_code.o";
+#endif
+
+    run(tmp.str().c_str());
+
+    // ~MDC Combine learn code object with target code object
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-cl " << input_file_exe << " learn_code.o /Fe" << "learn" << input_file_exe << "\"";
+#else
+    "goto-cc " << input_file_exe << " learn_code.o -o " << "learn" << input_file_exe;
+#endif
+
+    run(tmp.str().c_str());
+
+    /*// Remove multi-dimensional arrays.
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-instrument --remove-multidim-array " << "learn" << input_file_exe << " " << "learn" << input_file_exe << "\"";
+#else
+	"goto-instrument --remove-multidim-array " << "learn" << input_file_exe << " " << "learn" << input_file_exe;
+#endif
+
+    run(tmp.str().c_str());*/
+
+    // ~MDC Run combined objects through CBMC
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"" <<
+#endif
+    "symex -Iansi-c-lib --show-trace --unwind " << unwind_s.str() << " --unwindset Learn_trap.0:" << unwind_setlimit.str() << ",check_conjecture.0:" << unwind_setlimit.str() << ",check_conjecture_at_trap.0:" << unwind_setlimit.str() << " --no-unwinding-assertions --xml-ui " << "learn" << input_file_exe << " > " <<
+    tmp_file
+
+#ifdef _MYWIN32
+    << "\""
+#endif
+    ;
+
+    run(tmp.str().c_str());
+    tmp.str("");
+
+    tmp << "grep ERROR " << tmp_file;
+    if (!run(tmp.str().c_str())) Abort(string("ERROR in output of CBMC (see " + tmp_file = ")"));
+
+    if (!membership) { // in case of conjecture query, we extract the counterexample
+        string cmd =
+#ifdef _MYWIN32
+        string("cmd /c ") + string("\"") + CE_SYMEX + string(" ") + tmp_file + "\"";
+#else
+        CE_SYMEX + string(" ") + tmp_file;
+#endif
+        run(cmd.c_str());
+    }
+    tmp.str("");
+    tmp <<  "grep -q FAILURE " << tmp_file;
+    int res = run(tmp.str().c_str());
+    if (res == 0) return 0;
+
+    tmp.str("");
+    tmp <<  "grep -q SUCCESS " << tmp_file;
+    res = run(tmp.str().c_str());
+    if (res == 0) return 1;
+    Abort("CBMC FAILURE");
+    return 0; //unreachable
+}
+
+int run_mixed(bool membership) {
+	return membership ? run_symex(true) : run_cbmc(false);
+}
+
+int run_backend(bool membership) {
+	switch (backend) {
+	case CBMC:
+		return run_cbmc(membership);
+	case SYMEX:
+		return run_symex(membership);
+	case MIXED:
+		return run_mixed(membership);
+	}
+	return -1;
+}
+
 
 // searches for a lasso-shaped path starting at an initial state and the loop goes through an accepting state. If found, this is a negative feedback
 // and we answer false to the conjecture. If the answer is true (no path was found), then we cannot conclude anything. 
@@ -569,7 +673,11 @@ bool answer_Conjecture_pre_check(conjecture * cj, std::list<int>& path) {
 	}
 	cout << endl; */
 	cout << "result is " << res << endl;	
-	if (res) conjecture_result = CONJ_FALSE;  
+	if (res) {
+		conjecture_result = CONJ_FALSE;
+	} else {
+		path.clear();
+	}
 	return !res; // false if path found, to be compatible with answer_Conjecture_cbmc. 
 }
 
@@ -595,7 +703,7 @@ bool answer_Conjecture_cbmc(conjecture * cj) {
     string st;
 	//cout << "press enter to continue" << endl;
 	//cin >>  st;
-	int res = run_cbmc(false);
+	int res = run_backend(false);
     cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;
     return (res != 0);
 }
@@ -815,7 +923,7 @@ bool answer_Membership(list<int> query) {
     
     fflush(stdout);
     
-    const int res = run_cbmc(true);
+    const int res = run_backend(true);
     const bool cbmc_result = res == 0;
 #ifdef _EXPERIMENT_MODE
     if(cbmc_result) { remember_query(query, cbmc_result); }

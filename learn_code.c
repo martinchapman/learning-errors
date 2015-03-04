@@ -25,15 +25,19 @@ bool conjecture_path_has_reached_failing_assert = 0 != 0;
 
 // 1. we need to wrap 'assert' because goto-instrument --show-call-sequences does not refer to leaf functions. So we get 'Assert' in the report and replace it later with 'assert'.	
 // 2. we need 'feedback' because in conjecture query we search for its value in the counterexample, in order to figure out if this is a positive or negative feedback. 
-void Assert(bool x, char feedback) { 
+void Assert(bool x, char feedback) {
+	const char local_feedback = feedback;
 	//assert(x);
   __CPROVER_assert(x, "void Assert(bool x, char feedback)");						
 }
 
-void check_conjecture(bool assert_condition) {  
+void check_conjecture(bool assert_condition) {
+	/*char state = 0;
+	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
+		state = A[state][_Learn_b[i]];*/
 	char state = 0;	
 	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
-		state = A[state][_Learn_b[i]];
+		state = A[state * AlphaBetSize + _Learn_b[i]];
 
   if (assert_condition) {
     if (accept[state]) {
@@ -67,10 +71,13 @@ void check_conjecture(bool assert_condition) {
 }
 	
 // called from _Learn_trap. At the trap we are only interested in negative feedbacks (everything that gets here is not in the language).
-void check_conjecture_at_trap() {  
+void check_conjecture_at_trap() {
+	/*	char state = 0;
+	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
+		state = A[state][_Learn_b[i]];*/
 	char state = 0;	
 	for (int i = 0; i < _Learn_idx; ++i) // we need to unroll at least to _Learn_idx
-		state = A[state][_Learn_b[i]];
+		state = A[state * AlphaBetSize + _Learn_b[i]];
 	if (accept[state]) {
 		// positive_queries_filter filters out (via assume(0)) paths that are in the language (we know that because a previous mem. query proved so). This prevents nondeterminism, i.e., earlier we said it is in the language, and now we return it as a negative feedback.
 		// note that this non-determinisms is artificial, due to the trap, e.g., a path 0-1-1-2 breaks the assertion, but there is another path that doesn't go via any of these locations and simply reaches the trap.
