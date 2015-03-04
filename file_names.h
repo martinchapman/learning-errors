@@ -37,7 +37,8 @@
  #define CONVERT "convert.bat"
  #define CFG2GRAPH "cfg2graph.bat"
 #else
- #define CE "./ce.sh" 
+ #define CE "./ce.sh"
+ #define CE_SYMEX "./ce-symex.sh"
  #define GENERATE_CALL_GRAPH "./generate_call_graph.sh"
  #define GET_FUNC_NAMES "./get_func_names.sh"
  #define CONVERT "./convert.sh"
