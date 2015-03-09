@@ -29,6 +29,6 @@ void f(int x) {
 }
 
 int main() {
-  d(x);  
-  e(x);  
+  a(x);
+  b(x);  
 }
