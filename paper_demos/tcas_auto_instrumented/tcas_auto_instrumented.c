@@ -18,6 +18,7 @@
 
 // ~MDC Having this commented out is ok for the main environment, but upsets bound checkers, and vice-versa when it is in. Needs checking.
 //typedef int bool;
+typedef _Bool bool;
 
 int Cur_Vertical_Sep;
 bool High_Confidence;
@@ -170,7 +171,7 @@ int alt_sep_test()
     return alt_sep;
 }
 
-int main(int argc, char*argv[])
+int main(void)
 {	
   initialize();
   Cur_Vertical_Sep = nondet_int(); //860; 

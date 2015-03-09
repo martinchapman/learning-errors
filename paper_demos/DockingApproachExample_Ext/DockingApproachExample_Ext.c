@@ -1,230 +1,230 @@
 // #anon_enum$DIMENSION_PROPAGATION=0$TYPE_PROPAGATION=1$COMPLEX_PROPAGATION=2
 // file ../R2013a/simulink/include/simstruc.h line 584
-enum anonymous$23 { DIMENSION_PROPAGATION=0, TYPE_PROPAGATION=1, COMPLEX_PROPAGATION=2 };
+enum anonymous$22 { DIMENSION_PROPAGATION=0, TYPE_PROPAGATION=1, COMPLEX_PROPAGATION=2 };
 
 // #anon_enum$EXTLOGTASK_TRIG_ARM=0$EXTLOGTASK_INIT_EVENT=1$EXTLOGTASK_TERM_INTERMEDIATE_ONESHOT=2$EXTLOGTASK_TERM_SESSION=3
 // file ../R2013a/simulink/include/simstruc.h line 685
-enum anonymous$18 { EXTLOGTASK_TRIG_ARM=0, EXTLOGTASK_INIT_EVENT=1, EXTLOGTASK_TERM_INTERMEDIATE_ONESHOT=2, EXTLOGTASK_TERM_SESSION=3 };
+enum anonymous$15 { EXTLOGTASK_TRIG_ARM=0, EXTLOGTASK_INIT_EVENT=1, EXTLOGTASK_TERM_INTERMEDIATE_ONESHOT=2, EXTLOGTASK_TERM_SESSION=3 };
 
 // #anon_enum$FALLING_ZERO_CROSSING=-1$ANY_ZERO_CROSSING=0$RISING_ZERO_CROSSING=1
 // file ../R2013a/simulink/include/simstruc_types.h line 114
-enum anonymous$27 { FALLING_ZERO_CROSSING=-1, ANY_ZERO_CROSSING=0, RISING_ZERO_CROSSING=1 };
+enum anonymous$24 { FALLING_ZERO_CROSSING=-1, ANY_ZERO_CROSSING=0, RISING_ZERO_CROSSING=1 };
 
 // #anon_enum$FRAME_INHERITED=-1$FRAME_NO=0$FRAME_YES=1
 // file ../R2013a/simulink/include/sl_common_types_def.h line 26
-enum anonymous$15 { FRAME_INHERITED=-1, FRAME_NO=0, FRAME_YES=1 };
+enum anonymous$12 { FRAME_INHERITED=-1, FRAME_NO=0, FRAME_YES=1 };
 
 // #anon_enum$MINOR_TIME_STEP=0$MAJOR_TIME_STEP=1
 // file ../R2013a/simulink/include/rtw_continuous.h line 29
-enum anonymous$10 { MINOR_TIME_STEP=0, MAJOR_TIME_STEP=1 };
+enum anonymous$4 { MINOR_TIME_STEP=0, MAJOR_TIME_STEP=1 };
 
 // #anon_enum$RTPARAM_NOT_TRANSFORMED=0$RTPARAM_TRANSFORMED=1$RTPARAM_MAKE_TRANSFORMED_TUNABLE=2
 // file ../R2013a/simulink/include/sl_common_types_def.h line 168
-enum anonymous$59 { RTPARAM_NOT_TRANSFORMED=0, RTPARAM_TRANSFORMED=1, RTPARAM_MAKE_TRANSFORMED_TUNABLE=2 };
+enum anonymous$58 { RTPARAM_NOT_TRANSFORMED=0, RTPARAM_TRANSFORMED=1, RTPARAM_MAKE_TRANSFORMED_TUNABLE=2 };
 
 // #anon_enum$SIM_PAUSE=0$SIM_CONTINUE=1
 // file ../R2013a/simulink/include/simstruc.h line 591
-enum anonymous$22 { SIM_PAUSE=0, SIM_CONTINUE=1 };
+enum anonymous$21 { SIM_PAUSE=0, SIM_CONTINUE=1 };
 
 // #anon_enum$SL_JM_BD_AUTO=0$SL_JM_BD_SPARSE_PERTURBATION=1$SL_JM_BD_FULL_PERTURBATION=2$SL_JM_BD_SPARSE_ANALYTICAL=3$SL_JM_BD_FULL_ANALYTICAL=4
 // file ../R2013a/simulink/include/rtw_solver.h line 33
-enum anonymous$26 { SL_JM_BD_AUTO=0, SL_JM_BD_SPARSE_PERTURBATION=1, SL_JM_BD_FULL_PERTURBATION=2, SL_JM_BD_SPARSE_ANALYTICAL=3, SL_JM_BD_FULL_ANALYTICAL=4 };
+enum anonymous$16 { SL_JM_BD_AUTO=0, SL_JM_BD_SPARSE_PERTURBATION=1, SL_JM_BD_FULL_PERTURBATION=2, SL_JM_BD_SPARSE_ANALYTICAL=3, SL_JM_BD_FULL_ANALYTICAL=4 };
 
 // #anon_enum$SOLVER_MODE_AUTO=0$SOLVER_MODE_SINGLETASKING=1$SOLVER_MODE_MULTITASKING=2
 // file ../R2013a/simulink/include/rtw_continuous.h line 22
-enum anonymous$13 { SOLVER_MODE_AUTO=0, SOLVER_MODE_SINGLETASKING=1, SOLVER_MODE_MULTITASKING=2 };
+enum anonymous$7 { SOLVER_MODE_AUTO=0, SOLVER_MODE_SINGLETASKING=1, SOLVER_MODE_MULTITASKING=2 };
 
 // #anon_enum$SS_DOUBLE=0$SS_SINGLE=1$SS_INT8=2$SS_UINT8=3$SS_INT16=4$SS_UINT16=5$SS_INT32=6$SS_UINT32=7$SS_BOOLEAN=8
 // file ../R2013a/simulink/include/sl_types_def.h line 18
-enum anonymous$17 { SS_DOUBLE=0, SS_SINGLE=1, SS_INT8=2, SS_UINT8=3, SS_INT16=4, SS_UINT16=5, SS_INT32=6, SS_UINT32=7, SS_BOOLEAN=8 };
+enum anonymous$53 { SS_DOUBLE=0, SS_SINGLE=1, SS_INT8=2, SS_UINT8=3, SS_INT16=4, SS_UINT16=5, SS_INT32=6, SS_UINT32=7, SS_BOOLEAN=8 };
 
 // #anon_enum$SS_DWORK_USED_AS_DWORK=0$SS_DWORK_USED_AS_DSTATE=1$SS_DWORK_USED_AS_SCRATCH=2$SS_DWORK_USED_AS_MODE=3
 // file ../R2013a/simulink/include/simstruc_types.h line 197
-enum anonymous$42 { SS_DWORK_USED_AS_DWORK=0, SS_DWORK_USED_AS_DSTATE=1, SS_DWORK_USED_AS_SCRATCH=2, SS_DWORK_USED_AS_MODE=3 };
+enum anonymous$30 { SS_DWORK_USED_AS_DWORK=0, SS_DWORK_USED_AS_DSTATE=1, SS_DWORK_USED_AS_SCRATCH=2, SS_DWORK_USED_AS_MODE=3 };
 
 // #anon_enum$SS_MATRIX_NONE=0$SS_MATRIX_CONSTANT=1$SS_MATRIX_TIMEDEP=2$SS_MATRIX_STATEDEP=3
 // file ../R2013a/simulink/include/rtw_continuous.h line 15
-enum anonymous$21 { SS_MATRIX_NONE=0, SS_MATRIX_CONSTANT=1, SS_MATRIX_TIMEDEP=2, SS_MATRIX_STATEDEP=3 };
+enum anonymous$13 { SS_MATRIX_NONE=0, SS_MATRIX_CONSTANT=1, SS_MATRIX_TIMEDEP=2, SS_MATRIX_STATEDEP=3 };
 
 // #anon_enum$SS_RTWGEN_UNKNOWN=0$SS_RTWGEN_RTW_CODE=1$SS_RTWGEN_ACCELERATOR=2$SS_RTWGEN_MODELREFERENCE_SIM_TARGET=3$SS_RTWGEN_MODELREFERENCE_RTW_TARGET=4
 // file ../R2013a/simulink/include/simstruc_types.h line 64
-enum anonymous$20 { SS_RTWGEN_UNKNOWN=0, SS_RTWGEN_RTW_CODE=1, SS_RTWGEN_ACCELERATOR=2, SS_RTWGEN_MODELREFERENCE_SIM_TARGET=3, SS_RTWGEN_MODELREFERENCE_RTW_TARGET=4 };
+enum anonymous$14 { SS_RTWGEN_UNKNOWN=0, SS_RTWGEN_RTW_CODE=1, SS_RTWGEN_ACCELERATOR=2, SS_RTWGEN_MODELREFERENCE_SIM_TARGET=3, SS_RTWGEN_MODELREFERENCE_RTW_TARGET=4 };
 
 // #anon_enum$SS_SIMMODE_NORMAL=0$SS_SIMMODE_SIZES_CALL_ONLY=1$SS_SIMMODE_RTWGEN=2$SS_SIMMODE_EXTERNAL=3
 // file ../R2013a/simulink/include/simstruc_types.h line 46
-enum anonymous$4 { SS_SIMMODE_NORMAL=0, SS_SIMMODE_SIZES_CALL_ONLY=1, SS_SIMMODE_RTWGEN=2, SS_SIMMODE_EXTERNAL=3 };
+enum anonymous$2 { SS_SIMMODE_NORMAL=0, SS_SIMMODE_SIZES_CALL_ONLY=1, SS_SIMMODE_RTWGEN=2, SS_SIMMODE_EXTERNAL=3 };
 
 // tag-#anon#ST[*{V}$V$'blockIO'||*{cV}$cV$'constBlockIO'||*{V}$V$'defaultParam'||*{U8}$U8$'prevZCSigState'||*{F64}$F64$'contStates'||*{F64}$F64$'derivs'||*{V}$V$'zcSignalValues'||*{V}$V$'inputs'||*{V}$V$'outputs'||*{U8}$U8$'contStateDisabled'||U8'zCCacheNeedsReset'||U8'derivCacheNeedsReset'||U8'blkStateChange'||U40'$pad0'||*{V}$V$'dwork'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.h line 889
-struct anonymous$12;
+struct anonymous$50;
 
 // tag-#anon#ST[*{cV}$cV$'mappingInfo'||*{V}$V$'xpcData'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.h line 937
-struct anonymous$25;
+struct anonymous;
 
 // tag-#anon#ST[ARR4{U32}$U32$'checksums'||U32'options'||S32'numContStates'||S32'numU'||S32'numY'||S32'numSampTimes'||S32'numBlocks'||S32'numBlockIO'||S32'numBlockPrms'||S32'numDwork'||S32'numSFcnPrms'||S32'numSFcns'||S32'numIports'||S32'numOports'||S32'numNonSampZCs'||S32'sysDirFeedThru'||S32'rtwGenSfcn'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.h line 912
-struct anonymous$24;
+struct anonymous$59;
 
 // tag-#anon#ST[BF{U32}$U32$'DisableBoundsChecking'||BF{U32}$U32$'ExtModeUpload'||BF{U32}$U32$'rtwIdMustResolveToSignalObject'||BF{U32}$U32$'rtwIdDoneResolve'||BF{U32}$U32$'ensureResetForSizeVary'||BF{U32}$U32$'minMaxCheckpoint'||BF{U32}$U32$'optimizeInIR'||BF{U32}$U32$'reserved7'||BF{U32}$U32$'reserved16'|]
 // file ../R2013a/simulink/include/simstruc.h line 920
-struct anonymous$51;
+struct anonymous$52;
 
 // tag-#anon#ST[BF{U32}$U32$'alreadyWarned'||BF{U32}$U32$'reserved15'||BF{U32}$U32$'reserved16'|]
 // file ../R2013a/simulink/include/simstruc.h line 2244
-struct anonymous$34;
+struct anonymous$55;
 
 // tag-#anon#ST[BF{U32}$U32$'hasMdlDimensionsFcn'||BF{U32}$U32$'usesNumPorts'||BF{U32}$U32$'vectMode'||BF{U32}$U32$'blockReduction'||BF{U32}$U32$'treatAsAtomic'||BF{U32}$U32$'rtwcg'||BF{U32}$U32$'needAbsoluteTime'||BF{U32}$U32$'explicitFCSSCtrl'||BF{U32}$U32$'modelRefTsInhSupLevel'||BF{U32}$U32$'needElapseTime'||BF{U32}$U32$'hasSubFunctions'||BF{U32}$U32$'callsOutputInInit'||BF{U32}$U32$'disableMdlProjection'||BF{U32}$U32$'modelRefNormalModeSupport'||BF{U32}$U32$'simStateCompliance'||BF{U32}$U32$'simStateVisibility'||BF{U32}$U32$'disableMdlSlvrJacobian'||BF{U32}$U32$'isRapidAcceleratorActive'||BF{U32}$U32$'isConcurrentTasks'||BF{U32}$U32$'usesCustomCodeFcns'||BF{U32}$U32$'reserved'|]
 // file ../R2013a/simulink/include/simstruc.h line 826
-struct anonymous$49;
+struct anonymous$23;
 
 // tag-#anon#ST[BF{U32}$U32$'optimOpts'||BF{U32}$U32$'frameData'||BF{U32}$U32$'cToMergeBlk'||BF{U32}$U32$'constOutputExprInRTW'||BF{U32}$U32$'outputExprInRTW'||BF{U32}$U32$'trivialOutputExprInRTW'||BF{U32}$U32$'okToMerge'||BF{U32}$U32$'cecId'||BF{U32}$U32$'nonContPort'||BF{U32}$U32$'dimensionsMode'||BF{U32}$U32$'fedByBlockWithModesNoZCs'||BF{U32}$U32$'busMode'||BF{U32}$U32$'optimizeInIR'||BF{U32}$U32$'reserved13'|]
 // file ../R2013a/simulink/include/simstruc.h line 1007
-struct anonymous$5;
+struct anonymous$35;
 
 // tag-#anon#ST[BF{U32}$U32$'overWritable'||BF{U32}$U32$'optimOpts'||BF{U32}$U32$'frameData'||BF{U32}$U32$'contiguity'||BF{U32}$U32$'acceptExprInRTW'||BF{U32}$U32$'cinId'||BF{U32}$U32$'nonDerivPort'||BF{U32}$U32$'dimensionsMode'||BF{U32}$U32$'busMode'||BF{U32}$U32$'optimizeInIR'||BF{U32}$U32$'reserved1'||BF{U32}$U32$'reserved16'|]
 // file ../R2013a/simulink/include/simstruc.h line 973
-struct anonymous$2;
+struct anonymous$29;
 
 // tag-#anon#ST[BF{U32}$U32$'zcCacheNeedsReset'||BF{U32}$U32$'derivCacheNeedsReset'||BF{U32}$U32$'blkStateChange'||BF{U32}$U32$'reserved_1'||BF{U32}$U32$'forceSfcnExceptionHandling'||BF{U32}$U32$'inlineParameters'||BF{U32}$U32$'solverAssertCheck'||BF{U32}$U32$'minStepViolatedError'||BF{U32}$U32$'reservedone'||BF{U32}$U32$'noZCStateUpdate'||BF{U32}$U32$'computingJacobian'||BF{U32}$U32$'solverCheckingCIC'||BF{U32}$U32$'errorStatusIsMsg'||BF{U32}$U32$'timeTweakWarn'||BF{U32}$U32$'solverRequestingReset'||BF{U32}$U32$'firstInitCondCalled'||BF{U32}$U32$'sparseSlvrJacobian'||BF{U32}$U32$'frameUpgradeWarn'||BF{U32}$U32$'outputMethodComputed'||BF{U32}$U32$'reserved15'|]
 // file ../R2013a/simulink/include/simstruc.h line 1653
-struct anonymous$11;
+struct anonymous$8;
 
 // tag-#anon#ST[F64'stepSize'||U32'clockTick0'||U32'clockTickH0'||F64'stepSize0'||F64'tStart'||F64'tFinal'||F64'timeOfLastOutput'||*{V}$V$'timingData'||*{F64}$F64$'varNextHitTimesList'||EN#anon_enum$MINOR_TIME_STEP=0$MAJOR_TIME_STEP=1#{U32}$U32$'simTimeStep'||U8'stopRequestedFlag'||U24'$pad0'||*{F64}$F64$'sampleTimes'||*{F64}$F64$'offsetTimes'||*{S32}$S32$'sampleTimeTaskIDPtr'||*{S32}$S32$'sampleHits'||*{S32}$S32$'perTaskSampleHits'||*{F64}$F64$'t'||ARR1{F64}$F64$'sampleTimesArray'||ARR1{F64}$F64$'offsetTimesArray'||ARR1{S32}$S32$'sampleTimeTaskIDArray'||ARR1{S32}$S32$'sampleHitArray'||ARR1{S32}$S32$'perTaskSampleHitsArray'||U32'$pad1'||ARR1{F64}$F64$'tArray'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.h line 947
-struct anonymous$19;
+struct anonymous$51;
 
 // tag-#anon#ST[S32'sfEvent'||S8'OrbitalState_Position'||S8'OrbitalState_Velocity'||S8'OrbitalState_Attitude'||S8'OrbitalState_Time'||S8'InertialNavigation_AbsolutePosi'||S8'InertialNavigation_AbsoluteAtti'||S8'InertialNavigation_AbsoluteVelo'||S8'GPS_AbsoluteVelocity'||S8'GPS_AbsoluteTime'||S8'StarPlanetTracker_AbsoluteAttit'||S8'StarPlanetTracker_AbsolutePosit'||S8'StarPlanetTracker_AbsoluteTime'||S8'StarPlanetTracker_AbsoluteVeloc'||S8'GPS_AbsolutePosition'||S8'dockingSensor_RelativePosition'||S8'dockingSensor_RelativeVelocity'||S8'dockingSensor_RelativeAttitude'||S8'dockingSensor_targetState'||S8'thrust_status'||S8'fuel_status'||S8'DockingApproach_timer'||S8'CaptureApproach_timer'||S8'latch_status'||S8'LatchCapture_timer'||S8'dockingSensor_timer'||S8'InertialNavigation_timer'||S8'StarPlanetTracker_timer'||S8'GPS_timer'||U8'is_active_c1_DockingApproachExa'||U8'is_active_fuel'||U8'is_active_thrust'||U8'is_MissionPhaseStates'||U8'is_active_MissionPhaseStates'||U8'is_DockingApproach'||U8'is_active_DockingApproach'||U8'is_dockingSensor'||U8'is_active_dockingSensor'||U8'is_CaptureApproach'||U8'is_active_CaptureApproach'||U8'is_active_OrbitalState_Active'||U8'is_active_OrbitalState_Complex'||U8'is_OrbitalState'||U8'is_active_OrbitalState'||U8'is_OrbitalState2'||U8'is_active_OrbitalState2'||U8'is_GPS'||U8'is_active_GPS'||U8'is_StarPlanetTracker'||U8'is_active_StarPlanetTracker'||U8'is_InertialNavigation'||U8'is_active_InertialNavigation'||U8'is_LatchCaptureCheck'||U8'is_active_LatchCaptureCheck'||U8'is_latch'||U8'is_active_latch'||U8'VALID'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.h line 771
-struct anonymous$0;
+struct anonymous$34;
 
 // tag-#anon#ST[S32'sizeInBytes'||U32'$pad0'||*{S8}$S8$'pCurrVal'||*{S8}$S8$'pPrevVal'|]
 // file ../R2013a/simulink/include/simstruc.h line 1593
-struct anonymous$14;
+struct anonymous$10;
 
 // tag-#anon#ST[S32'stopExecutionFlag'||S32'isrOverrun'||ARR1{S32}$S32$'overrunFlags'||ARR1{S32}$S32$'eventFlags'||*{cS8}$cS8$'errmsg'|]
 // file ../R2013a/rtw/c/grt/classic_main.c line 156
-struct anonymous$31;
+struct anonymous$11;
 
 // tag-#anon#ST[S8'GroundTrack_OrbitalPosition'||S8'GroundTrack_OrbitalVelocity'||S8'dockVisibility_status'||U8'opticsAvailability_status'||U8'sunlight_status'||S8'GPS_satelliteVisibility_status'||U8'GPS_receiverAvailability_status'||S8'StarPlanetTracker_planetVisibil'||S8'StarPlanetTracker_starVisibilit'||U8'InertialNavigation_time'||S8'GroundTrack_Time'||S8'RealTimeClock_time'||S8'StageTransition'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.h line 832
-struct anonymous$1;
+struct anonymous$37;
 
 // tag-#anon#ST[SYM#tag-#anon#ST[U32'wordH'||U32'wordL'|]#'words'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rt_nonfinite.h line 33
-struct anonymous$39;
+struct anonymous$1;
 
 // tag-#anon#ST[SYM#tag-#anon#ST[U32'wordL'||U32'wordH'|]#'words'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rt_nonfinite.h line 40
-struct anonymous$45;
+struct anonymous$18;
 
 // tag-#anon#ST[SYM#tag-#anon#UN[F32'wordLreal'||U32'wordLuint'|]#'wordL'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rt_nonfinite.h line 47
-struct anonymous$41;
+struct anonymous$39;
 
 // tag-#anon#ST[SYM#tag-_ssSFcnModelMethods#'sFcn'|]
 // file ../R2013a/simulink/include/simstruc.h line 2318
-struct anonymous$16;
+struct anonymous$9;
 
 // tag-#anon#ST[U32'lsw'||U32'msw'|]
 // file ../R2013a/rtw/c/grt/cbmc_math.c line 41
-struct anonymous$32;
+struct anonymous$56;
 
 // tag-#anon#ST[U32'wordH'||U32'wordL'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rt_nonfinite.h line 34
-struct anonymous$37;
+struct anonymous$0;
 
 // tag-#anon#ST[U32'wordL'||U32'wordH'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rt_nonfinite.h line 41
-struct anonymous$43;
+struct anonymous$3;
 
 // tag-#anon#ST[U64'w'|]
 // file ../R2013a/rtw/c/grt/cbmc_math.c line 46
-struct anonymous$35;
+struct anonymous$57;
 
 // tag-#anon#ST[U8'CaptureApproachComplete'||U8'DockingApproachComplete'||U8'AttemptingToDock'||U8'LatchCaptureComplete'||U8'DockingApproach'||U8'ApproachOrbitComplete'||U8'FarApproachComplete'||U8'ProximityOperationsComplete'||U8'FailedApproach'||U8'JointMission'||U8'CaptureApproachFailed'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.h line 849
-struct anonymous$3;
+struct anonymous$45;
 
 // tag-#anon#UN[*{*{cS8}$cS8$}$*{cS8}$cS8$$'cptr'||*{*{S8}$S8$}$*{S8}$S8$$'ptr'|]
 // file ../R2013a/simulink/include/rtw_matlogging.h line 48
-union anonymous$30;
+union anonymous$5;
 
 // tag-#anon#UN[*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V$'level2'||*{P(*{F64}$F64$|*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V}$P(*{F64}$F64$|*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V$'level1'|]
 // file ../R2013a/simulink/include/simstruc.h line 2110
-union anonymous$50;
+union anonymous$36;
 
 // tag-#anon#UN[*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V$'level2'||*{P(*{F64}$F64$|*{cF64}$cF64$|*{cF64}$cF64$|*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V}$P(*{F64}$F64$|*{cF64}$cF64$|*{cF64}$cF64$|*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V$'level1'|]
 // file ../R2013a/simulink/include/simstruc.h line 2132
-union anonymous$54;
+union anonymous$44;
 
 // tag-#anon#UN[*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V$'level2'||*{P(*{F64}$F64$|*{cF64}$cF64$|*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V}$P(*{F64}$F64$|*{cF64}$cF64$|*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V$'level1'|]
 // file ../R2013a/simulink/include/simstruc.h line 2127
-union anonymous$53;
+union anonymous$42;
 
 // tag-#anon#UN[*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V$'level2'||*{P(*{F64}$F64$|*{cF64}$cF64$|*{cF64}$cF64$|*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V}$P(*{F64}$F64$|*{cF64}$cF64$|*{cF64}$cF64$|*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32)->V$'level1'|]
 // file ../R2013a/simulink/include/simstruc.h line 2122
-union anonymous$52;
+union anonymous$40;
 
 // tag-#anon#UN[*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|S32)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|S32)->V$'mdlSetInputPortComplexSignal'||*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V$'mdlEnable'|]
 // file ../R2013a/simulink/include/simstruc.h line 2140
-union anonymous$57;
+union anonymous$47;
 
 // tag-#anon#UN[*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|S32)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|S32)->V$'mdlSetInputPortWidth'||*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|*{cSYM#tag-DimsInfo_tag#}$cSYM#tag-DimsInfo_tag#$)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|*{cSYM#tag-DimsInfo_tag#}$cSYM#tag-DimsInfo_tag#$)->V$'mdlSetInputPortDims'|]
 // file ../R2013a/simulink/include/simstruc.h line 2089
-union anonymous$47;
+union anonymous$32;
 
 // tag-#anon#UN[*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|S32)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|S32)->V$'mdlSetOutputPortComplexSignal'||*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$)->V$'mdlDisable'|]
 // file ../R2013a/simulink/include/simstruc.h line 2146
-union anonymous$58;
+union anonymous$48;
 
 // tag-#anon#UN[*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|S32)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|S32)->V$'mdlSetOutputPortWidth'||*{P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|*{cSYM#tag-DimsInfo_tag#}$cSYM#tag-DimsInfo_tag#$)->V}$P(*{SYM#tag-SimStruct_tag#}$SYM#tag-SimStruct_tag#$|S32|*{cSYM#tag-DimsInfo_tag#}$cSYM#tag-DimsInfo_tag#$)->V$'mdlSetOutputPortDims'|]
 // file ../R2013a/simulink/include/simstruc.h line 2094
-union anonymous$48;
+union anonymous$33;
 
 // tag-#anon#UN[*{SYM#tag-_ssDWorkRecord#}$SYM#tag-_ssDWorkRecord#$'sfcn'||*{V}$V$'root'|]
 // file ../R2013a/simulink/include/simstruc.h line 1084
-union anonymous$28;
+union anonymous$54;
 
 // tag-#anon#UN[*{V}$V$'vect'||*{c*{cF64}$cF64$}$c*{cF64}$cF64$$'uPtrs'|]
 // file ../R2013a/simulink/include/simstruc.h line 2234
-union anonymous$29;
+union anonymous$49;
 
 // tag-#anon#UN[*{c*{cS8}$cS8$}$c*{cS8}$cS8$$'cptr'||*{*{S8}$S8$}$*{S8}$S8$$'ptr'|]
 // file ../R2013a/simulink/include/rtw_matlogging.h line 81
-union anonymous$36;
+union anonymous$25;
 
 // tag-#anon#UN[*{cS8}$cS8$'str'||*{V}$V$'msg'|]
 // file ../R2013a/simulink/include/simstruc.h line 2282
-union anonymous$8;
+union anonymous$6;
 
 // tag-#anon#UN[*{cSYM#tag-RTWLogSignalInfo_tag#}$cSYM#tag-RTWLogSignalInfo_tag#$'cptr'||*{SYM#tag-RTWLogSignalInfo_tag#}$SYM#tag-RTWLogSignalInfo_tag#$'ptr'|]
 // file ../R2013a/simulink/include/rtw_matlogging.h line 116
-union anonymous$40;
+union anonymous$26;
 
 // tag-#anon#UN[*{cV}$cV$'vect'||*{c*{cV}$cV$}$c*{cV}$cV$$'ptrs'|]
 // file ../R2013a/simulink/include/simstruc.h line 966
-union anonymous$56;
+union anonymous$28;
 
 // tag-#anon#UN[F32'wordLreal'||U32'wordLuint'|]
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rt_nonfinite.h line 48
-union anonymous$46;
+union anonymous$20;
 
 // tag-#anon#UN[F64'value'||SYM#tag-#anon#ST[U32'lsw'||U32'msw'|]#'parts'||SYM#tag-#anon#ST[U64'w'|]#'xparts'|]
 // file ../R2013a/rtw/c/grt/cbmc_math.c line 38
-union anonymous$55;
+union anonymous$31;
 
 // tag-#anon#UN[S32'numInputPorts'||S32'numU'|]
 // file ../R2013a/simulink/include/simstruc.h line 768
-union anonymous$44;
+union anonymous$19;
 
 // tag-#anon#UN[S32'numOutputPorts'||S32'numY'|]
 // file ../R2013a/simulink/include/simstruc.h line 761
-union anonymous$38;
+union anonymous$17;
 
 // tag-#anon#UN[S32'numRtp'||*{V}$V$'placeholder'|]
 // file ../R2013a/simulink/include/simstruc.h line 1069
-union anonymous$9;
+union anonymous$46;
 
 // tag-DimsInfo_tag
 // file ../R2013a/simulink/include/simstruc_types.h line 160
@@ -459,9 +459,6 @@ void _Learn_assert(_Bool);
 // ceil
 // file ../R2013a/rtw/c/grt/cbmc_math.c line 93
 extern double ceil(double x);
-// displayUsage
-// file ../R2013a/rtw/c/grt/classic_main.c line 383
-static void displayUsage(void);
 // enter_internal_OrbitalState_Act
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.c line 1039
 static void enter_internal_OrbitalState_Act(void);
@@ -478,7 +475,7 @@ extern double fmod(double a, double n);
 // file /usr/include/stdio.h line 356
 extern signed int fprintf(struct _IO_FILE *, const char *, ...);
 // nondet_double
-// file ../R2013a/rtw/c/grt/classic_main.c line 490 function main
+// file ../R2013a/rtw/c/grt/classic_main.c line 415 function main
 signed int nondet_double(void);
 // printf
 // file /usr/include/stdio.h line 362
@@ -517,10 +514,10 @@ extern unsigned char rtIsNaNF(float value);
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rt_nonfinite.c line 37
 extern void rt_InitInfAndNaN(unsigned long int realSize);
 // rt_ODECreateIntegrationData
-// file ../R2013a/rtw/c/grt/classic_main.c line 672
+// file ../R2013a/rtw/c/grt/classic_main.c line 573
 void rt_ODECreateIntegrationData(struct _ssSolverInfo_tag *si);
 // rt_ODEUpdateContinuousStates
-// file ../R2013a/rtw/c/grt/classic_main.c line 675
+// file ../R2013a/rtw/c/grt/classic_main.c line 576
 void rt_ODEUpdateContinuousStates(struct _ssSolverInfo_tag *si);
 // rt_OneStep
 // file ../R2013a/rtw/c/grt/classic_main.c line 193
@@ -530,7 +527,7 @@ static void rt_OneStep(struct tag_RTM_DockingApproachExampl_T *S);
 extern double rt_SimGetNextSampleHit(void);
 // rt_SimInitTimingEngine
 // file ../R2013a/rtw/c/src/rt_sim.c line 87
-extern const char * rt_SimInitTimingEngine(signed int rtmNumSampTimes, double rtmStepSize, double *rtmSampleTimePtr, double *rtmOffsetTimePtr, signed int *rtmSampleHitPtr, signed int *rtmSampleTimeTaskIDPtr, double rtmTStart, enum anonymous$10 *rtmSimTimeStepPtr, void **rtmTimingDataPtr);
+extern const char * rt_SimInitTimingEngine(signed int rtmNumSampTimes, double rtmStepSize, double *rtmSampleTimePtr, double *rtmOffsetTimePtr, signed int *rtmSampleHitPtr, signed int *rtmSampleTimeTaskIDPtr, double rtmTStart, enum anonymous$4 *rtmSimTimeStepPtr, void **rtmTimingDataPtr);
 // rt_SimUpdateDiscreteTaskSampleHits
 // file ../R2013a/rtw/c/src/rt_sim.c line 332
 extern void rt_SimUpdateDiscreteTaskSampleHits(signed int rtmNumSampTimes, void *rtmTimingData, signed int *rtmSampleHitPtr, double *rtmTPtr);
@@ -549,14 +546,8 @@ const char * rt_UpdateTXYLogVars(struct _RTWLogInfo_tag *li, double *tPtr);
 // space_dummy_bool
 // file ../R2013a/rtw/c/grt/classic_main.c line 31
 void space_dummy_bool(void);
-// sscanf
-// file /usr/include/stdio.h line 433
-extern signed int sscanf(const char *, const char *, ...);
-// strcmp
-// file /usr/include/string.h line 140
-extern signed int strcmp(const char *, const char *);
 
-struct anonymous$12
+struct anonymous$50
 {
   // blockIO
   void *blockIO;
@@ -588,7 +579,7 @@ struct anonymous$12
   void *dwork;
 };
 
-struct anonymous$25
+struct anonymous
 {
   // mappingInfo
   const void *mappingInfo;
@@ -596,7 +587,7 @@ struct anonymous$25
   void *xpcData;
 };
 
-struct anonymous$24
+struct anonymous$59
 {
   // checksums
   unsigned int checksums[4l];
@@ -634,7 +625,7 @@ struct anonymous$24
   signed int rtwGenSfcn;
 };
 
-struct anonymous$51
+struct anonymous$52
 {
   // DisableBoundsChecking
   unsigned int DisableBoundsChecking : 1;
@@ -656,7 +647,7 @@ struct anonymous$51
   unsigned int reserved16 : 16;
 };
 
-struct anonymous$34
+struct anonymous$55
 {
   // alreadyWarned
   unsigned int alreadyWarned : 1;
@@ -666,7 +657,7 @@ struct anonymous$34
   unsigned int reserved16 : 16;
 };
 
-struct anonymous$49
+struct anonymous$23
 {
   // hasMdlDimensionsFcn
   unsigned int hasMdlDimensionsFcn : 1;
@@ -712,7 +703,7 @@ struct anonymous$49
   unsigned int reserved : 4;
 };
 
-struct anonymous$5
+struct anonymous$35
 {
   // optimOpts
   unsigned int optimOpts : 2;
@@ -744,7 +735,7 @@ struct anonymous$5
   unsigned int reserved13 : 13;
 };
 
-struct anonymous$2
+struct anonymous$29
 {
   // overWritable
   unsigned int overWritable : 1;
@@ -772,7 +763,7 @@ struct anonymous$2
   unsigned int reserved16 : 16;
 };
 
-struct anonymous$11
+struct anonymous$8
 {
   // zcCacheNeedsReset
   unsigned int zcCacheNeedsReset : 1;
@@ -816,7 +807,7 @@ struct anonymous$11
   unsigned int reserved15 : 13;
 };
 
-struct anonymous$19
+struct anonymous$51
 {
   // stepSize
   double stepSize;
@@ -837,7 +828,7 @@ struct anonymous$19
   // varNextHitTimesList
   double *varNextHitTimesList;
   // simTimeStep
-  enum anonymous$10 simTimeStep;
+  enum anonymous$4 simTimeStep;
   // stopRequestedFlag
   unsigned char stopRequestedFlag;
   // sampleTimes
@@ -866,7 +857,7 @@ struct anonymous$19
   double tArray[1l];
 };
 
-struct anonymous$0
+struct anonymous$34
 {
   // sfEvent
   signed int sfEvent;
@@ -984,7 +975,7 @@ struct anonymous$0
   unsigned char VALID;
 };
 
-struct anonymous$14
+struct anonymous$10
 {
   // sizeInBytes
   signed int sizeInBytes;
@@ -994,7 +985,7 @@ struct anonymous$14
   char *pPrevVal;
 };
 
-struct anonymous$31
+struct anonymous$11
 {
   // stopExecutionFlag
   signed int stopExecutionFlag;
@@ -1008,7 +999,7 @@ struct anonymous$31
   const char *errmsg;
 };
 
-struct anonymous$1
+struct anonymous$37
 {
   // GroundTrack_OrbitalPosition
   signed char GroundTrack_OrbitalPosition;
@@ -1038,7 +1029,7 @@ struct anonymous$1
   signed char StageTransition;
 };
 
-struct anonymous$37
+struct anonymous$0
 {
   // wordH
   unsigned int wordH;
@@ -1046,13 +1037,13 @@ struct anonymous$37
   unsigned int wordL;
 };
 
-struct anonymous$39
+struct anonymous$1
 {
   // words
-  struct anonymous$37 words;
+  struct anonymous$0 words;
 };
 
-struct anonymous$43
+struct anonymous$3
 {
   // wordL
   unsigned int wordL;
@@ -1060,13 +1051,13 @@ struct anonymous$43
   unsigned int wordH;
 };
 
-struct anonymous$45
+struct anonymous$18
 {
   // words
-  struct anonymous$43 words;
+  struct anonymous$3 words;
 };
 
-union anonymous$46
+union anonymous$20
 {
   // wordLreal
   float wordLreal;
@@ -1074,13 +1065,13 @@ union anonymous$46
   unsigned int wordLuint;
 };
 
-struct anonymous$41
+struct anonymous$39
 {
   // wordL
-  union anonymous$46 wordL;
+  union anonymous$20 wordL;
 };
 
-union anonymous$47
+union anonymous$32
 {
   // mdlSetInputPortWidth
   void (*mdlSetInputPortWidth)(struct SimStruct_tag *, signed int, signed int);
@@ -1088,7 +1079,7 @@ union anonymous$47
   void (*mdlSetInputPortDims)(struct SimStruct_tag *, signed int, const struct DimsInfo_tag *);
 };
 
-union anonymous$48
+union anonymous$33
 {
   // mdlSetOutputPortWidth
   void (*mdlSetOutputPortWidth)(struct SimStruct_tag *, signed int, signed int);
@@ -1096,7 +1087,7 @@ union anonymous$48
   void (*mdlSetOutputPortDims)(struct SimStruct_tag *, signed int, const struct DimsInfo_tag *);
 };
 
-union anonymous$50
+union anonymous$36
 {
   // level2
   void (*level2)(struct SimStruct_tag *);
@@ -1104,7 +1095,7 @@ union anonymous$50
   void (*level1)(double *, struct SimStruct_tag *);
 };
 
-union anonymous$52
+union anonymous$40
 {
   // level2
   void (*level2)(struct SimStruct_tag *, signed int);
@@ -1112,7 +1103,7 @@ union anonymous$52
   void (*level1)(double *, const double *, const double *, struct SimStruct_tag *, signed int);
 };
 
-union anonymous$53
+union anonymous$42
 {
   // level2
   void (*level2)(struct SimStruct_tag *, signed int);
@@ -1120,7 +1111,7 @@ union anonymous$53
   void (*level1)(double *, const double *, struct SimStruct_tag *, signed int);
 };
 
-union anonymous$54
+union anonymous$44
 {
   // level2
   void (*level2)(struct SimStruct_tag *);
@@ -1128,7 +1119,7 @@ union anonymous$54
   void (*level1)(double *, const double *, const double *, struct SimStruct_tag *, signed int);
 };
 
-union anonymous$57
+union anonymous$47
 {
   // mdlSetInputPortComplexSignal
   void (*mdlSetInputPortComplexSignal)(struct SimStruct_tag *, signed int, signed int);
@@ -1136,7 +1127,7 @@ union anonymous$57
   void (*mdlEnable)(struct SimStruct_tag *);
 };
 
-union anonymous$58
+union anonymous$48
 {
   // mdlSetOutputPortComplexSignal
   void (*mdlSetOutputPortComplexSignal)(struct SimStruct_tag *, signed int, signed int);
@@ -1153,9 +1144,9 @@ struct _ssSFcnModelMethods
   // mdlGetOutputPortWidthLevel1
   signed int (*mdlGetOutputPortWidthLevel1)(struct SimStruct_tag *, signed int);
   // mdlSetInputPortDimensions
-  union anonymous$47 mdlSetInputPortDimensions;
+  union anonymous$32 mdlSetInputPortDimensions;
   // mdlSetOutputPortDimensions
-  union anonymous$48 mdlSetOutputPortDimensions;
+  union anonymous$33 mdlSetOutputPortDimensions;
   // mdlSetInputPortDataType
   void (*mdlSetInputPortDataType)(struct SimStruct_tag *, signed int, signed int);
   // mdlSetOutputPortDataType
@@ -1171,7 +1162,7 @@ struct _ssSFcnModelMethods
   // mdlRTW
   void (*mdlRTW)(struct SimStruct_tag *);
   // mdlInitializeConditions
-  union anonymous$50 mdlInitializeConditions;
+  union anonymous$36 mdlInitializeConditions;
   // mdlStart
   void (*mdlStart)(struct SimStruct_tag *);
   // mdlCheckParameters
@@ -1181,28 +1172,28 @@ struct _ssSFcnModelMethods
   // mdlGetTimeOfNextVarHit
   void (*mdlGetTimeOfNextVarHit)(struct SimStruct_tag *);
   // mdlOutputs
-  union anonymous$52 mdlOutputs;
+  union anonymous$40 mdlOutputs;
   // mdlUpdate
-  union anonymous$53 mdlUpdate;
+  union anonymous$42 mdlUpdate;
   // mdlDerivatives
-  union anonymous$54 mdlDerivatives;
+  union anonymous$44 mdlDerivatives;
   // mdlZeroCrossings
   void (*mdlZeroCrossings)(struct SimStruct_tag *);
   // mdlTerminate
   void (*mdlTerminate)(struct SimStruct_tag *);
   // fcnInEnable
-  union anonymous$57 fcnInEnable;
+  union anonymous$47 fcnInEnable;
   // fcnOutDisable
-  union anonymous$58 fcnOutDisable;
+  union anonymous$48 fcnOutDisable;
 };
 
-struct anonymous$16
+struct anonymous$9
 {
   // sFcn
   struct _ssSFcnModelMethods sFcn;
 };
 
-struct anonymous$32
+struct anonymous$56
 {
   // lsw
   unsigned int lsw;
@@ -1210,13 +1201,13 @@ struct anonymous$32
   unsigned int msw;
 };
 
-struct anonymous$35
+struct anonymous$57
 {
   // w
   unsigned long int w;
 };
 
-struct anonymous$3
+struct anonymous$45
 {
   // CaptureApproachComplete
   unsigned char CaptureApproachComplete;
@@ -1242,7 +1233,7 @@ struct anonymous$3
   unsigned char CaptureApproachFailed;
 };
 
-union anonymous$30
+union anonymous$5
 {
   // cptr
   const char **cptr;
@@ -1250,7 +1241,7 @@ union anonymous$30
   char **ptr;
 };
 
-union anonymous$28
+union anonymous$54
 {
   // sfcn
   struct _ssDWorkRecord *sfcn;
@@ -1258,7 +1249,7 @@ union anonymous$28
   void *root;
 };
 
-union anonymous$29
+union anonymous$49
 {
   // vect
   void *vect;
@@ -1266,7 +1257,7 @@ union anonymous$29
   const double * const *uPtrs;
 };
 
-union anonymous$36
+union anonymous$25
 {
   // cptr
   const signed char * const *cptr;
@@ -1274,7 +1265,7 @@ union anonymous$36
   signed char **ptr;
 };
 
-union anonymous$8
+union anonymous$6
 {
   // str
   const char *str;
@@ -1282,7 +1273,7 @@ union anonymous$8
   void *msg;
 };
 
-union anonymous$40
+union anonymous$26
 {
   // cptr
   const struct RTWLogSignalInfo_tag *cptr;
@@ -1290,7 +1281,7 @@ union anonymous$40
   struct RTWLogSignalInfo_tag *ptr;
 };
 
-union anonymous$56
+union anonymous$28
 {
   // vect
   const void *vect;
@@ -1298,17 +1289,17 @@ union anonymous$56
   const void * const *ptrs;
 };
 
-union anonymous$55
+union anonymous$31
 {
   // value
   double value;
   // parts
-  struct anonymous$32 parts;
+  struct anonymous$56 parts;
   // xparts
-  struct anonymous$35 xparts;
+  struct anonymous$57 xparts;
 };
 
-union anonymous$44
+union anonymous$19
 {
   // numInputPorts
   signed int numInputPorts;
@@ -1316,7 +1307,7 @@ union anonymous$44
   signed int numU;
 };
 
-union anonymous$38
+union anonymous$17
 {
   // numOutputPorts
   signed int numOutputPorts;
@@ -1324,7 +1315,7 @@ union anonymous$38
   signed int numY;
 };
 
-union anonymous$9
+union anonymous$46
 {
   // numRtp
   signed int numRtp;
@@ -1349,7 +1340,7 @@ struct RTWLogDataTypeConvert_tag
   // conversionNeeded
   signed int conversionNeeded;
   // dataTypeIdLoggingTo
-  enum anonymous$17 dataTypeIdLoggingTo;
+  enum anonymous$53 dataTypeIdLoggingTo;
   // dataTypeIdOriginal
   signed int dataTypeIdOriginal;
   // bitsPerChunk
@@ -1383,13 +1374,13 @@ struct RTWLogSignalInfo_tag
   // currSigDimsSize
   signed int *currSigDimsSize;
   // dataTypes
-  enum anonymous$17 *dataTypes;
+  enum anonymous$53 *dataTypes;
   // complexSignals
   signed int *complexSignals;
   // frameData
   signed int *frameData;
   // labels
-  union anonymous$30 labels;
+  union anonymous$5 labels;
   // titles
   char *titles;
   // titleLengths
@@ -1397,9 +1388,9 @@ struct RTWLogSignalInfo_tag
   // plotStyles
   signed int *plotStyles;
   // blockNames
-  union anonymous$30 blockNames;
+  union anonymous$5 blockNames;
   // stateNames
-  union anonymous$30 stateNames;
+  union anonymous$5 stateNames;
   // crossMdlRef
   unsigned char *crossMdlRef;
   // dataTypeConvert
@@ -1413,9 +1404,9 @@ struct _ssSizes
   // numDiscStates
   signed int numDiscStates;
   // out
-  union anonymous$38 out;
+  union anonymous$17 out;
   // in
-  union anonymous$44 in;
+  union anonymous$19 in;
   // mexApiInt1
   signed int mexApiInt1;
   // sysDirFeedThrough
@@ -1465,7 +1456,7 @@ struct _ssSizes
   // RTWGeneratedSFcn
   signed int RTWGeneratedSFcn;
   // flags
-  struct anonymous$49 flags;
+  struct anonymous$23 flags;
   // numJacobianNzMax
   signed int numJacobianNzMax;
   // rtModel
@@ -1501,7 +1492,7 @@ struct _ssSFcnParams
   // dlgAttribs
   unsigned int *dlgAttribs;
   // numRtp
-  union anonymous$9 numRtp;
+  union anonymous$46 numRtp;
   // rtp
   struct ssParamRec_tag **rtp;
 };
@@ -1509,7 +1500,7 @@ struct _ssSFcnParams
 struct _ssStates
 {
   // U
-  union anonymous$29 U;
+  union anonymous$49 U;
   // Y
   void *Y;
   // contStates
@@ -1517,7 +1508,7 @@ struct _ssStates
   // discStates
   double *discStates;
   // flags
-  struct anonymous$34 flags;
+  struct anonymous$55 flags;
   // reserved2
   signed int reserved2;
   // dX
@@ -1529,7 +1520,7 @@ struct _ssStates
   // nonsampledZCs
   double *nonsampledZCs;
   // nonsampledZCDirs
-  enum anonymous$27 *nonsampledZCDirs;
+  enum anonymous$24 *nonsampledZCDirs;
   // jacobian
   struct SparseHeader_Tag *jacobian;
   // modelMethods2
@@ -1551,7 +1542,7 @@ struct _ssWork
   // userData
   void *userData;
   // dWork
-  union anonymous$28 dWork;
+  union anonymous$54 dWork;
   // dWorkAux
   struct _ssDWorkAuxRecord *dWorkAux;
   // reservedForFuture
@@ -1635,7 +1626,7 @@ struct SimStruct_tag
   // root
   struct SimStruct_tag *root;
   // errorStatus
-  union anonymous$8 errorStatus;
+  union anonymous$6 errorStatus;
   // sizes
   struct _ssSizes sizes;
   // portInfo
@@ -1657,7 +1648,7 @@ struct SimStruct_tag
   // stInfo
   struct _ssStInfo stInfo;
   // modelMethods
-  struct anonymous$16 modelMethods;
+  struct anonymous$9 modelMethods;
   // sFunctions
   struct SimStruct_tag **sFunctions;
 };
@@ -1769,11 +1760,11 @@ struct _RTWLogInfo_tag
   // logInfo
   void *logInfo;
   // logXSignalPtrs
-  union anonymous$36 logXSignalPtrs;
+  union anonymous$25 logXSignalPtrs;
   // logYSignalPtrs
-  union anonymous$36 logYSignalPtrs;
+  union anonymous$25 logYSignalPtrs;
   // sigLogSignalPtrs
-  union anonymous$36 sigLogSignalPtrs;
+  union anonymous$25 sigLogSignalPtrs;
   // logFormat
   signed int logFormat;
   // logMaxRows
@@ -1793,11 +1784,11 @@ struct _RTWLogInfo_tag
   // logSL
   const char *logSL;
   // logXSignalInfo
-  union anonymous$40 logXSignalInfo;
+  union anonymous$26 logXSignalInfo;
   // logYSignalInfo
-  union anonymous$40 logYSignalInfo;
+  union anonymous$26 logYSignalInfo;
   // sigLogSignalInfo
-  union anonymous$40 sigLogSignalInfo;
+  union anonymous$26 sigLogSignalInfo;
   // mdlLogData
   void (*mdlLogData)(void *, void *);
   // mmi
@@ -1881,7 +1872,7 @@ struct _ssDWorkAuxRecord
   // rtwTypeQualifier
   char *rtwTypeQualifier;
   // flags
-  struct anonymous$51 flags;
+  struct anonymous$52 flags;
   // icPrmIdxPlus1
   signed int icPrmIdxPlus1;
   // bitFieldWidth
@@ -1907,7 +1898,7 @@ struct _ssDWorkRecord
   // name
   const char *name;
   // usedAs
-  enum anonymous$42 usedAs;
+  enum anonymous$30 usedAs;
 };
 
 struct _ssInPortVarDims
@@ -1937,7 +1928,7 @@ struct ssSparseMatrixInfo_tag
 struct _ssMassMatrixInfo
 {
   // type
-  enum anonymous$21 type;
+  enum anonymous$13 type;
   // info
   struct ssSparseMatrixInfo_tag info;
 };
@@ -1945,7 +1936,7 @@ struct _ssMassMatrixInfo
 struct _ssMdlInfo
 {
   // simMode
-  enum anonymous$4 simMode;
+  enum anonymous$2 simMode;
   // t
   double *t;
   // sampleHits
@@ -1961,7 +1952,7 @@ struct _ssMdlInfo
   // timingData
   void *timingData;
   // simTimeStep
-  enum anonymous$10 simTimeStep;
+  enum anonymous$4 simTimeStep;
   // stopRequested
   signed int stopRequested;
   // logOutput
@@ -1989,7 +1980,7 @@ struct _ssMdlInfo
   // solverNeedsReset
   signed int solverNeedsReset;
   // mdlFlags
-  struct anonymous$11 mdlFlags;
+  struct anonymous$8 mdlFlags;
   // maxNumMinSteps
   signed int maxNumMinSteps;
   // solverRefineFactor
@@ -2007,7 +1998,7 @@ struct _ssMdlInfo
   // numNonContDerivSigInfos
   signed int numNonContDerivSigInfos;
   // nonContDerivSigInfos
-  struct anonymous$14 *nonContDerivSigInfos;
+  struct anonymous$10 *nonContDerivSigInfos;
   // solverAbsTolControl_Obsolete
   unsigned char *solverAbsTolControl_Obsolete;
   // timingBridge
@@ -2045,9 +2036,9 @@ struct _ssMdlInfo
   // reservedForXPC
   void *reservedForXPC;
   // solverMode
-  enum anonymous$13 solverMode;
+  enum anonymous$7 solverMode;
   // rtwgenMode
-  enum anonymous$20 rtwgenMode;
+  enum anonymous$14 rtwgenMode;
   // reservedForFutureInt
   signed int reservedForFutureInt[2l];
   // mexApiReal1
@@ -2093,11 +2084,11 @@ struct _ssPortInputs
   // complexSignal
   signed int complexSignal;
   // signal
-  union anonymous$56 signal;
+  union anonymous$28 signal;
   // connected
   signed int connected;
   // attributes
-  struct anonymous$2 attributes;
+  struct anonymous$29 attributes;
   // sampleTime
   double sampleTime;
   // offsetTime
@@ -2125,7 +2116,7 @@ struct _ssPortOutputs
   // connected
   signed int connected;
   // attributes
-  struct anonymous$5 attributes;
+  struct anonymous$35 attributes;
   // sampleTime
   double sampleTime;
   // offsetTime
@@ -2155,7 +2146,7 @@ struct _ssSFcnModelMethods2
   // mdlJacobian
   void (*mdlJacobian)(struct SimStruct_tag *);
   // mdlSetInputPortFrameData
-  void (*mdlSetInputPortFrameData)(struct SimStruct_tag *, signed int, enum anonymous$15);
+  void (*mdlSetInputPortFrameData)(struct SimStruct_tag *, signed int, enum anonymous$12);
   // strictBooleanCheckEnabledFcn
   unsigned char (*strictBooleanCheckEnabledFcn)(void *);
   // mdlSetDefaultPortDimensions
@@ -2169,7 +2160,7 @@ struct _ssSFcnModelMethods2
   // resolveCBK
   struct _ssResolveCBK resolveCBK;
   // extModeLogFcn
-  const char * (*extModeLogFcn)(struct SimStruct_tag *, const enum anonymous$18);
+  const char * (*extModeLogFcn)(struct SimStruct_tag *, const enum anonymous$15);
   // mdlExtModeExec
   void (*mdlExtModeExec)(struct SimStruct_tag *);
   // mdlRTWCG
@@ -2185,9 +2176,9 @@ struct _ssSFcnModelMethods2
   // mdlDisable
   void (*mdlDisable)(struct SimStruct_tag *);
   // mdlSimStatusChange
-  void (*mdlSimStatusChange)(struct SimStruct_tag *, enum anonymous$22);
+  void (*mdlSimStatusChange)(struct SimStruct_tag *, enum anonymous$21);
   // mdlInitializePropagationPass
-  void (*mdlInitializePropagationPass)(struct SimStruct_tag *, enum anonymous$23);
+  void (*mdlInitializePropagationPass)(struct SimStruct_tag *, enum anonymous$22);
   // constraintsInfo
   struct _ssConstraintsInfo *constraintsInfo;
   // modelMethods3
@@ -2215,7 +2206,7 @@ struct _ssSolverInfo_tag
   // rtModelPtr
   void *rtModelPtr;
   // simTimeStepPtr
-  enum anonymous$10 *simTimeStepPtr;
+  enum anonymous$4 *simTimeStepPtr;
   // solverData
   void *solverData;
   // solverName
@@ -2225,7 +2216,7 @@ struct _ssSolverInfo_tag
   // solverNeedsReset
   unsigned char solverNeedsReset;
   // solverMode
-  enum anonymous$13 solverMode;
+  enum anonymous$7 solverMode;
   // solverStopTime
   double solverStopTime;
   // stepSizePtr
@@ -2295,7 +2286,7 @@ struct _ssSolverInfo_tag
   // consistencyChecking
   unsigned char consistencyChecking;
   // massMatrixType
-  enum anonymous$21 massMatrixType;
+  enum anonymous$13 massMatrixType;
   // massMatrixNzMax
   signed int massMatrixNzMax;
   // massMatrixIr
@@ -2319,7 +2310,7 @@ struct _ssSolverInfo_tag
   // isComputingJacobian
   unsigned char isComputingJacobian;
   // solverJacobianMethodControl
-  enum anonymous$26 solverJacobianMethodControl;
+  enum anonymous$16 solverJacobianMethodControl;
   // ignoredZcDiagnostic
   signed int ignoredZcDiagnostic;
   // maskedZcDiagnostic
@@ -2361,7 +2352,7 @@ struct ssParamRec_tag
   // dlgParamIndices
   signed int *dlgParamIndices;
   // transformed
-  enum anonymous$59 transformed;
+  enum anonymous$58 transformed;
   // outputAsMatrix
   unsigned char outputAsMatrix;
 };
@@ -2377,7 +2368,7 @@ struct tag_RTM_DockingApproachExampl_T
   // errorStatus
   const char *errorStatus;
   // simMode
-  enum anonymous$4 simMode;
+  enum anonymous$2 simMode;
   // rtwLogInfo
   struct _RTWLogInfo_tag *rtwLogInfo;
   // extModeInfo
@@ -2389,22 +2380,22 @@ struct tag_RTM_DockingApproachExampl_T
   // sfcnInfo
   void *sfcnInfo;
   // ModelData
-  struct anonymous$12 ModelData;
+  struct anonymous$50 ModelData;
   // Sizes
-  struct anonymous$24 Sizes;
+  struct anonymous$59 Sizes;
   // SpecialInfo
-  struct anonymous$25 SpecialInfo;
+  struct anonymous SpecialInfo;
   // Timing
-  struct anonymous$19 Timing;
+  struct anonymous$51 Timing;
 };
 
 
 // DockingApproachExample_Ext_Y
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.c line 85
-struct anonymous$3 DockingApproachExample_Ext_Y;
+struct anonymous$45 DockingApproachExample_Ext_Y;
 // DockingApproachExample_Ext_DW
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.c line 79
-struct anonymous$0 DockingApproachExample_Ext_DW;
+struct anonymous$34 DockingApproachExample_Ext_DW;
 // DockingApproachExample_Ext_M
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.c line 89
 struct tag_RTM_DockingApproachExampl_T * const DockingApproachExample_Ext_M;
@@ -2416,13 +2407,13 @@ struct tag_RTM_DockingApproachExampl_T DockingApproachExample_Ext_M_;
 struct tag_RTM_DockingApproachExampl_T * const DockingApproachExample_Ext_M = &DockingApproachExample_Ext_M_;
 // DockingApproachExample_Ext_U
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/DockingApproachExample_Ext.c line 82
-struct anonymous$1 DockingApproachExample_Ext_U;
+struct anonymous$37 DockingApproachExample_Ext_U;
 // FALSE
 // file ../R2013a/rtw/c/grt/classic_main.c line 28
 _Bool FALSE = 0 != 0;
 // GBLbuf
 // file ../R2013a/rtw/c/grt/classic_main.c line 162
-static struct anonymous$31 GBLbuf;
+static struct anonymous$11 GBLbuf;
 // TRUE
 // file ../R2013a/rtw/c/grt/classic_main.c line 27
 _Bool TRUE = 0 == 0;
@@ -4161,47 +4152,47 @@ struct tag_RTM_DockingApproachExampl_T * DockingApproachExample_Ext(void)
     (void *)&DockingApproachExample_Ext_Y.JointMission, 
     (void *)&DockingApproachExample_Ext_Y.CaptureApproachFailed };
   DockingApproachExample_Ext_M->rtwLogInfo->logYSignalPtrs.cptr = (const signed char * const *)rt_LoggedOutputSignalPtrs;
-  static struct RTWLogDataTypeConvert_tag rt_RTWLogDataTypeConvert[11l] = { { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+  static struct RTWLogDataTypeConvert_tag rt_RTWLogDataTypeConvert[11l] = { { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 }, 
-    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$17)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
+    { .conversionNeeded=0, .dataTypeIdLoggingTo=(enum anonymous$53)SS_BOOLEAN, .dataTypeIdOriginal=SS_BOOLEAN,
     .bitsPerChunk=0, .numOfChunk=0,
     .isSigned=(unsigned int)0, .fracSlope=1.0,
     .fixedExp=0, .bias=0.0 } };
@@ -4218,7 +4209,7 @@ struct tag_RTM_DockingApproachExampl_T * DockingApproachExample_Ext(void)
     "DockingApproachExample_Ext/CaptureApproachFailed" };
   static const char *rt_LoggedOutputLabels[11l] = { "", "", "", "", "", "", "", "", "", "", "" };
   static signed int rt_LoggedOutputComplexSignals[11l] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  static enum anonymous$17 rt_LoggedOutputDataTypeIds[11l] = { (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN, (enum anonymous$17)SS_BOOLEAN };
+  static enum anonymous$53 rt_LoggedOutputDataTypeIds[11l] = { (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN, (enum anonymous$53)SS_BOOLEAN };
   static signed int rt_LoggedCurrentSignalDimensionsSize[11l] = { 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4 };
   static void *rt_LoggedCurrentSignalDimensions[11l] = { (void *)0, (void *)0, (void *)0, (void *)0, (void *)0, (void *)0, (void *)0, (void *)0, (void *)0, (void *)0, (void *)0 };
   static unsigned char rt_LoggedOutputIsVarDims[11l] = { (unsigned char)0, (unsigned char)0, (unsigned char)0, (unsigned char)0, (unsigned char)0, (unsigned char)0, (unsigned char)0, (unsigned char)0, (unsigned char)0, (unsigned char)0, (unsigned char)0 };
@@ -4254,7 +4245,7 @@ struct tag_RTM_DockingApproachExampl_T * DockingApproachExample_Ext(void)
   DockingApproachExample_Ext_M->solverInfoPtr = &DockingApproachExample_Ext_M->solverInfo;
   DockingApproachExample_Ext_M->Timing.stepSize = 1.0;
   (&DockingApproachExample_Ext_M->solverInfo)->fixedStepSize = 1.0;
-  (&DockingApproachExample_Ext_M->solverInfo)->solverMode = (enum anonymous$13)SOLVER_MODE_SINGLETASKING;
+  (&DockingApproachExample_Ext_M->solverInfo)->solverMode = (enum anonymous$7)SOLVER_MODE_SINGLETASKING;
   DockingApproachExample_Ext_M->ModelData.dwork = (void *)&DockingApproachExample_Ext_DW;
   DockingApproachExample_Ext_M->ModelData.inputs = (void *)&DockingApproachExample_Ext_U;
   DockingApproachExample_Ext_M->ModelData.outputs = (void *)&DockingApproachExample_Ext_Y;
@@ -4882,7 +4873,7 @@ extern double ceil(double x)
   unsigned int j;
   do
   {
-    union anonymous$55 ew_u;
+    union anonymous$31 ew_u;
     ew_u.value = x;
     i0 = (signed int)ew_u.parts.msw;
     i1 = (signed int)ew_u.parts.lsw;
@@ -4969,24 +4960,13 @@ extern double ceil(double x)
     }
   do
   {
-    union anonymous$55 iw_u;
+    union anonymous$31 iw_u;
     iw_u.parts.msw = (unsigned int)i0;
     iw_u.parts.lsw = (unsigned int)i1;
     x = iw_u.value;
   }
   while((_Bool)0);
   return x;
-}
-
-// displayUsage
-// file ../R2013a/rtw/c/grt/classic_main.c line 383
-static void displayUsage(void)
-{
-  printf("usage: %s -tf <finaltime> -w -port <TCPport>\n", (const void *)"DockingApproachExample_Ext");
-  printf("arguments:\n");
-  printf("  -tf <finaltime> - overrides final time specified in Simulink (inf for no limit).\n");
-  printf("  -w              - waits for Simulink to start model in External Mode.\n");
-  printf("  -port <TCPport> - overrides 17725 default port in External Mode, valid range 256 to 65535.\n");
 }
 
 // enter_internal_OrbitalState_Act
@@ -5052,7 +5032,7 @@ extern double floor(double x)
   unsigned int j;
   do
   {
-    union anonymous$55 ew_u;
+    union anonymous$31 ew_u;
     ew_u.value = x;
     i0 = (signed int)ew_u.parts.msw;
     i1 = (signed int)ew_u.parts.lsw;
@@ -5139,7 +5119,7 @@ extern double floor(double x)
     }
   do
   {
-    union anonymous$55 iw_u;
+    union anonymous$31 iw_u;
     iw_u.parts.msw = (unsigned int)i0;
     iw_u.parts.lsw = (unsigned int)i1;
     x = iw_u.value;
@@ -5159,112 +5139,14 @@ extern double fmod(double a, double n)
 
 // main
 // file ../R2013a/rtw/c/grt/classic_main.c line 405
-signed int main(signed int argc, const char **argv)
+signed int main(void)
 {
   struct tag_RTM_DockingApproachExampl_T *S;
   const char *status;
   double finaltime = -2.0;
-  signed int oldStyle_argc;
-  const char *oldStyle_argv[5l];
-  if(argc > 1)
-  {
-    if(!((signed int)*argv[1l] == 45))
-    {
-      if(argc > 3)
-      {
-        displayUsage();
-        exit(1);
-      }
-
-      oldStyle_argc = 1;
-      oldStyle_argv[(signed long int)0] = argv[(signed long int)0];
-      if(argc >= 2)
-      {
-        oldStyle_argc = 3;
-        oldStyle_argv[(signed long int)1] = "-tf";
-        oldStyle_argv[(signed long int)2] = argv[(signed long int)1];
-      }
-
-      if(argc == 3)
-      {
-        oldStyle_argc = 5;
-        oldStyle_argv[(signed long int)3] = "-port";
-        oldStyle_argv[(signed long int)4] = argv[(signed long int)2];
-      }
-
-      argc = oldStyle_argc;
-      argv = oldStyle_argv;
-    }
-
-  }
-
-  double tmpDouble;
-  char tmpStr2[200l];
-  signed int count = 1;
-  signed int parseError = (signed int)0U;
-  signed int tmp_post$1;
-  signed int tmp_post$2;
-  while(!(count >= argc))
-  {
-    const char *option;
-    tmp_post$1 = count;
-    count = count + 1;
-    option = argv[(signed long int)tmp_post$1];
-    signed int return_value_strcmp$5;
-    return_value_strcmp$5=strcmp(option, "-tf");
-    if(return_value_strcmp$5 == 0)
-    {
-      if(!(count == argc))
-      {
-        const char *tfStr;
-        tmp_post$2 = count;
-        count = count + 1;
-        tfStr = argv[(signed long int)tmp_post$2];
-        sscanf(tfStr, "%200s", (const void *)tmpStr2);
-        signed int return_value_strcmp$4;
-        return_value_strcmp$4=strcmp(tmpStr2, "inf");
-        if(return_value_strcmp$4 == 0)
-          tmpDouble = -1.0;
-
-        else
-        {
-          char tmpstr[2l];
-          signed int return_value_sscanf$3;
-          return_value_sscanf$3=sscanf(tmpStr2, "%lf%1s", &tmpDouble, (const void *)tmpstr);
-          if(tmpDouble < 0.0 || !(return_value_sscanf$3 == 1))
-          {
-            printf("finaltime must be a positive, real value or inf\n");
-            parseError = (signed int)1U;
-            break;
-          }
-
-        }
-        finaltime = (double)tmpDouble;
-        argv[(signed long int)(count - 2)] = (const char *)(void *)0;
-        argv[(signed long int)(count - 1)] = (const char *)(void *)0;
-      }
-
-    }
-
-  }
-  signed int return_value_nondet_double$6 = nondet_double();
-  finaltime = (double)return_value_nondet_double$6;
+  signed int return_value_nondet_double$1 = nondet_double();
+  finaltime = (double)return_value_nondet_double$1;
   __CPROVER_assume(finaltime >= 0.0 || IEEE_FLOAT_EQUAL(finaltime, -1.0));
-  if(!(parseError == 0))
-  {
-    printf("\nUsage: %s -option1 val1 -option2 val2 -option3 ...\n\n", (const void *)"DockingApproachExample_Ext");
-    printf("\t-tf 20 - sets final time to 20 seconds\n");
-    exit(1);
-  }
-
-  signed int i = 1;
-  for( ; !(i >= argc); i = i + 1)
-    if(!(argv[(signed long int)i] == (const char *)0))
-    {
-      printf("Unexpected command line argument: %s\n", argv[(signed long int)i]);
-      exit(1);
-    }
-
   S=DockingApproachExample_Ext();
   if(!(S->errorStatus == (const char *)0))
   {
@@ -5275,14 +5157,14 @@ signed int main(signed int argc, const char **argv)
   if(!(finaltime >= 0.0))
   {
     if(IEEE_FLOAT_EQUAL(finaltime, -1.000000))
-      goto __CPROVER_DUMP_L16;
+      goto __CPROVER_DUMP_L2;
 
   }
 
   else
   {
 
-  __CPROVER_DUMP_L16:
+  __CPROVER_DUMP_L2:
     ;
     S->Timing.tFinal = finaltime;
   }
@@ -5364,29 +5246,29 @@ extern double rtGetInf(void)
   unsigned long int bitsPerReal = sizeof(double) /*8ul*/  * (unsigned long int)8U;
   double inf = 0.0;
   /* tag-#anon#UN[SYM#tag-#anon#ST[SYM#tag-#anon#ST[U32'wordL'||U32'wordH'|]#'words'|]#'bitVal'||F64'fltVal'|] */
-union anonymous
+union anonymous$27
 {
   // bitVal
-  struct anonymous$45 bitVal;
+  struct anonymous$18 bitVal;
   // fltVal
   double fltVal;
 };
 
 /* */
   ;
-  union anonymous tmpVal;
+  union anonymous$27 rtGetInf$$1$$2$$1$$1$$tmpVal;
   /* tag-#anon#UN[SYM#tag-#anon#ST[SYM#tag-#anon#ST[U32'wordH'||U32'wordL'|]#'words'|]#'bitVal'||F64'fltVal'|] */
-union anonymous$33
+union anonymous$38
 {
   // bitVal
-  struct anonymous$39 bitVal;
+  struct anonymous$1 bitVal;
   // fltVal
   double fltVal;
 };
 
 /* */
   ;
-  union anonymous$33 rtGetInf$$1$$2$$1$$2$$tmpVal;
+  union anonymous$38 tmpVal;
   if(bitsPerReal == 32ul)
   {
     float return_value_rtGetInfF$1;
@@ -5398,25 +5280,25 @@ union anonymous$33
   {
     unsigned short int one = (unsigned short int)1U;
     /* #anon_enum$LittleEndian=0$BigEndian=1 */
-enum anonymous$6 { LittleEndian=0, BigEndian=1 };
+enum anonymous$41 { LittleEndian=0, BigEndian=1 };
 
 /* */
     ;
-    enum anonymous$6 machByteOrder = (enum anonymous$6)((unsigned int)*((unsigned char *)&one) == 1U ? LittleEndian : BigEndian);
+    enum anonymous$41 machByteOrder = (enum anonymous$41)((unsigned int)*((unsigned char *)&one) == 1U ? LittleEndian : BigEndian);
     switch((signed int)machByteOrder)
     {
       case LittleEndian:
       {
-        tmpVal.bitVal.words.wordH = 0x7FF00000U;
-        tmpVal.bitVal.words.wordL = 0x00000000U;
-        inf = tmpVal.fltVal;
+        rtGetInf$$1$$2$$1$$1$$tmpVal.bitVal.words.wordH = 0x7FF00000U;
+        rtGetInf$$1$$2$$1$$1$$tmpVal.bitVal.words.wordL = 0x00000000U;
+        inf = rtGetInf$$1$$2$$1$$1$$tmpVal.fltVal;
         break;
       }
       case BigEndian:
       {
-        rtGetInf$$1$$2$$1$$2$$tmpVal.bitVal.words.wordH = 0x7FF00000U;
-        rtGetInf$$1$$2$$1$$2$$tmpVal.bitVal.words.wordL = 0x00000000U;
-        inf = rtGetInf$$1$$2$$1$$2$$tmpVal.fltVal;
+        tmpVal.bitVal.words.wordH = 0x7FF00000U;
+        tmpVal.bitVal.words.wordL = 0x00000000U;
+        inf = tmpVal.fltVal;
       }
     }
   }
@@ -5427,7 +5309,7 @@ enum anonymous$6 { LittleEndian=0, BigEndian=1 };
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rtGetInf.h line 24
 extern float rtGetInfF(void)
 {
-  struct anonymous$41 infF;
+  struct anonymous$39 infF;
   infF.wordL.wordLuint = 0x7F800000U;
   return infF.wordL.wordLreal;
 }
@@ -5439,29 +5321,29 @@ extern double rtGetMinusInf(void)
   unsigned long int bitsPerReal = sizeof(double) /*8ul*/  * (unsigned long int)8U;
   double minf = 0.0;
   /* tag-#anon#UN[SYM#tag-#anon#ST[SYM#tag-#anon#ST[U32'wordL'||U32'wordH'|]#'words'|]#'bitVal'||F64'fltVal'|] */
-union anonymous
+union anonymous$27
 {
   // bitVal
-  struct anonymous$45 bitVal;
+  struct anonymous$18 bitVal;
   // fltVal
   double fltVal;
 };
 
 /* */
   ;
-  union anonymous rtGetMinusInf$$1$$2$$1$$1$$tmpVal;
+  union anonymous$27 tmpVal;
   /* tag-#anon#UN[SYM#tag-#anon#ST[SYM#tag-#anon#ST[U32'wordH'||U32'wordL'|]#'words'|]#'bitVal'||F64'fltVal'|] */
-union anonymous$33
+union anonymous$38
 {
   // bitVal
-  struct anonymous$39 bitVal;
+  struct anonymous$1 bitVal;
   // fltVal
   double fltVal;
 };
 
 /* */
   ;
-  union anonymous$33 tmpVal;
+  union anonymous$38 rtGetMinusInf$$1$$2$$1$$2$$tmpVal;
   if(bitsPerReal == 32ul)
   {
     float return_value_rtGetMinusInfF$1;
@@ -5473,25 +5355,25 @@ union anonymous$33
   {
     unsigned short int one = (unsigned short int)1U;
     /* rtGetMinusInf::1::2::tag-machByteOrdert */
-enum machByteOrdert$0 { LittleEndian=0, BigEndian=1 };
+enum machByteOrdert { LittleEndian=0, BigEndian=1 };
 
 /* */
     ;
-    enum machByteOrdert$0 machByteOrder = (enum machByteOrdert$0)((unsigned int)*((unsigned char *)&one) == 1U ? LittleEndian : BigEndian);
+    enum machByteOrdert machByteOrder = (enum machByteOrdert)((unsigned int)*((unsigned char *)&one) == 1U ? LittleEndian : BigEndian);
     switch((signed int)machByteOrder)
     {
       case LittleEndian:
       {
-        rtGetMinusInf$$1$$2$$1$$1$$tmpVal.bitVal.words.wordH = 0xFFF00000U;
-        rtGetMinusInf$$1$$2$$1$$1$$tmpVal.bitVal.words.wordL = 0x00000000U;
-        minf = rtGetMinusInf$$1$$2$$1$$1$$tmpVal.fltVal;
+        tmpVal.bitVal.words.wordH = 0xFFF00000U;
+        tmpVal.bitVal.words.wordL = 0x00000000U;
+        minf = tmpVal.fltVal;
         break;
       }
       case BigEndian:
       {
-        tmpVal.bitVal.words.wordH = 0xFFF00000U;
-        tmpVal.bitVal.words.wordL = 0x00000000U;
-        minf = tmpVal.fltVal;
+        rtGetMinusInf$$1$$2$$1$$2$$tmpVal.bitVal.words.wordH = 0xFFF00000U;
+        rtGetMinusInf$$1$$2$$1$$2$$tmpVal.bitVal.words.wordL = 0x00000000U;
+        minf = rtGetMinusInf$$1$$2$$1$$2$$tmpVal.fltVal;
       }
     }
   }
@@ -5502,7 +5384,7 @@ enum machByteOrdert$0 { LittleEndian=0, BigEndian=1 };
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rtGetInf.h line 26
 extern float rtGetMinusInfF(void)
 {
-  struct anonymous$41 minfF;
+  struct anonymous$39 minfF;
   minfF.wordL.wordLuint = 0xFF800000U;
   return minfF.wordL.wordLreal;
 }
@@ -5514,29 +5396,29 @@ extern double rtGetNaN(void)
   unsigned long int bitsPerReal = sizeof(double) /*8ul*/  * (unsigned long int)8U;
   double nan = 0.0;
   /* tag-#anon#UN[SYM#tag-#anon#ST[SYM#tag-#anon#ST[U32'wordL'||U32'wordH'|]#'words'|]#'bitVal'||F64'fltVal'|] */
-union anonymous
+union anonymous$27
 {
   // bitVal
-  struct anonymous$45 bitVal;
+  struct anonymous$18 bitVal;
   // fltVal
   double fltVal;
 };
 
 /* */
   ;
-  union anonymous tmpVal;
+  union anonymous$27 tmpVal;
   /* tag-#anon#UN[SYM#tag-#anon#ST[SYM#tag-#anon#ST[U32'wordH'||U32'wordL'|]#'words'|]#'bitVal'||F64'fltVal'|] */
-union anonymous$33
+union anonymous$38
 {
   // bitVal
-  struct anonymous$39 bitVal;
+  struct anonymous$1 bitVal;
   // fltVal
   double fltVal;
 };
 
 /* */
   ;
-  union anonymous$33 rtGetNaN$$1$$2$$1$$2$$tmpVal;
+  union anonymous$38 rtGetNaN$$1$$2$$1$$2$$tmpVal;
   if(bitsPerReal == 32ul)
   {
     float return_value_rtGetNaNF$1;
@@ -5548,11 +5430,11 @@ union anonymous$33
   {
     unsigned short int one = (unsigned short int)1U;
     /* #anon_enum$LittleEndian=0$BigEndian=1 */
-enum anonymous$6 { LittleEndian=0, BigEndian=1 };
+enum anonymous$41 { LittleEndian=0, BigEndian=1 };
 
 /* */
     ;
-    enum anonymous$6 machByteOrder = (enum anonymous$6)((unsigned int)*((unsigned char *)&one) == 1U ? LittleEndian : BigEndian);
+    enum anonymous$41 machByteOrder = (enum anonymous$41)((unsigned int)*((unsigned char *)&one) == 1U ? LittleEndian : BigEndian);
     switch((signed int)machByteOrder)
     {
       case LittleEndian:
@@ -5577,14 +5459,14 @@ enum anonymous$6 { LittleEndian=0, BigEndian=1 };
 // file ../Stateflow/DockingApproachExample_Ext_grt_rtw/rtGetNaN.c line 76
 extern float rtGetNaNF(void)
 {
-  struct anonymous$41 nanF = { .wordL={ .wordLreal=(float)0 } };
+  struct anonymous$39 nanF = { .wordL={ .wordLreal=(float)0 } };
   unsigned short int one = (unsigned short int)1U;
   /* rtGetNaNF::1::tag-machByteOrdert */
-enum machByteOrdert { LittleEndian=0, BigEndian=1 };
+enum machByteOrdert$0 { LittleEndian=0, BigEndian=1 };
 
 /* */
   ;
-  enum machByteOrdert machByteOrder = (enum machByteOrdert)((unsigned int)*((unsigned char *)&one) == 1U ? LittleEndian : BigEndian);
+  enum machByteOrdert$0 machByteOrder = (enum machByteOrdert$0)((unsigned int)*((unsigned char *)&one) == 1U ? LittleEndian : BigEndian);
   switch((signed int)machByteOrder)
   {
     case LittleEndian:
@@ -5640,7 +5522,7 @@ extern void rt_InitInfAndNaN(unsigned long int realSize)
 }
 
 // rt_ODECreateIntegrationData
-// file ../R2013a/rtw/c/grt/classic_main.c line 672
+// file ../R2013a/rtw/c/grt/classic_main.c line 573
 void rt_ODECreateIntegrationData(struct _ssSolverInfo_tag *si)
 {
   /* 0 != 0 */
@@ -5648,7 +5530,7 @@ void rt_ODECreateIntegrationData(struct _ssSolverInfo_tag *si)
 }
 
 // rt_ODEUpdateContinuousStates
-// file ../R2013a/rtw/c/grt/classic_main.c line 675
+// file ../R2013a/rtw/c/grt/classic_main.c line 576
 void rt_ODEUpdateContinuousStates(struct _ssSolverInfo_tag *si)
 {
   /* 0 != 0 */
@@ -5699,7 +5581,7 @@ extern double rt_SimGetNextSampleHit(void)
 
 // rt_SimInitTimingEngine
 // file ../R2013a/rtw/c/src/rt_sim.c line 87
-extern const char * rt_SimInitTimingEngine(signed int rtmNumSampTimes, double rtmStepSize, double *rtmSampleTimePtr, double *rtmOffsetTimePtr, signed int *rtmSampleHitPtr, signed int *rtmSampleTimeTaskIDPtr, double rtmTStart, enum anonymous$10 *rtmSimTimeStepPtr, void **rtmTimingDataPtr)
+extern const char * rt_SimInitTimingEngine(signed int rtmNumSampTimes, double rtmStepSize, double *rtmSampleTimePtr, double *rtmOffsetTimePtr, signed int *rtmSampleHitPtr, signed int *rtmSampleTimeTaskIDPtr, double rtmTStart, enum anonymous$4 *rtmSimTimeStepPtr, void **rtmTimingDataPtr)
 {
   (void)rtmNumSampTimes;
   (void)rtmStepSize;
