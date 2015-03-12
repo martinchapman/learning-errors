@@ -442,27 +442,6 @@ string finite_automaton::write_min() const  //ofer
 	return ret;
 }}}
 
-bool finite_automaton::has_circuit() const  // ~MDC
-{{{
-    Graph g1(this->state_count);
-    
-    map<int, map<int, set<int> > >::const_iterator mmsi;
-    map<int, set<int> >::const_iterator msi;
-    set<int>::const_iterator si;
-    for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
-        for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
-            for(si = msi->second.begin(); si != msi->second.end(); ++si)
-            {
-                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
-                {
-                    g1.add_edge(mmsi->first, *si, msi->first);
-                }
-            }
-    
-    return g1.scc();
-    
-}}}
-
 int finite_automaton::count_transitions()  // ~MDC
 {{{
     if ( this->edge_count != 0) return edge_count;
@@ -483,35 +462,33 @@ int finite_automaton::count_transitions()  // ~MDC
             }
     
     this->edge_count = edges;
+    
+    
+    
     return edges;
 }}}
 
 // ~MDC Source: http://www.geeksforgeeks.org/tarjan-algorithm-find-strongly-connected-components/
-
-Graph::Graph(int V)
-{
+Graph::Graph(int V) {
     this->V = V;
     adj = new std::list<int>[V];
-}
+} 
 
-void Graph::add_edge(int v, int w, int letter)
-{
+void Graph::add_edge(int v, int w, int letter) {
     adj[v].push_back(w);
     
-	std:pair<int,int> p(v,w);
+	pair<int,int> p(v,w); 
     edge_alphabet[p] = letter;
 }
     
 int Graph::edge_to_alphabet(int v, int w) {
         
-    
-    std:pair<int,int> p(v,w);
+    pair<int,int> p(v,w);
     return edge_alphabet[p];
 
 }
     
-int Graph::count_edges()
-{
+int Graph::count_edges() {
     int edges = 0;
     for (int v=0; v<this->V; v++) {
         edges += adj[v].size();
@@ -528,7 +505,7 @@ bool Graph::get_path(int s, int t, std::list<int>& path, bool inclusive) { // in
 		visited[s] = true; 
 	}
 	std::list<int>::iterator i;
-    for (i = adj[s].begin(); i != adj[s].end(); ++i)
+    for (i = adj[s].begin(); i != adj[s].end(); ++i) 
     {
         int v;
 		v = *i;  // v is current adjacent of 's'	
@@ -542,9 +519,118 @@ bool Graph::get_path(int s, int t, std::list<int>& path, bool inclusive) { // in
 	return false;
 }
 
+std::list<std::list<int> > Graph::find_all_paths(int s, int t, std::list<int>& path, std::list<std::list<int> >& paths) { // ~MDC
 
-bool finite_automaton::find_lasso(std::list<int>& path)  // ofer
-{
+	if (s == t) { 
+		path.push_back(t);
+		paths.push_back(path);
+		return paths; 		
+	}
+	
+	std::list<int>::iterator i;
+    for (i = adj[s].begin(); i != adj[s].end(); ++i)
+    {
+        int v;
+		v = *i;	
+		// State calls self: do not follow this path
+		if ( s == v ) continue;
+		std::list<int> branch = path;
+		branch.push_back(s);
+		find_all_paths(v, t, branch, paths);
+	}
+	
+	return paths;
+	
+} 
+
+bool Graph::recursive_non_accepting(int s, int t, std::set<int> accepting, bool result) { // ~MDC
+	
+	if (s == t) { 
+		return result; 		
+	}
+	
+	std::list<int>::iterator i;
+    for (i = adj[s].begin(); i != adj[s].end(); ++i)
+    {
+        int v;
+		v = *i;	
+		// State calls self and is not accepting
+		if ( s == v && std::find(accepting.begin(), accepting.end(), s) == accepting.end() ) return true;
+		result = recursive_non_accepting(v, t, accepting, result);
+	}
+	
+	return result; 
+	
+} 
+
+bool finite_automaton::recursive_non_accepting() { // ~MDC
+    std::set<int> accepting = get_final_states();
+	
+	Graph g1(this->state_count);
+    
+    map<int, map<int, set<int> > >::const_iterator mmsi;
+    map<int, set<int> >::const_iterator msi;
+    set<int>::const_iterator si;
+    for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
+        for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
+            for(si = msi->second.begin(); si != msi->second.end(); ++si)
+            {
+                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
+                {
+                    g1.add_edge(mmsi->first, *si, msi->first);  // we add edges not connecting to the sink n on-accepting state. 
+					//cout << mmsi->first << "-> " << *si << "[" << msi->first <<"]" << endl;
+                }
+            }
+		
+	int target = *accepting.begin();
+	std::set<int>::iterator it;
+	bool result = false;
+	
+	for (it=initial_states.begin(); it!=initial_states.end(); ++it) {
+		result = g1.recursive_non_accepting(*it, target, accepting, result);
+	}
+	
+	return result;    
+}
+
+int finite_automaton::get_transition(int s, int t) { // ~MDC	
+	 map<int, set<int> >::const_iterator msi;
+	 for(msi = this->transitions.find(s)->second.begin(); msi != this->transitions.find(s)->second.end(); ++msi) {
+	     if ( std::find(msi->second.begin(), msi->second.end(), t) != msi->second.end() ) {
+			 return msi->first;
+	     }
+	 }
+	 
+	 return 0;
+} 
+
+std::vector<std::pair<int,int> > finite_automaton::nodes_connecting_letter(int a) { // ~MDC	
+	
+	std::vector<std::pair<int,int> > nodes_connected_by_letter;
+	nodes_connected_by_letter.clear();
+	
+    map<int, map<int, set<int> > >::const_iterator mmsi;
+    map<int, set<int> >::const_iterator msi;
+    set<int>::const_iterator si;
+    for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
+        for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
+			for(si = msi->second.begin(); si != msi->second.end(); ++si) { 
+				if ( msi->first == a ) {
+					if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end()) {
+						std::pair<int, int> start_end( mmsi->first, *si );
+						nodes_connected_by_letter.push_back(start_end);
+				    }
+				}
+			}
+	if (nodes_connected_by_letter.size() == 0) { 
+		std::pair<int, int> start_end( 0, 0 );
+		nodes_connected_by_letter.push_back(start_end);
+	}
+		
+	return nodes_connected_by_letter;
+} 
+
+bool finite_automaton::find_lasso(std::list<int>& path) {  // ofer
     std::set<int> accepting = get_final_states();
 	// cout << "accepting.size = " << accepting.size() << endl;
 	if (accepting.size() == 0) return false;
@@ -580,100 +666,41 @@ bool finite_automaton::find_lasso(std::list<int>& path)  // ofer
 	return false;    
 }
 
+std::list<std::list<int> > finite_automaton::find_all_paths() { // ~MDC
 
-
-
-
-// A recursive function that finds and prints strongly connected
-// components using DFS traversal
-// u --> The vertex to be visited next
-// disc[] --> Stores discovery times of visited vertices
-// low[] -- >> earliest visited vertex (the vertex with minimum
-//             discovery time) that can be reached from subtree
-//             rooted with current vertex
-// *st -- >> To store all the connected ancestors (could be part
-//           of SCC)
-// stackMember[] --> bit/index array for faster check whether
-//                  a node is in stack
-bool Graph::scc_util(int u, int disc[], int low[], std::stack<int> *st,
-                     bool stackMember[])
-{
-    // A static variable is used for simplicity, we can avoid use
-    // of static variable by passing a pointer.
-    static int time = 0;
+	Graph g1(this->state_count);
     
-    // Initialize discovery time and low value
-    disc[u] = low[u] = ++time;
-    st->push(u);
-    stackMember[u] = true;
-    
-    // Go through all vertices adjacent to this
-    std::list<int>::iterator i;
-    for (i = adj[u].begin(); i != adj[u].end(); ++i)
-    {
-        int v = *i;  // v is current adjacent of 'u'
-        
-        // If v is not visited yet, then recur for it
-        if (disc[v] == -1)
-        {
-            scc_util(v, disc, low, st, stackMember);
-            
-            // Check if the subtree rooted with 'v' has a
-            // connection to one of the ancestors of 'u'
-            // Case 1 (per above discussion on Disc and Low value)
-            low[u]  = std::min(low[u], low[v]);
-        }
-        
-        // Update low value of 'u' only of 'v' is still in stack
-        // (i.e. it's a back edge, not cross edge).
-        // Case 2 (per above discussion on Disc and Low value)
-        else if (stackMember[v] == true)
-            low[u]  = std::min(low[u], disc[v]);
-    }
-    
-    // head node found, pop the stack and print an SCC
-    int w = 0;  // To store stack extracted vertices
-    if (low[u] == disc[u])
-    {
-        if (st->top() != u) return true; //~MDC
-        /*while (st->top() != u)
-         {
-         w = (int) st->top();
-         std::cout << w << " ";
-         stackMember[w] = false;
-         st->pop();
-         }*/
-        w = (int) st->top();
-        //std::cout << w << "\n";
-        stackMember[w] = false;
-        st->pop();
-    }
-    
-    return false;
-};
-
-// The function to do DFS traversal. It uses SCCUtil()
-bool Graph::scc()
-{
-    int *disc = new int[V];
-    int *low = new int[V];
-    bool *stackMember = new bool[V];
-    std::stack<int> *st = new std::stack<int>();
-    
-    // Initialize disc and low, and stackMember arrays
-    for (int i = 0; i < V; i++)
-    {
-        disc[i] = NIL;
-        low[i] = NIL;
-        stackMember[i] = false;
-    }
-    
-    // Call the recursive helper function to find strongly
-    // connected components in DFS tree with vertex 'i'
-    for (int i = 0; i < V; i++)
-        if (disc[i] == NIL)
-            return scc_util(i, disc, low, st, stackMember);
-};
+    map<int, map<int, set<int> > >::const_iterator mmsi;
+    map<int, set<int> >::const_iterator msi;
+    set<int>::const_iterator si;
+    for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
+        for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
+            for(si = msi->second.begin(); si != msi->second.end(); ++si)
+            {
+                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
+                {
+                    g1.add_edge(mmsi->first, *si, msi->first);
+                }
+            }
+	
+	
+	std::list<std::list<int> > paths;
+	
+	set<int> final_states = this->get_final_states();
+	
+	for( set<int>::const_iterator accepting_state = final_states.begin(); accepting_state != final_states.end(); ++accepting_state ) {	
+		
+		std::list<int> path;
+	
+		for (std::set<int>::const_iterator it=initial_states.begin(); it!=initial_states.end(); ++it) {
+			path.clear();
+			g1.find_all_paths(*it, *accepting_state, path, paths);
+		}
+		
+	}
+	
+	return paths;  
+}
 
 // ~MDC End
 
@@ -827,86 +854,15 @@ end:
 
 	return valid;
 }}}
-string finite_automaton::visualize() const  // ofer
+
+string finite_automaton::visualize_existing() const //~MDC
 {{{
 	stringstream str, tmp, dom_edges;
-	int v;
-	set<int> dominator_set, sinks_set, doomed_set, dominating_edges_set;
-#define MaxAlphabet 200
-	char * label[MaxAlphabet]; // 200 = max alphabet size. // should replace this with a map
-
-	if(valid) {
-		FILE *dominators = fopen(DOMINATORS, "r");
-		if (dominators )
-		{
-			while (!feof(dominators))
-			{
-				fscanf(dominators, "%d", &v);
-				dominator_set.insert(v);
-			}
-			fclose(dominators);
-			printf("read %s with %d dominators\n", DOMINATORS, dominator_set.size() );
-		}
-
-
-		FILE *doomed = fopen(DOOMED, "r");
-		if (doomed) {
-			while (!feof(doomed))
-			{
-				fscanf(doomed, "%d", &v);
-				doomed_set.insert(v);
-			}
-			fclose(doomed);
-			printf("read %s with %d doomed\n", DOOMED, doomed_set.size() );
-		}
-
-		for (int i = 0; i < MaxAlphabet; ++i) { // just in case not all labels are defined, we default them to their numeric value.
-			label[i] = (char *)malloc(3);
-			sprintf(label[i], "%d", i);
-		}
-		char file[30] = AUTO_LABELS;
-		FILE *labels = fopen(file, "r");
-		if (labels == NULL) {
-			strcpy(file, LABELS);
-			labels = fopen(LABELS, "r");
-			if (labels) printf("*** Note: using labels from %s ***\n", LABELS);
-		}
-		if (labels) {
-			char s[100]; // max label length imagined
-			int j = 0;
-			while (!feof(labels))
-			{
-				if (fscanf(labels, "%d %s", &v, s) < 2) continue; // {fprintf(stderr, "failed to read labels file\n"); exit(1);}
-				label[v] = strdup(s); 
-				++j;
-			}
-			printf("read %s with %d labels\n", file, j);		
-		}
-
-		FILE *sinks = fopen(SINKS, "r");
-		if (sinks) {
-			while (!feof(sinks ))
-			{
-				if (fscanf(sinks , "%d", &v) != 1) continue;
-				sinks_set.insert(v);
-            }
-			fclose(sinks );
-			printf("read %s with %d sinks \n", SINKS, sinks_set.size() );
-		}
+	
+	#define MaxAlphabet 200
+	
+	if (valid) {
 		
-
-		FILE *dominating_edges = fopen(DOMINATING_EDGES, "r");
-		if (dominating_edges) {
-			while (!feof(dominating_edges ))
-			{
-				if (fscanf(dominating_edges , "%d", &v) != 1) continue;
-				dominating_edges_set.insert(v);
-			}
-			fclose(dominating_edges);
-			printf("read %s with %d dominating edges \n", DOMINATING_EDGES, dominating_edges_set.size() );
-		}
-
-
 		set<int>::iterator sti;
 		bool header_written;
 
@@ -923,10 +879,10 @@ string finite_automaton::visualize() const  // ofer
 		{
 			if (!first) dom_edges << ", ";
 			first = false;
-			dom_edges << label[*it];
+			dom_edges << this->label.find(*it)->second;
 		}
 		dom_edges << "\"]; dom_edges;\n";
-		str << dom_edges.str(); 
+		str << dom_edges.str();
 
 		// mark final states
 		header_written = false;
@@ -961,7 +917,7 @@ string finite_automaton::visualize() const  // ofer
 		}
 
 
-		str << tmp.str();
+		str << tmp.str(); 
 
 		// non-visible states for arrows to initial states
 		header_written = false;
@@ -987,10 +943,10 @@ string finite_automaton::visualize() const  // ofer
 			for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
 				for(si = msi->second.begin(); si != msi->second.end(); ++si)
 				{
-					if (sinks_set.find(mmsi->first)  == sinks_set.end() && sinks_set.find(*si)  == sinks_set.end()) // edge is not from/to a sink unaccepting state.
+					if (this->sinks_set.find(mmsi->first)  == sinks_set.end() && sinks_set.find(*si)  == sinks_set.end()) // edge is not from/to a sink unaccepting state.
 					{
 						string color = (dominating_edges_set.find(msi->first) != dominating_edges_set.end()) ? ", color = green": "";
-						str << "\tq" << mmsi->first << " -> q" << *si << " [label=\"" << label[msi->first] << "\"" << color << "];\n";
+						str << "\tq" << mmsi->first << " -> q" << *si << " [label=\"" << this->label.find(msi->first)->second << "\"" << color << "];\n";
 					}
 				}
 
@@ -999,21 +955,287 @@ string finite_automaton::visualize() const  // ofer
 	}
 
 	return str.str();
+		
+}}}
+
+string finite_automaton::visualize() const  // ofer
+{{{
+    stringstream str, tmp, dom_edges;
+    int v;
+    set<int> dominator_set, sinks_set, doomed_set, dominating_edges_set;
+#define MaxAlphabet 200
+    char * label[MaxAlphabet]; // 200 = max alphabet size. // should replace this with a map
+
+    if(valid) {
+        FILE *dominators = fopen(DOMINATORS, "r");
+        if (dominators )
+        {
+            while (!feof(dominators))
+            {
+                fscanf(dominators, "%d", &v);
+                dominator_set.insert(v);
+            }
+            fclose(dominators);
+            printf("read %s with %d dominators\n", DOMINATORS, dominator_set.size() );
+        }
+
+
+        FILE *doomed = fopen(DOOMED, "r");
+        if (doomed) {
+            while (!feof(doomed))
+            {
+                fscanf(doomed, "%d", &v);
+                doomed_set.insert(v);
+            }
+            fclose(doomed);
+            printf("read %s with %d doomed\n", DOOMED, doomed_set.size() );
+        }
+
+        for (int i = 0; i < MaxAlphabet; ++i) { // just in case not all labels are defined, we default them to their numeric value.
+            label[i] = (char *)malloc(3);
+            sprintf(label[i], "%d", i);
+        }
+        char file[30] = AUTO_LABELS;
+        FILE *labels = fopen(file, "r");
+        if (labels == NULL) {
+            strcpy(file, LABELS);
+            labels = fopen(LABELS, "r");
+            if (labels) printf("*** Note: using labels from %s ***\n", LABELS);
+        }
+        if (labels) {
+            char s[100]; // max label length imagined
+            int j = 0;
+            while (!feof(labels))
+            {
+                if (fscanf(labels, "%d %s", &v, s) < 2) continue; // {fprintf(stderr, "failed to read labels file\n"); exit(1);}
+                label[v] = strdup(s);
+                ++j;
+            }
+            printf("read %s with %d labels\n", file, j);
+        }
+
+        FILE *sinks = fopen(SINKS, "r");
+        if (sinks) {
+            while (!feof(sinks ))
+            {
+                if (fscanf(sinks , "%d", &v) != 1) continue;
+                sinks_set.insert(v);
+            }
+            fclose(sinks );
+            printf("read %s with %d sinks \n", SINKS, sinks_set.size() );
+        }
+
+
+        FILE *dominating_edges = fopen(DOMINATING_EDGES, "r");
+        if (dominating_edges) {
+            while (!feof(dominating_edges ))
+            {
+                if (fscanf(dominating_edges , "%d", &v) != 1) continue;
+                dominating_edges_set.insert(v);
+            }
+            fclose(dominating_edges);
+            printf("read %s with %d dominating edges \n", DOMINATING_EDGES, dominating_edges_set.size() );
+        }
+
+
+        set<int>::iterator sti;
+        bool header_written;
+
+        // head
+        str << "digraph finite_automaton {\n"
+            "\tgraph[fontsize=8]\n"
+            "\trankdir=LR;\n"
+            "\tsize=8;\n\n";
+
+        // dominating_edges_set
+        dom_edges << "node [shape=rectangle, color = green, label= \"Dominating edges: ";
+        bool first = true;
+        for (set<int>::iterator it = dominating_edges_set.begin(); it != dominating_edges_set.end(); ++it)
+        {
+            if (!first) dom_edges << ", ";
+            first = false;
+            dom_edges << label[*it];
+        }
+        dom_edges << "\"]; dom_edges;\n";
+        str << dom_edges.str();
+
+        // mark final states
+        header_written = false;
+
+        int final_state_count = 0;
+        map<int, bool>::const_iterator oi;
+
+        // final states
+        for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi) {
+            if(oi->second) {
+                ++final_state_count;
+                if(!header_written) {
+                    str << "\tnode [shape=doublecircle, style=\"\", color=green, label = \"D\"];"; // accepting states are always dominators + Doomed
+                    header_written = true;
+                }
+                str << " q" << oi->first;
+            }
+        }
+        if(header_written)
+            str << ";\n";
+
+        // normal states
+
+        if(final_state_count < state_count) {
+            for(oi = output_mapping.begin(); oi != output_mapping.end(); ++oi)
+                if(!oi->second && sinks_set.find(oi->first)  == sinks_set.end())
+                {
+                    string color = (dominator_set.find(oi->first) != dominator_set.end())? "green" : "black";
+                    string label = (doomed_set.find(oi->first) != doomed_set.end())? "D" : "\"\"";
+                    tmp << "\tnode [shape=circle, style=\"\", color=" << color << ", label = " << label << "]; q" << oi->first << ";" << endl;
+                }
+        }
+
+
+        str << tmp.str();
+
+        // non-visible states for arrows to initial states
+        header_written = false;
+        for(sti = this->initial_states.begin(); sti != this->initial_states.end(); ++sti) {
+            if(!header_written) {
+                str << "\tnode [shape=plaintext, label=\"\", style=\"\"];";
+                header_written = true;
+            }
+            str << " iq" << *sti;
+        }
+        if(header_written)
+            str << ";\n";
+
+        // and arrows to mark initial states
+        for(sti = this->initial_states.begin(); sti != this->initial_states.end(); ++sti)
+            str << "\tiq" << *sti << " -> q" << *sti << " [color=blue];\n";
+
+        // transitions
+        map<int, map<int, set<int> > >::const_iterator mmsi;
+        map<int, set<int> >::const_iterator msi;
+        set<int>::const_iterator si;
+        for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
+            for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
+                for(si = msi->second.begin(); si != msi->second.end(); ++si)
+                {
+                    if (sinks_set.find(mmsi->first)  == sinks_set.end() && sinks_set.find(*si)  == sinks_set.end()) // edge is not from/to a sink unaccepting state.
+                    {
+                        string color = (dominating_edges_set.find(msi->first) != dominating_edges_set.end()) ? ", color = green": "";
+                        str << "\tq" << mmsi->first << " -> q" << *si << " [label=\"" << label[msi->first] << "\"" << color << "];\n";
+                    }
+                }
+
+        // end
+        str << "};\n";
+    }
+
+    return str.str();
 }}}
     
-void finite_automaton::record_sinks() {
+void finite_automaton::store_file_data() { //~MDC
     
     int v;
-    FILE *sinks = fopen(SINKS, "r");
-    if (sinks) {
-        while (!feof(sinks ))
-        {
-            if (fscanf(sinks , "%d", &v) != 1) continue;
-            this->sinks_set.insert(v);
-        }
-        fclose(sinks);
-        printf("read %s with %d sinks \n", SINKS, this->sinks_set.size() );
-    }
+	
+	if (this->sinks_set.size() == 0) {
+	    FILE *sinks = fopen(SINKS, "r");
+	    if (sinks) {
+	        while (!feof(sinks ))
+	        {
+	            if (fscanf(sinks , "%d", &v) != 1) continue;
+	            this->sinks_set.insert(v);
+	        }
+	        fclose(sinks);
+	        printf("read %s with %d sinks \n", SINKS, this->sinks_set.size() );
+	    }
+	}
+	
+	if (this->label.size() == 0) {
+		for (int i = 0; i < 200; ++i) { // just in case not all labels are defined, we default them to their numeric value.
+			this->label[i] = (char *)malloc(3);
+			sprintf(this->label[i], "%d", i); 
+		}
+		char file[30] = AUTO_LABELS;
+		FILE *labels = fopen(file, "r");
+		if (labels == NULL) {
+			strcpy(file, LABELS);
+			labels = fopen(LABELS, "r");
+			if (labels) printf("*** Note: using labels from %s ***\n", LABELS);
+		}
+		if (labels) {
+			char s[100]; // max label length imagined
+			int j = 0;
+			while (!feof(labels))
+			{
+				if (fscanf(labels, "%d %s", &v, s) < 2) continue; // {fprintf(stderr, "failed to read labels file\n"); exit(1);}
+				this->label[v] = strdup(s); 
+				++j;
+			}
+			printf("read %s with %d labels\n", file, j);		
+		}
+	}
+	
+	if (this->dominator_set.size() == 0) {
+	    FILE *dominators = fopen(DOMINATORS, "r");
+	    if (dominators )
+	    {
+	        while (!feof(dominators))
+	        {
+	            fscanf(dominators, "%d", &v);
+	            this->dominator_set.insert(v);
+	        }
+	        fclose(dominators);
+	        printf("read %s with %d dominators\n", DOMINATORS, dominator_set.size() );
+	    }
+	}
+
+	if (this->doomed_set.size() == 0) {
+	    FILE *doomed = fopen(DOOMED, "r");
+	    if (doomed) {
+	        while (!feof(doomed))
+	        {
+	            fscanf(doomed, "%d", &v);
+	            this->doomed_set.insert(v);
+	        }
+	        fclose(doomed);
+	        printf("read %s with %d doomed\n", DOOMED, doomed_set.size() );
+	    }
+	}
+	
+	if (this->dominating_edges_set.size() == 0) {
+	    FILE *dominating_edges = fopen(DOMINATING_EDGES, "r");
+	    if (dominating_edges) {
+	        while (!feof(dominating_edges ))
+	        {
+	            if (fscanf(dominating_edges , "%d", &v) != 1) continue;
+	            this->dominating_edges_set.insert(v);
+	        }
+	        fclose(dominating_edges);
+	        printf("read %s with %d dominating edges \n", DOMINATING_EDGES, dominating_edges_set.size() );
+	    }
+	}
+	
+}
+
+void finite_automaton::clear_sinks() { //~MDC
+      
+	this->sinks_set.clear();
+ 
+}
+
+char* finite_automaton::transition_to_label(int t) { //~MDC
+		
+	return this->label[t];
+
+}
+
+int finite_automaton::index_of_label(char* letter) {
+	
+	for ( int i = 0; i < this->input_alphabet_size; i++) {
+		
+		if ( strcmp(label[i], letter) == 0) return i;
+	}
+	return -1;
+	
 }
 
 bool finite_automaton::contains(const list<int> & word) const
@@ -1068,6 +1290,12 @@ void finite_automaton::set_all_non_accepting()
 	this->output_mapping.clear();
 	for(int i = 0; i < this->state_count; ++i)
 		output_mapping[i] = false;
+}}}
+
+void finite_automaton::invert_accepting() // ~MDC
+{{{
+	for(int i = 0; i < this->state_count; ++i)
+		output_mapping[i] = !output_mapping[i];
 }}}
 bool finite_automaton::parse_transition(string single)
 {{{

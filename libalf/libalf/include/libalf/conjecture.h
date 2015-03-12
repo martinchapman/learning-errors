@@ -105,12 +105,13 @@ class conjecture {
     
 template <typename output_alphabet>
 class finite_state_machine: public conjecture {
-	public: // data
+	public: // data 
 		bool is_deterministic;
 		int input_alphabet_size;
 		int state_count;
         int edge_count;
-        std::set<int> sinks_set; //~MDC
+		std::set<int> sinks_set, dominator_set, doomed_set, dominating_edges_set;
+		std::map<int, char*> label; // ~MDC
 		std::set<int> initial_states;
 		bool omega; // is this machine for infinite words?
 	public: // methods
@@ -302,6 +303,7 @@ failed:
 		// from current_states, follow the transitions given by word. resulting states are stored in current_states.
 		virtual void run(std::set<int> & current_states, std::list<int>::const_iterator word, std::list<int>::const_iterator word_end) const
 		{{{
+			std::cout << "~MDC RUN" << std::endl;
 			std::set<int>::const_iterator si;
 
 			std::set<int> new_states;
@@ -677,16 +679,24 @@ class finite_automaton : public moore_machine<bool> {
 		virtual std::string write() const;
 		virtual std::string write_min() const;
         virtual int count_transitions(); // ~MDC
-        virtual bool has_circuit() const; // ~MDC
+		virtual bool recursive_non_accepting(); // ~MDC
 		virtual bool read(std::string input);
 		virtual std::string visualize() const;
-        virtual void record_sinks(); // ~MDC
+		virtual std::string visualize_existing() const;// ~MDC
+        virtual void store_file_data(); // ~MDC
+		virtual void clear_sinks(); // ~MDC
+		virtual char* transition_to_label(int t); // ~MDC
+		virtual int index_of_label(char* label); // ~MDC
+		virtual int get_transition(int s, int t); // ~MDC
+		virtual std::vector<std::pair<int,int> > nodes_connecting_letter(int a); // ~MDC
 		virtual bool find_lasso(std::list<int>& path); //ofer
+		virtual std::list<std::list<int> > find_all_paths(); // ~MDC
 		// checks if a word is accepted by this automaton.
 		virtual bool contains(const std::list<int> & word) const;
 		virtual void get_final_states(std::set<int> & into) const;
 		virtual std::set<int> get_final_states() const;
 		virtual void set_final_states(const std::set<int> &final);
+		virtual void invert_accepting(); //~MDC
 		virtual void set_all_non_accepting();
 	protected:
 		// parse a single, human readable transition and store it in this->transitions
@@ -706,6 +716,8 @@ class Graph
         std::vector<bool> visited; 
         int edge_to_alphabet(int v, int w);
 		bool get_path(int s, int target, std::list<int>& path, bool inclusive = true);
+		std::list<std::list<int> > find_all_paths(int s, int target, std::list<int>& path, std::list<std::list<int> >& paths);
+		bool recursive_non_accepting(int s, int t, std::set<int> accepting, bool result);
 		
     public:
         Graph(int V);   // Constructor

@@ -33,8 +33,6 @@ void Abort(string msg);
 int run(const char* cmd);
 bool verbose = false;
 
-struct myEdge {char s[100]; char t[100];};
-
 map<int, string> func_name; // maps index to a function name
 
 string
@@ -339,7 +337,6 @@ void remove_files() {
 #endif
 }
 
-
 void preprocess_source() {
     // adding 'include "learn.c" ' in the first line of the source file. It is necessary for goto-cl because of the Learn_Assert command.
     stringstream tmp;
@@ -397,8 +394,6 @@ void init_word_length_file() {
     unwind_setlimit << max(word_length + 1, unwind); // we need to unroll one more than the word_length
 }
 
-
-
 /******************************* after learn *************************/
 
 void post_process() {
@@ -412,18 +407,51 @@ void post_process() {
 #endif
 }
 
-void show_result(conjecture *result) {
-    finite_automaton * a = dynamic_cast<finite_automaton*> (result);
-    streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
-    ofstream dot("a.dot");
+void visualise_automaton(finite_automaton* a, bool show_immediately, string output_name) { //~MDC
+	
+    streambuf* strm_buffer = cout.rdbuf();
+	output_name.append(".dot");
+    ofstream dot(output_name.c_str());
     cout.rdbuf (dot.rdbuf());
-    cout << a->visualize();
+    cout << a->visualize_existing();
     dot.close();
     
     cout.rdbuf (strm_buffer);
     
-    // Temporarily disabled immediate visual feedback of automaton.
-    //run("dotty a.dot");
+	stringstream display_command;
+	display_command << "dotty " << output_name;
+	
+    if ( show_immediately ) run(display_command.str().c_str());
+	
+}
+
+void visualise_automaton(finite_automaton* a, bool show_immediately) { // ~MDC
+	
+	visualise_automaton(a, show_immediately, "a");
+}
+
+// With sinks, dominators and doomed.
+void visualise_automaton_full(finite_automaton* a, bool show_immediately, string output_name) { //~MDC
+	
+    streambuf* strm_buffer = cout.rdbuf();	
+    ofstream candidate(CONJECTURE_DATA);    
+    cout.rdbuf (candidate.rdbuf());
+    cout << a->write(); 
+    candidate.close();
+    cout.rdbuf (strm_buffer); 
+	
+	post_process();
+	
+	a->store_file_data();
+	
+    visualise_automaton(a, show_immediately, output_name);
+	
+}
+	
+void visualise_automaton_full(finite_automaton* a, bool show_immediately) { //~MDC
+	
+   visualise_automaton_full(a, show_immediately, "a");
+	
 }
 
 /*******************************  Learn  ****************************/
@@ -657,8 +685,7 @@ int run_backend(bool membership) {
 		return run_mixed(membership);
 	}
 	return -1;
-}
-
+} 
 
 // searches for a lasso-shaped path starting at an initial state and the loop goes through an accepting state. If found, this is a negative feedback
 // and we answer false to the conjecture. If the answer is true (no path was found), then we cannot conclude anything. 
@@ -680,7 +707,6 @@ bool answer_Conjecture_pre_check(conjecture * cj, std::list<int>& path) {
 	}
 	return !res; // false if path found, to be compatible with answer_Conjecture_cbmc. 
 }
-
 
 bool answer_Conjecture_cbmc(conjecture * cj) {    
     assert(cj != NULL);    
@@ -1012,21 +1038,17 @@ finite_automaton* learn() {
         
     } while (result == NULL);
     
-    post_process();
-    
-    show_result(result);	// we do it inside learn because result is a pointer to a local object.
-    
-    //delete result;
-    
-    finite_automaton* result_as_automaton = dynamic_cast<finite_automaton*> (result);
-    
-    result_as_automaton->record_sinks();
+	finite_automaton* result_as_automaton = dynamic_cast<finite_automaton*> (result);
+	
+    visualise_automaton_full(result_as_automaton, false);	// we do it inside learn because result is a pointer to a local object.
     
     return result_as_automaton;
 }
 
 void exit_learn() {
     
+	remove_files();
+	
     string rm_input_file_exe = "rm " + input_file_exe;
     run(rm_input_file_exe.c_str());
     
@@ -1050,11 +1072,142 @@ void reset(std::ostringstream &ss) {
 void reset_global_variables() {
     reset(unwind_s);
     reset(unwind_setlimit);
+	MEMBERSHIP_QUERY_CACHE.clear();
+	func_name.clear();
     alphabet_size = 0;
 }
 
+finite_automaton* reduce_to_accepting_paths(finite_automaton* &A, string name) { // ~MDC
+	
+	std::list<std::list<int> > paths_list = A->find_all_paths();
+	finite_automaton* reduced_automaton = new finite_automaton;
+	
+	list<int> automaton_states;
+	for (std::list<std::list<int> >::const_iterator paths=paths_list.begin(); paths!=paths_list.end(); ++paths) {
+		int last_state = -1;
+		for (std::list<int>::const_iterator path=paths->begin(); path!=paths->end(); ++path) {
+			if (last_state > -1 ) { 
+				int transition = A->get_transition(last_state, *path);
+				reduced_automaton->transitions[last_state][transition].insert(*path);
+				reduced_automaton->label[transition] = A->label.find(transition)->second;
+			} else {
+				if(reduced_automaton->initial_states.find(*path) == reduced_automaton->initial_states.end()) { 
+					reduced_automaton->initial_states.insert(*path);
+				}
+			}
+			reduced_automaton->output_mapping[*path] = false;
+			automaton_states.push_back(*path);
+			last_state = *path;
+		}
+		reduced_automaton->output_mapping[last_state] = true;
+		last_state = -1;
+	}
+	
+	automaton_states.unique();
+	reduced_automaton->state_count = automaton_states.size();
+	
+	reduced_automaton->is_deterministic = true;
+	reduced_automaton->valid = true;
+	
+	visualise_automaton_full(reduced_automaton, false, name);
+	
+	return reduced_automaton;
+	
+}
+
+finite_automaton* reduce_to_accepting_paths(finite_automaton* &A) { // ~MDC
+	
+	return reduce_to_accepting_paths(A, "a");
+		
+}
+
+finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MDC
+	
+	std::map<std::pair<int, int>, int> states_to_numbers;
+	
+	finite_automaton* intersection_automaton = new finite_automaton;
+
+	int state_count = 0;
+	
+	/*~MDC Alphabet size should be A or max of A and B?
+	int MAX_ALPHABET = std::max(A->input_alphabet_size, B->input_alphabet_size);*/
+	int MAX_ALPHABET = A->input_alphabet_size;
+	
+	// SA∩B=SA×SB
+	for ( int Sa = 0; Sa < A->state_count; Sa++ ) {
+		
+		for ( int Sb = 0; Sb < B->state_count; Sb++ ) {
+			
+			std::pair<int, int> Sab( Sa, Sb );
+			
+			std::pair<std::pair<int, int>, int> Sab_and_count(Sab, state_count);
+			states_to_numbers.insert( Sab_and_count );
+			
+			intersection_automaton->output_mapping[state_count] = false;
+			
+			state_count++;
+		
+		}
+		
+	}
+	
+	// Set number of states
+	intersection_automaton->state_count = state_count;
+	
+	// iA∩B=⟨iA,iB⟩
+	for (std::set<int>::const_iterator iA = A->initial_states.begin(); iA != A->initial_states.end(); ++iA) {
+		intersection_automaton->initial_states.insert( *iA );
+		for (std::set<int>::const_iterator iB = B->initial_states.begin(); iB != B->initial_states.end(); ++iB) intersection_automaton->initial_states.insert(states_to_numbers[std::pair<int, int>(*iA, *iB)]);
+	}
+	
+	// FA∩B=FA×FB;
+	for (std::map<int, bool>::const_iterator fA = A->output_mapping.begin(); fA != A->output_mapping.end(); ++fA) {
+		for (std::map<int, bool>::const_iterator fB = B->output_mapping.begin(); fB != B->output_mapping.end(); ++fB) {
+			if ( fA->second && fB->second ) intersection_automaton->output_mapping[states_to_numbers[std::pair<int, int>(fA->first, fB->first)]] = true;
+		}
+	}
+	
+	// for any letter α ∈ Σ
+	for (int a = 0; a < MAX_ALPHABET; a++) {
+
+		// Find the states in A connected by this letter
+		std::vector<std::pair<int, int> > A_connections = A->nodes_connecting_letter(A->index_of_label(A->transition_to_label(a)));
+	
+		// Find the states in B connected by this letter
+		std::vector<std::pair<int, int> > B_connections = B->nodes_connecting_letter(B->index_of_label(A->transition_to_label(a)));
+	
+		intersection_automaton->label[a] = A->transition_to_label(a);
+		
+		// Look through all states in A which are connected by this letter
+		for (int i = 0; i < A_connections.size(); i++) {
+			//p1,p2 ∈ SA
+			// p1−→ A α −→ p2
+			int p1 = A_connections[i].first;
+			int p2 = A_connections[i].second;
+			
+			for (int j = 0; j < B_connections.size(); j++) {
+				//q1,q2 ∈ SB
+				// q1−→ A α −→ q2
+				int q1 = B_connections[j].first;
+				int q2 = B_connections[j].second;
+				
+				intersection_automaton->transitions[states_to_numbers[std::pair<int, int>(p1, q1)]][a].insert(states_to_numbers[std::pair<int, int>(p2, q2)]);
+				
+			}
+				
+		}
+	
+	}
+	
+	intersection_automaton->is_deterministic = true;
+	intersection_automaton->valid = true;
+	
+	return intersection_automaton;
+	
+}
+
 int count_nodes(finite_automaton* conjectured_automaton) {
-    
+	
     return conjectured_automaton->state_count - 1;
     
 }
@@ -1108,6 +1261,7 @@ bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_l
         
         for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
             
+			if ( conjectured_automata[current_length]->recursive_non_accepting() || conjectured_automata[current_length + 1]->recursive_non_accepting() ) matching = false;
             if ( conjectured_automata[current_length]->get_final_states().size() == 0 || conjectured_automata[current_length + 1]->get_final_states().size() == 0 ) matching = false;
            
             if (count_nodes(conjectured_automata[current_length]) != count_nodes(conjectured_automata[current_length + 1]) || count_edges(conjectured_automata[current_length]) != count_edges(conjectured_automata[current_length + 1])) {
@@ -1120,7 +1274,7 @@ bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_l
     return matching;
 }
 
-#define WORD_LENGTH_ARGUMENT_INDEX 2
+#define WORD_LENGTH_ARGUMENT_INDEX 2 
 #define USER_BOUND_ARGUMENT_INDEX 7
 #define LOG_EACH_BOUND false
 #endif
@@ -1130,133 +1284,182 @@ int main(int argc, const char**argv) {
     
 #ifdef _EXPERIMENT_MODE
    
-    parse_options(argc, argv);
-    
-    int lower_bound = estimate_wordlength();
-    
-    cout << "Estimating lower_bound as: " << lower_bound << endl;
-    
-#endif
-    
-    struct timeval begin;
-    
-    gettimeofday(&begin, NULL);
-    
-#ifdef _EXPERIMENT_MODE
-    
-    for(int user_bound = 1; user_bound < 4; ++user_bound) {
-        
-    	int MAX_UPPER_BOUND = 30;
-
-		finite_automaton *conjectured_automata[MAX_UPPER_BOUND + 1];
-		std::fill(conjectured_automata, conjectured_automata + sizeof(conjectured_automata) / sizeof(conjectured_automata[0]), (finite_automaton *) 0);
-
-        remove_positive_queries();
-        
-        for(int word_length = lower_bound; word_length <= MAX_UPPER_BOUND; ++word_length) {
-            
-            std::ostringstream ss;
-            ss << user_bound;
-            const std::string user_bound_argument(ss.str());
-            argv[USER_BOUND_ARGUMENT_INDEX] = user_bound_argument.c_str();
-            reset(ss);
-            ss << word_length;
-            const std::string word_length_argument(ss.str());
-            argv[WORD_LENGTH_ARGUMENT_INDEX] = word_length_argument.c_str();
-            reset_global_variables();
-            
-#endif
-            
-            parse_options(argc, argv);
-            remove_files();
-            preprocess_source();
-            init_auto_instrumentation();
-            init_word_length_file();
-            
-#ifdef _EXPERIMENT_MODE
-            
-            conjectured_automata[word_length] = learn();
-            
-#else
-            learn();
-            
-#endif
-            
-#ifdef _EXPERIMENT_MODE
-            cout << "in experiment_mode" << endl;
-            reset(ss);
-            
-            bool hasConverged = test_convergence(conjectured_automata, lower_bound, word_length, user_bound);
-            
-            if (hasConverged || LOG_EACH_BOUND) {
-                
-#endif
-                struct timeval end;
-                gettimeofday(&end, NULL);
-                double elapsed_secs = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) / 1000000.0;
-                
-#ifdef _EXPERIMENT_MODE
-                
-                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
-                copy_file("a.dot", ss.str().c_str());
-                
-#ifdef _QUERY_LOG
-                
-                reset(ss);
-                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << "-query.log";
-                copy_file("query.log", ss.str().c_str());
-                std::ofstream remove_log;
-                remove_log.open("queries.log", std::ofstream::out | std::ofstream::trunc);
-                remove_log.close();
-#endif
-                
-#endif
-                
-                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << " cbmc conjectures = " << cbmc_conjectures << endl;
-                cout << "Time: " << elapsed_secs << endl;
-                
-#ifdef _EXPERIMENT_MODE
-                
-                std::stringstream final_automaton_path;
-                final_automaton_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
-                
-                std::stringstream final_automaton_stats_filename;
-                final_automaton_stats_filename << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length;
-                
-                ofstream final_automaton_stats_file;
-                final_automaton_stats_file.open(final_automaton_stats_filename.str().c_str());
-                
-                std::stringstream final_automaton_stats_info;
-                // Name, Lower Bound, Convergence Bound, Iterations (~MDC Needs updating), User Bound, Seconds gone (CPU), Nodes, Edges, mem queries, CBMC mem queries / total queries, Cache mem queries / total queries, Conjectures
-                final_automaton_stats_info << input_file_prefix << " & " << lower_bound << " & " << word_length << " & " << (word_length - lower_bound) << " & " << user_bound << " & " << elapsed_secs << " & " << count_nodes(conjectured_automata[word_length]) << " & " << count_edges(conjectured_automata[word_length]) << " & " << mem_queries << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << (float)cache_mem_queries * 100/(float)mem_queries << " & " << cbmc_conjectures;
-                
-                final_automaton_stats_file << final_automaton_stats_info.str();
-                final_automaton_stats_file.close();
-                
-                if ( hasConverged ) {
-                    cout << "Converged at: bwl = " << word_length << " b = " << user_bound << endl;
-                    // ~MDC Comment to not break after first convergence
-                    MAX_UPPER_BOUND = word_length;
-                    break;
-                }
-                
-            }
-            
-        }
-        
-        for (int a = lower_bound; a <= MAX_UPPER_BOUND; a++) {
-			if (conjectured_automata[a]) {
-				delete conjectured_automata[a];
+	std::vector<std::vector<const char*> > params;
+	std::vector<finite_automaton*> program_versions;
+	string version_a, version_b;
+	
+	if ( strcmp(argv[1], "--compare") == 0 ) {
+		version_a = argv[2];
+		version_b = argv[3];
+		
+		for ( int i = 2; i < 4; i++ ) {
+			std::vector<const char*> argv_copy;
+            argv_copy.push_back(argv[0]);
+			for ( int j = 0; j < argc; j++ ) {
+				if (j == i) argv_copy.push_back(argv[j]);
+				if (j > 3) argv_copy.push_back(argv[j]);
 			}
+			params.push_back(argv_copy);
 		}
-        
-        if ( !has_loops() ) {
-            break;
-        }
-        
-    }
+	} else {
+		std::vector<const char*> argv_copy(argv, argv + argc);
+		params.push_back(argv_copy);
+	}
+	
+	for (std::vector<std::vector<const char*> >::const_iterator params_it = params.begin(), end = params.end(); params_it != end; ++params_it) {
+	
+        std::vector<const char*> argv_vector = *params_it;
+        const char** argv_copy = &argv_vector[0];
+	    parse_options(params_it->size(), argv_copy);
     
-    //exit_learn();
+	    int lower_bound = estimate_wordlength();
+    
+	    cout << "Estimating lower_bound as: " << lower_bound << endl;
+    
+	#endif
+    
+	    struct timeval begin;
+    
+	    gettimeofday(&begin, NULL);
+    
+	#ifdef _EXPERIMENT_MODE
+    
+	    for(int user_bound = 1; user_bound < 4; ++user_bound) { 
+        
+	    	int MAX_UPPER_BOUND = 30;
+
+			finite_automaton *conjectured_automata[MAX_UPPER_BOUND + 1];
+			std::fill(conjectured_automata, conjectured_automata + sizeof(conjectured_automata) / sizeof(conjectured_automata[0]), (finite_automaton *) 0);
+
+	        remove_positive_queries();
+        
+	        for(int word_length = lower_bound; word_length <= MAX_UPPER_BOUND; ++word_length) {
+            
+	            std::ostringstream ss;
+	            ss << user_bound;
+	            const std::string user_bound_argument(ss.str());
+	            argv_copy[USER_BOUND_ARGUMENT_INDEX] = user_bound_argument.c_str();
+	            reset(ss);
+	            ss << word_length;
+	            const std::string word_length_argument(ss.str());
+	            argv_copy[WORD_LENGTH_ARGUMENT_INDEX] = word_length_argument.c_str();
+	            reset_global_variables();
+            
+	#endif
+            
+	            parse_options(params_it->size(), argv_copy);
+	            remove_files();
+	            preprocess_source();
+	            init_auto_instrumentation();
+	            init_word_length_file();
+            
+	#ifdef _EXPERIMENT_MODE
+            
+	            conjectured_automata[word_length] = learn();
+            
+	#else
+	            learn();
+            
+	#endif
+            
+	#ifdef _EXPERIMENT_MODE
+	            cout << "in experiment_mode" << endl;
+	            reset(ss);
+            
+	            bool hasConverged = test_convergence(conjectured_automata, lower_bound, word_length, user_bound);
+            
+	            if (hasConverged || LOG_EACH_BOUND) {
+                
+	#endif
+	                struct timeval end;
+	                gettimeofday(&end, NULL);
+	                double elapsed_secs = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) / 1000000.0;
+                
+	#ifdef _EXPERIMENT_MODE
+                
+	                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
+	                copy_file("a.dot", ss.str().c_str());
+                
+	#ifdef _QUERY_LOG
+                
+	                reset(ss);
+	                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << "-query.log";
+	                copy_file("query.log", ss.str().c_str());
+	                std::ofstream remove_log;
+	                remove_log.open("queries.log", std::ofstream::out | std::ofstream::trunc);
+	                remove_log.close();
+	#endif
+                
+	#endif
+                
+	                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << " cbmc conjectures = " << cbmc_conjectures << endl;
+	                cout << "Time: " << elapsed_secs << endl;
+                
+	#ifdef _EXPERIMENT_MODE
+                
+	                std::stringstream final_automaton_path;
+	                final_automaton_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
+                
+	                std::stringstream final_automaton_stats_filename;
+	                final_automaton_stats_filename << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length;
+                
+	                ofstream final_automaton_stats_file;
+	                final_automaton_stats_file.open(final_automaton_stats_filename.str().c_str());
+                
+	                std::stringstream final_automaton_stats_info;
+	                // Name, Lower Bound, Convergence Bound, Iterations (~MDC Needs updating), User Bound, Seconds gone (CPU), Nodes, Edges, mem queries, CBMC mem queries / total queries, Cache mem queries / total queries, Conjectures
+	                final_automaton_stats_info << input_file_prefix << " & " << lower_bound << " & " << word_length << " & " << (word_length - lower_bound) << " & " << user_bound << " & " << elapsed_secs << " & " << count_nodes(conjectured_automata[word_length]) << " & " << count_edges(conjectured_automata[word_length]) << " & " << mem_queries << " & " << (float)cbmc_mem_queries * 100/(float)mem_queries << " & " << (float)cache_mem_queries * 100/(float)mem_queries << " & " << cbmc_conjectures;
+                
+	                final_automaton_stats_file << final_automaton_stats_info.str();
+	                final_automaton_stats_file.close();
+					
+	                if ( hasConverged ) {
+	                    cout << "Converged at: bwl = " << word_length << " b = " << user_bound << endl;
+						program_versions.push_back(conjectured_automata[word_length]);
+	                    // ~MDC Comment both to not break after first convergence
+	                    MAX_UPPER_BOUND = word_length;
+	                    break;
+	                }
+                
+	            }
+            
+	        }
+        
+			if ( strcmp(argv[1], "--compare") != 0 ) {
+		        for (int a = lower_bound; a <= MAX_UPPER_BOUND; a++) {
+					if (conjectured_automata[a]) {
+						delete conjectured_automata[a];
+					}
+				}
+			}
+        
+	        if ( !has_loops() ) {
+	            break;
+	        }
+        
+	    }
+		
+		exit_learn();
+	
+	}
+    
+	if ( strcmp(argv[1], "--compare") == 0 ) {
+		
+		program_versions[0]->clear_sinks();
+
+		program_versions[1]->clear_sinks();
+		program_versions[1]->invert_accepting();
+
+		finite_automaton* a_inter_neg_b = intersect(program_versions[0], program_versions[1]);
+		reduce_to_accepting_paths(a_inter_neg_b, version_a.append("_distinct"));
+		
+		program_versions[1]->invert_accepting();
+		program_versions[0]->invert_accepting();
+		
+		finite_automaton* b_inter_neg_a = intersect(program_versions[1], program_versions[0]);
+		reduce_to_accepting_paths(b_inter_neg_a, version_b.append("_distinct"));
+		
+	}
     
 #endif
     
