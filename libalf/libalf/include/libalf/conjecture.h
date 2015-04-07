@@ -710,14 +710,11 @@ class Graph
         int V;    // No. of vertices
         std::list<int> *adj;    // A dynamic array of adjacency lists
         std::map<std::pair<int,int>,int> edge_alphabet;
-        // A Recursive DFS based function used by SCC()
-        bool scc_util(int u, int disc[], int low[],
-            std::stack<int> *st, bool stackMember[]);
         std::vector<bool> visited; 
         int edge_to_alphabet(int v, int w);
 		bool get_path(int s, int target, std::list<int>& path, bool inclusive = true);
 		std::list<std::list<int> > find_all_paths(int s, int target, std::list<int>& path, std::list<std::list<int> >& paths);
-		bool recursive_non_accepting(int s, int t, std::set<int> accepting, bool result);
+		bool recursive_non_accepting(std::set<int> accepting);
 		
     public:
         Graph(int V);   // Constructor

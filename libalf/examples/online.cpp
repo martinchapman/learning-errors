@@ -1077,6 +1077,79 @@ void reset_global_variables() {
     alphabet_size = 0;
 }
 
+int count_nodes(finite_automaton* conjectured_automaton) {
+	
+    return conjectured_automaton->state_count - 1;
+    
+}
+
+int count_edges(finite_automaton* conjectured_automaton) {
+    
+    return conjectured_automaton->count_transitions();
+    
+}
+
+bool has_loops() {
+    stringstream tmp;
+    tmp.str("");
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l\"";
+#else
+    "goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l";
+#endif
+    
+    if (run_with_numeric_result(tmp.str().c_str()) > 1)
+        return true;
+    
+    return false;
+}
+
+int estimate_wordlength() {
+    
+    add_learn_instrumentation(input_file_name_full, "");
+    
+    //
+    
+    stringstream tmp;
+    tmp <<
+#ifdef _MYWIN32
+    "cmd /c \"goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe << "\"";
+#else
+    "goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe;
+#endif
+    
+    return run_with_numeric_result(tmp.str().c_str());
+    
+}
+
+bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_length, int word_length, int user_bound) {
+    // ~MDC: Sets of automata that must match to signal convergence (i.e. 1 = 1 set = 2 automata)
+    int NUMBER_MATCHING = 1;
+    bool matching = false;
+    if ( (word_length - lowest_word_length) >= NUMBER_MATCHING ) {
+		
+        matching = true;
+        
+        for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
+            
+			if ( conjectured_automata[current_length]->recursive_non_accepting() || conjectured_automata[current_length + 1]->recursive_non_accepting() ) matching = false;
+			
+            if ( conjectured_automata[current_length]->get_final_states().size() == 0 || conjectured_automata[current_length + 1]->get_final_states().size() == 0 ) matching = false;
+           
+            if (count_nodes(conjectured_automata[current_length]) != count_nodes(conjectured_automata[current_length + 1]) || count_edges(conjectured_automata[current_length]) != count_edges(conjectured_automata[current_length + 1])) {
+                matching = false;
+                break;
+            }
+			
+        }
+    }
+	
+    return matching;
+}
+
+#endif
+
 finite_automaton* reduce_to_accepting_paths(finite_automaton* &A, string name) { // ~MDC
 	
 	std::list<std::list<int> > paths_list = A->find_all_paths();
@@ -1204,85 +1277,15 @@ finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MD
 	
 	return intersection_automaton;
 	
-}
+} 
 
-int count_nodes(finite_automaton* conjectured_automaton) {
-	
-    return conjectured_automaton->state_count - 1;
-    
-}
-
-int count_edges(finite_automaton* conjectured_automaton) {
-    
-    return conjectured_automaton->count_transitions();
-    
-}
-
-bool has_loops() {
-    stringstream tmp;
-    tmp.str("");
-    tmp <<
-#ifdef _MYWIN32
-    "cmd /c \"goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l\"";
-#else
-    "goto-instrument " << input_file_exe << " --show-loops " << input_file_exe << " | wc -l";
-#endif
-    
-    if (run_with_numeric_result(tmp.str().c_str()) > 1)
-        return true;
-    
-    return false;
-}
-
-int estimate_wordlength() {
-    
-    add_learn_instrumentation(input_file_name_full, "");
-    
-    //
-    
-    stringstream tmp;
-    tmp <<
-#ifdef _MYWIN32
-    "cmd /c \"goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe << "\"";
-#else
-    "goto-instrument --learn-word-length " << input_file_exe << " " << input_file_exe;
-#endif
-    
-    return run_with_numeric_result(tmp.str().c_str());
-    
-}
-
-bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_length, int word_length, int user_bound) {
-    // ~MDC: Sets of automata that must match to signal convergence (i.e. 1 = 1 set = 2 automata)
-    int NUMBER_MATCHING = 1;
-    bool matching = false;
-    if ( (word_length - lowest_word_length) >= NUMBER_MATCHING ) {
-        matching = true;
-        
-        for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
-            
-			if ( conjectured_automata[current_length]->recursive_non_accepting() || conjectured_automata[current_length + 1]->recursive_non_accepting() ) matching = false;
-            if ( conjectured_automata[current_length]->get_final_states().size() == 0 || conjectured_automata[current_length + 1]->get_final_states().size() == 0 ) matching = false;
-           
-            if (count_nodes(conjectured_automata[current_length]) != count_nodes(conjectured_automata[current_length + 1]) || count_edges(conjectured_automata[current_length]) != count_edges(conjectured_automata[current_length + 1])) {
-                matching = false;
-                break;
-            }
-            
-        }
-    }
-    return matching;
-}
-
+#ifdef _EXPERIMENT_MODE
 #define WORD_LENGTH_ARGUMENT_INDEX 2 
 #define USER_BOUND_ARGUMENT_INDEX 7
-#define LOG_EACH_BOUND false
+#define LOG_EACH_BOUND true
 #endif
-
 /*******************************  main  ****************************/
 int main(int argc, const char**argv) {
-    
-#ifdef _EXPERIMENT_MODE
    
 	std::vector<std::vector<const char*> > params;
 	std::vector<finite_automaton*> program_versions;
@@ -1295,7 +1298,7 @@ int main(int argc, const char**argv) {
 		for ( int i = 2; i < 4; i++ ) {
 			std::vector<const char*> argv_copy;
             argv_copy.push_back(argv[0]);
-			for ( int j = 0; j < argc; j++ ) {
+			for ( int j = i; j < argc; j++ ) {
 				if (j == i) argv_copy.push_back(argv[j]);
 				if (j > 3) argv_copy.push_back(argv[j]);
 			}
@@ -1306,23 +1309,25 @@ int main(int argc, const char**argv) {
 		params.push_back(argv_copy);
 	}
 	
-	for (std::vector<std::vector<const char*> >::const_iterator params_it = params.begin(), end = params.end(); params_it != end; ++params_it) {
+	for (std::vector<std::vector<const char*> >::const_iterator params_it = params.begin(), last_param = params.end(); params_it != last_param; ++params_it) {
 	
         std::vector<const char*> argv_vector = *params_it;
         const char** argv_copy = &argv_vector[0];
 	    parse_options(params_it->size(), argv_copy);
     
+#ifdef _EXPERIMENT_MODE
+		
 	    int lower_bound = estimate_wordlength();
     
 	    cout << "Estimating lower_bound as: " << lower_bound << endl;
     
-	#endif
+#endif
     
 	    struct timeval begin;
     
 	    gettimeofday(&begin, NULL);
     
-	#ifdef _EXPERIMENT_MODE
+#ifdef _EXPERIMENT_MODE
     
 	    for(int user_bound = 1; user_bound < 4; ++user_bound) { 
         
@@ -1353,49 +1358,56 @@ int main(int argc, const char**argv) {
 	            init_auto_instrumentation();
 	            init_word_length_file();
             
-	#ifdef _EXPERIMENT_MODE
+#ifdef _EXPERIMENT_MODE
             
 	            conjectured_automata[word_length] = learn();
             
-	#else
+#else
 	            learn();
             
-	#endif
+#endif
             
-	#ifdef _EXPERIMENT_MODE
+#ifdef _EXPERIMENT_MODE
 	            cout << "in experiment_mode" << endl;
 	            reset(ss);
             
+				cout << " (1) " << endl;
+				
 	            bool hasConverged = test_convergence(conjectured_automata, lower_bound, word_length, user_bound);
             
+				cout << " (2) " << endl;
+			
 	            if (hasConverged || LOG_EACH_BOUND) {
                 
-	#endif
+#endif
 	                struct timeval end;
 	                gettimeofday(&end, NULL);
 	                double elapsed_secs = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) / 1000000.0;
                 
-	#ifdef _EXPERIMENT_MODE
+#ifdef _EXPERIMENT_MODE
                 
 	                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
 	                copy_file("a.dot", ss.str().c_str());
+					
+					cout << " (3) " << endl;
                 
-	#ifdef _QUERY_LOG
+#ifdef _QUERY_LOG
                 
 	                reset(ss);
 	                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << "-query.log";
 	                copy_file("query.log", ss.str().c_str());
+					cout << " (4) " << endl;
 	                std::ofstream remove_log;
 	                remove_log.open("queries.log", std::ofstream::out | std::ofstream::trunc);
 	                remove_log.close();
-	#endif
+#endif
                 
-	#endif
+#endif
                 
 	                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << " cbmc conjectures = " << cbmc_conjectures << endl;
 	                cout << "Time: " << elapsed_secs << endl;
                 
-	#ifdef _EXPERIMENT_MODE
+#ifdef _EXPERIMENT_MODE
                 
 	                std::stringstream final_automaton_path;
 	                final_automaton_path << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
@@ -1426,11 +1438,13 @@ int main(int argc, const char**argv) {
 	        }
         
 			if ( strcmp(argv[1], "--compare") != 0 ) {
+				cout << " (5) " << endl;
 		        for (int a = lower_bound; a <= MAX_UPPER_BOUND; a++) {
 					if (conjectured_automata[a]) {
 						delete conjectured_automata[a];
 					}
 				}
+				cout << " (6) " << endl;
 			}
         
 	        if ( !has_loops() ) {
@@ -1440,9 +1454,13 @@ int main(int argc, const char**argv) {
 	    }
 		
 		exit_learn();
+		
+		cout << " (7) " << endl;
+
+#endif
 	
 	}
-    
+	  
 	if ( strcmp(argv[1], "--compare") == 0 ) {
 		
 		program_versions[0]->clear_sinks();
@@ -1460,8 +1478,6 @@ int main(int argc, const char**argv) {
 		reduce_to_accepting_paths(b_inter_neg_a, version_b.append("_distinct"));
 		
 	}
-    
-#endif
     
     return 0;
     

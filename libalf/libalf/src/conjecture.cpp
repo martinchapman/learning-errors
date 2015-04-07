@@ -543,23 +543,23 @@ std::list<std::list<int> > Graph::find_all_paths(int s, int t, std::list<int>& p
 	
 } 
 
-bool Graph::recursive_non_accepting(int s, int t, std::set<int> accepting, bool result) { // ~MDC
+bool Graph::recursive_non_accepting(std::set<int> accepting) { // ~MDC
 	
-	if (s == t) { 
-		return result; 		
-	}
+    for ( int v = 0; v < this->V; v++ ) {
+        
+		for ( std::list<int>::iterator i = adj[v].begin(); i != adj[v].end(); ++i ) {
+		
+			if ( v == *i && std::find(accepting.begin(), accepting.end(), v) == accepting.end() ) { 
+				
+				return true;
+				
+			}
+			
+		}
+			
+    }
 	
-	std::list<int>::iterator i;
-    for (i = adj[s].begin(); i != adj[s].end(); ++i)
-    {
-        int v;
-		v = *i;	
-		// State calls self and is not accepting
-		if ( s == v && std::find(accepting.begin(), accepting.end(), s) == accepting.end() ) return true;
-		result = recursive_non_accepting(v, t, accepting, result);
-	}
-	
-	return result; 
+	return false;
 	
 } 
 
@@ -573,21 +573,18 @@ bool finite_automaton::recursive_non_accepting() { // ~MDC
     set<int>::const_iterator si;
     for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
         for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
-            for(si = msi->second.begin(); si != msi->second.end(); ++si)
-            {
-                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
-                {
+			for(si = msi->second.begin(); si != msi->second.end(); ++si) {
+                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end()) {
                     g1.add_edge(mmsi->first, *si, msi->first);  // we add edges not connecting to the sink n on-accepting state. 
 					//cout << mmsi->first << "-> " << *si << "[" << msi->first <<"]" << endl;
                 }
             }
 		
-	int target = *accepting.begin();
 	std::set<int>::iterator it;
-	bool result = false;
+	bool result;
 	
 	for (it=initial_states.begin(); it!=initial_states.end(); ++it) {
-		result = g1.recursive_non_accepting(*it, target, accepting, result);
+		result = g1.recursive_non_accepting(accepting);
 	}
 	
 	return result;    
