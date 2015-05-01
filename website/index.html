@@ -22,13 +22,6 @@
 		<div id="main">
 			<h1>Learning the Language of Error: Accessory Information</h1>
 
-			<h2 class="accessory_section">Paper</h2>
-			<ul>
-				<li><a
-					href="learning-the-language-of-error-including-a-proof-supplement.pdf">Learning
-						the language of error (including a proof supplement)</a></li>
-			</ul>
-
 			<h2 class="accessory_section">Demos</h2>
 
 			<h3>DockingApproachExample_Ext</h3>
@@ -37,25 +30,35 @@
 					<tr>
 						<td>User bound:</td>
 						<td><input id="_DockingApproachExample_Ext_user_bound" type="range"
-							step="1" min="1" value="2" max="4"
+							step="1" min="1" value="4" max="4"
 							onchange="update_DockingApproachExample_Ext()"
 							oninput="update_DockingApproachExample_Ext()"></td>
-						<td id="_DockingApproachExample_Ext_user_bound_lexical">2</td>
+						<td id="_DockingApproachExample_Ext_user_bound_lexical">4</td>
 					</tr>
 					<tr>
 						<td>Maximum word length:</td>
 						<td><input id="_DockingApproachExample_Ext_max_word_length"
-							type="range" step="1" min="5" value="9" max="14"
+							type="range" step="1" min="5" value="15" max="15"
 							onchange="update_DockingApproachExample_Ext()"
 							oninput="update_DockingApproachExample_Ext()"></td>
-						<td id="_DockingApproachExample_Ext_max_word_length_lexical">9</td>
+						<td id="_DockingApproachExample_Ext_max_word_length_lexical">15</td>
+					</tr>
+					<tr>
+						<td>Zoom:</td>
+						<td><input id="_DockingApproachExample_Ext_zoom" type="range"
+							step="10" min="10" value="100" max="300"
+							onchange="update_DockingApproachExample_Ext()"
+							oninput="update_DockingApproachExample_Ext()"></td>
+						<td id="_DockingApproachExample_Ext_zoom_lexical">100</td>
 					</tr>
 				</table>
 			</form>
-			<img id="_DockingApproachExample_Ext"
-				src="automata/_DockingApproachExample_Ext-2-9.svg"
-				onerror="this.src='automata/_DockingApproachExample_Ext-2-9.png'"
-				width="1300em">
+			<div style="overflow: scroll; width: 70em">
+				<img id="_DockingApproachExample_Ext"
+					src="automata/_DockingApproachExample_Ext-4-15.svg"
+					onerror="this.src='automata/_DockingApproachExample_Ext-4-15.png'"
+					width="1300em">
+			</div>
 
 			<h3>bubble_sort_linux_false</h3>
 			<form>
@@ -63,7 +66,7 @@
 					<tr>
 						<td>User bound:</td>
 						<td><input id="_bubble_sort_linux_false_user_bound" type="range"
-							step="1" min="2" value="2" max="3"
+							step="1" min="1" value="2" max="3"
 							onchange="update_bubble_sort_linux_false()"
 							oninput="update_bubble_sort_linux_false()"></td>
 						<td id="_bubble_sort_linux_false_user_bound_lexical">2</td>
@@ -71,17 +74,27 @@
 					<tr>
 						<td>Maximum word length:</td>
 						<td><input id="_bubble_sort_linux_false_max_word_length" type="range"
-							step="1" min="8" value="15" max="22"
+							step="1" min="8" value="12" max="17"
 							onchange="update_bubble_sort_linux_false()"
 							oninput="update_bubble_sort_linux_false()"></td>
-						<td id="_bubble_sort_linux_false_max_word_length_lexical">15</td>
+						<td id="_bubble_sort_linux_false_max_word_length_lexical">12</td>
+					</tr>
+					<tr>
+						<td>Zoom:</td>
+						<td><input id="_bubble_sort_linux_false_zoom" type="range" step="10"
+							min="10" value="100" max="300"
+							onchange="update_bubble_sort_linux_false()"
+							oninput="update_bubble_sort_linux_false()"></td>
+						<td id="_bubble_sort_linux_false_zoom_lexical">100</td>
 					</tr>
 				</table>
 			</form>
-			<img id="_bubble_sort_linux_false"
-				src="automata/_bubble_sort_linux_false-2-15.svg"
-				onerror="this.src='automata/_bubble_sort_linux_false-2-15.png'"
-				width="1300em">
+			<div style="overflow: scroll; width: 70em">
+				<img id="_bubble_sort_linux_false"
+					src="automata/_bubble_sort_linux_false-2-12.svg"
+					onerror="this.src='automata/_bubble_sort_linux_false-2-12.png'"
+					width="1300em">
+			</div>
 
 			<h3>ifstofunctions_defroster</h3>
 			<form>
@@ -98,17 +111,27 @@
 					<tr>
 						<td>Maximum word length:</td>
 						<td><input id="_ifstofunctions_defroster_min_max_word_length"
-							type="range" step="1" min="25" value="25" max="26"
+							type="range" step="1" min="25" value="25" max="28"
 							onchange="update_ifstofunctions_defroster_min()"
 							oninput="update_ifstofunctions_defroster_min()"></td>
 						<td id="_ifstofunctions_defroster_min_max_word_length_lexical">25</td>
 					</tr>
+					<tr>
+						<td>Zoom:</td>
+						<td><input id="_ifstofunctions_defroster_min_zoom" type="range"
+							step="10" min="10" value="100" max="300"
+							onchange="update_ifstofunctions_defroster_min()"
+							oninput="update_ifstofunctions_defroster_min()"></td>
+						<td id="_ifstofunctions_defroster_min_zoom_lexical">100</td>
+					</tr>
 				</table>
 			</form>
-			<img id="_ifstofunctions_defroster_min"
-				src="automata/_ifstofunctions_defroster_min-1-25.svg"
-				onerror="this.src='automata/_ifstofunctions_defroster_min-1-25.png'"
-				width="1300em">
+			<div style="overflow: scroll; width: 70em">
+				<img id="_ifstofunctions_defroster_min"
+					src="automata/_ifstofunctions_defroster_min-1-25.svg"
+					onerror="this.src='automata/_ifstofunctions_defroster_min-1-25.png'"
+					width="1300em">
+			</div>
 
 			<h3>merge_sort_false</h3>
 			<form>
@@ -123,14 +146,23 @@
 					<tr>
 						<td>Maximum word length:</td>
 						<td><input id="_merge_sort_false_max_word_length" type="range"
-							step="1" min="4" value="7" max="9" onchange="update_merge_sort_false()"
+							step="1" min="5" value="7" max="15" onchange="update_merge_sort_false()"
 							oninput="update_merge_sort_false()"></td>
 						<td id="_merge_sort_false_max_word_length_lexical">7</td>
 					</tr>
+					<tr>
+						<td>Zoom:</td>
+						<td><input id="_merge_sort_false_zoom" type="range" step="10"
+							min="10" value="100" max="300" onchange="update_merge_sort_false()"
+							oninput="update_merge_sort_false()"></td>
+						<td id="_merge_sort_false_zoom_lexical">100</td>
+					</tr>
 				</table>
 			</form>
-			<img id="_merge_sort_false" src="automata/_merge_sort_false-2-7.svg"
-				onerror="this.src='automata/_merge_sort_false-2-7.png'" width="1300em">
+			<div style="overflow: scroll; width: 70em">
+				<img id="_merge_sort_false" src="automata/_merge_sort_false-2-7.svg"
+					onerror="this.src='automata/_merge_sort_false-2-7.png'" width="1300em">
+			</div>
 
 			<h3>sll_to_dll_rev_false</h3>
 			<form>
@@ -146,15 +178,25 @@
 					<tr>
 						<td>Maximum word length:</td>
 						<td><input id="_sll_to_dll_rev_false_max_word_length" type="range"
-							step="1" min="8" value="28" max="28"
+							step="1" min="8" value="23" max="30"
 							onchange="update_sll_to_dll_rev_false()"
 							oninput="update_sll_to_dll_rev_false()"></td>
-						<td id="_sll_to_dll_rev_false_max_word_length_lexical">28</td>
+						<td id="_sll_to_dll_rev_false_max_word_length_lexical">23</td>
+					</tr>
+					<tr>
+						<td>Zoom:</td>
+						<td><input id="_sll_to_dll_rev_false_zoom" type="range" step="10"
+							min="10" value="100" max="300" onchange="update_sll_to_dll_rev_false()"
+							oninput="update_sll_to_dll_rev_false()"></td>
+						<td id="_sll_to_dll_rev_false_zoom_lexical">100</td>
 					</tr>
 				</table>
 			</form>
-			<img id="_sll_to_dll_rev_false" src="automata/_sll_to_dll_rev_false-2-28.svg"
-				onerror="this.src='automata/_sll_to_dll_rev_false-2-28.png'" width="1300em">
+			<div style="overflow: scroll; width: 70em">
+				<img id="_sll_to_dll_rev_false"
+					src="automata/_sll_to_dll_rev_false-2-23.svg"
+					onerror="this.src='automata/_sll_to_dll_rev_false-2-23.png'" width="1300em">
+			</div>
 
 			<h3>tcas_auto_instrumented</h3>
 			<form>
@@ -170,17 +212,26 @@
 					<tr>
 						<td>Maximum word length:</td>
 						<td><input id="_tcas_auto_instrumented_max_word_length" type="range"
-							step="1" min="3" value="18" max="21"
+							step="1" min="3" value="18" max="25"
 							onchange="update_tcas_auto_instrumented()"
 							oninput="update_tcas_auto_instrumented()"></td>
 						<td id="_tcas_auto_instrumented_max_word_length_lexical">18</td>
 					</tr>
+					<tr>
+						<td>Zoom:</td>
+						<td><input id="_tcas_auto_instrumented_zoom" type="range" step="10"
+							min="10" value="100" max="300" onchange="update_tcas_auto_instrumented()"
+							oninput="update_tcas_auto_instrumented()"></td>
+						<td id="_tcas_auto_instrumented_zoom_lexical">100</td>
+					</tr>
 				</table>
 			</form>
-			<img id="_tcas_auto_instrumented"
-				src="automata/_tcas_auto_instrumented-1-18.svg"
-				onerror="this.src='automata/_tcas_auto_instrumented-1-18.png'"
-				width="1300em">
+			<div style="overflow: scroll; width: 70em">
+				<img id="_tcas_auto_instrumented"
+					src="automata/_tcas_auto_instrumented-1-18.svg"
+					onerror="this.src='automata/_tcas_auto_instrumented-1-18.png'"
+					width="1300em">
+			</div>
 
 			<h3>tree_false</h3>
 			<form>
@@ -195,14 +246,23 @@
 					<tr>
 						<td>Maximum word length:</td>
 						<td><input id="_tree_false_max_word_length" type="range" step="1"
-							min="4" value="9" max="10" onchange="update_tree_false()"
+							min="4" value="4" max="15" onchange="update_tree_false()"
 							oninput="update_tree_false()"></td>
-						<td id="_tree_false_max_word_length_lexical">9</td>
+						<td id="_tree_false_max_word_length_lexical">4</td>
+					</tr>
+					<tr>
+						<td>Zoom:</td>
+						<td><input id="_tree_false_zoom" type="range" step="10" min="10"
+							value="100" max="300" onchange="update_tree_false()"
+							oninput="update_tree_false()"></td>
+						<td id="_tree_false_zoom_lexical">100</td>
 					</tr>
 				</table>
 			</form>
-			<img id="_tree_false" src="automata/_tree_false-1-9.svg"
-				onerror="this.src='automata/_tree_false-1-9.png'" width="1300em">
+			<div style="overflow: scroll; width: 70em">
+				<img id="_tree_false" src="automata/_tree_false-1-4.svg"
+					onerror="this.src='automata/_tree_false-1-4.png'" width="1300em">
+			</div>
 
 			<h2 class="accessory_section">Resources</h2>
 			All automata in .dot, .svg and .png format:
@@ -229,11 +289,11 @@
 						<li>Full project merged into a single, CBMC-compatible source file.</li>
 					</ul></li>
 				<li><a href="source/bubble_sort_linux_false.tar.gz">bubble_sort_linux_false</a></li>
-        <li><a href="source/ifstofunctions_defroster.tar.gz">ifstofunctions_defroster</a></li>
-        <li><a href="source/merge_sort_false.tar.gz">merge_sort_false</a></li>
-        <li><a href="source/sll_to_dll_rev_false.tar.gz">sll_to_dll_rev_false</a></li>
-        <li><a href="source/tcas_auto_instrumented.tar.gz">tcas_auto_instrumented</a></li>
-        <li><a href="source/tree_false.tar.gz">tree_false</a></li>
+				<li><a href="source/ifstofunctions_defroster.tar.gz">ifstofunctions_defroster</a></li>
+				<li><a href="source/merge_sort_false.tar.gz">merge_sort_false</a></li>
+				<li><a href="source/sll_to_dll_rev_false.tar.gz">sll_to_dll_rev_false</a></li>
+				<li><a href="source/tcas_auto_instrumented.tar.gz">tcas_auto_instrumented</a></li>
+				<li><a href="source/tree_false.tar.gz">tree_false</a></li>
 			</ul>
 		</div>
 	</div>

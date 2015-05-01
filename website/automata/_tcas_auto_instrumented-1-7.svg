@@ -23,43 +23,43 @@
 <g id="edge2" class="edge"><title>q0&#45;&gt;q0</title>
 <path fill="none" stroke="black" d="M178.553,-90.1527C178.33,-99.5391 178.812,-108 180,-108 180.724,-108 181.185,-104.858 181.385,-100.28"/>
 <polygon fill="black" stroke="black" points="184.886,-100.174 181.447,-90.1527 177.886,-100.131 184.886,-100.174"/>
-<text text-anchor="middle" x="180" y="-111.8" font-family="Times,serif" font-size="14.00">Non_Crossing_Biased_Descend</text>
+<text text-anchor="middle" x="180" y="-111.8" font-family="Times,serif" font-size="14.00">Non_Crossing_Biased_Climb</text>
 </g>
 <!-- q0&#45;&gt;q0 -->
 <g id="edge3" class="edge"><title>q0&#45;&gt;q0</title>
 <path fill="none" stroke="black" d="M177.595,-89.9782C176.308,-107.2 177.109,-126 180,-126 182.326,-126 183.299,-113.826 182.92,-100.098"/>
 <polygon fill="black" stroke="black" points="186.409,-99.7873 182.405,-89.9782 179.418,-100.143 186.409,-99.7873"/>
-<text text-anchor="middle" x="180" y="-129.8" font-family="Times,serif" font-size="14.00">Own_Below_Threat</text>
+<text text-anchor="middle" x="180" y="-129.8" font-family="Times,serif" font-size="14.00">ALIM</text>
 </g>
 <!-- q0&#45;&gt;q0 -->
 <g id="edge4" class="edge"><title>q0&#45;&gt;q0</title>
 <path fill="none" stroke="black" d="M176.964,-90.0781C174.277,-114.409 175.289,-144 180,-144 184.067,-144 185.377,-121.947 183.931,-100.264"/>
 <polygon fill="black" stroke="black" points="187.398,-99.7335 183.036,-90.0781 180.425,-100.346 187.398,-99.7335"/>
-<text text-anchor="middle" x="180" y="-147.8" font-family="Times,serif" font-size="14.00">alt_sep_test</text>
+<text text-anchor="middle" x="180" y="-147.8" font-family="Times,serif" font-size="14.00">Inhibit_Biased_Climb</text>
 </g>
 <!-- q0&#45;&gt;q0 -->
 <g id="edge5" class="edge"><title>q0&#45;&gt;q0</title>
 <path fill="none" stroke="black" d="M176.523,-90.1124C172.247,-121.24 173.406,-162 180,-162 185.898,-162 187.448,-129.384 184.649,-100.224"/>
 <polygon fill="black" stroke="black" points="188.105,-99.6431 183.477,-90.1124 181.151,-100.449 188.105,-99.6431"/>
-<text text-anchor="middle" x="180" y="-165.8" font-family="Times,serif" font-size="14.00">ALIM</text>
+<text text-anchor="middle" x="180" y="-165.8" font-family="Times,serif" font-size="14.00">Non_Crossing_Biased_Descend</text>
 </g>
 <!-- q0&#45;&gt;q0 -->
 <g id="edge6" class="edge"><title>q0&#45;&gt;q0</title>
 <path fill="none" stroke="black" d="M176.249,-89.7983C170.215,-127.549 171.465,-180 180,-180 187.802,-180 189.517,-136.176 185.145,-99.8139"/>
 <polygon fill="black" stroke="black" points="188.596,-99.2201 183.751,-89.7983 181.663,-100.185 188.596,-99.2201"/>
-<text text-anchor="middle" x="180" y="-183.8" font-family="Times,serif" font-size="14.00">Inhibit_Biased_Climb</text>
+<text text-anchor="middle" x="180" y="-183.8" font-family="Times,serif" font-size="14.00">Own_Below_Threat</text>
 </g>
 <!-- q0&#45;&gt;q0 -->
 <g id="edge7" class="edge"><title>q0&#45;&gt;q0</title>
 <path fill="none" stroke="black" d="M176.01,-89.769C168.193,-133.974 169.523,-198 180,-198 189.699,-198 191.559,-143.125 185.579,-99.9049"/>
 <polygon fill="black" stroke="black" points="188.997,-99.1062 183.99,-89.769 182.081,-100.191 188.997,-99.1062"/>
-<text text-anchor="middle" x="180" y="-201.8" font-family="Times,serif" font-size="14.00">Non_Crossing_Biased_Climb</text>
+<text text-anchor="middle" x="180" y="-201.8" font-family="Times,serif" font-size="14.00">Own_Above_Threat</text>
 </g>
 <!-- q0&#45;&gt;q0 -->
 <g id="edge8" class="edge"><title>q0&#45;&gt;q0</title>
 <path fill="none" stroke="black" d="M175.845,-89.6173C166.174,-140.185 167.559,-216 180,-216 191.64,-216 193.602,-149.643 185.887,-99.6826"/>
 <polygon fill="black" stroke="black" points="189.301,-98.8788 184.155,-89.6173 182.402,-100.066 189.301,-98.8788"/>
-<text text-anchor="middle" x="180" y="-219.8" font-family="Times,serif" font-size="14.00">Own_Above_Threat</text>
+<text text-anchor="middle" x="180" y="-219.8" font-family="Times,serif" font-size="14.00">alt_sep_test</text>
 </g>
 <!-- q0&#45;&gt;q0 -->
 <g id="edge9" class="edge"><title>q0&#45;&gt;q0</title>

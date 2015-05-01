@@ -12,7 +12,7 @@
 <!-- dom_edges -->
 <g id="node1" class="node"><title>dom_edges</title>
 <polygon fill="none" stroke="green" points="1120,-68 0,-68 0,-32 1120,-32 1120,-68"/>
-<text text-anchor="middle" x="560" y="-46.3" font-family="Times,serif" font-size="14.00">Dominating edges: Non_Crossing_Biased_Descend, Own_Below_Threat, alt_sep_test, ALIM, Inhibit_Biased_Climb, Non_Crossing_Biased_Climb, Own_Above_Threat, initialize, fake1, Learn_Assert</text>
+<text text-anchor="middle" x="560" y="-46.3" font-family="Times,serif" font-size="14.00">Dominating edges: Non_Crossing_Biased_Climb, ALIM, Inhibit_Biased_Climb, Non_Crossing_Biased_Descend, Own_Below_Threat, Own_Above_Threat, alt_sep_test, initialize, fake1, Learn_Assert</text>
 </g>
 <!-- q1 -->
 <g id="node2" class="node"><title>q1</title>
@@ -115,7 +115,7 @@
 <text text-anchor="middle" x="1954" y="-121.8" font-family="Times,serif" font-size="14.00">Own_Above_Threat</text>
 </g>
 <!-- q19 -->
-<g id="node21" class="node"><title>q19</title>
+<g id="node20" class="node"><title>q19</title>
 <ellipse fill="none" stroke="black" cx="2046" cy="-77" rx="18" ry="18"/>
 </g>
 <!-- q9&#45;&gt;q19 -->
@@ -150,38 +150,32 @@
 <polygon fill="green" stroke="green" points="1403.82,-107.5 1413.82,-104 1403.82,-100.5 1403.82,-107.5"/>
 <text text-anchor="middle" x="1364" y="-107.8" font-family="Times,serif" font-size="14.00">alt_sep_test</text>
 </g>
-<!-- q13 -->
-<g id="node15" class="node"><title>q13</title>
-<ellipse fill="none" stroke="black" cx="3202" cy="-72" rx="18" ry="18"/>
-</g>
-<!-- q13&#45;&gt;q4 -->
-<g id="edge15" class="edge"><title>q13&#45;&gt;q4</title>
-<path fill="none" stroke="green" d="M3220.3,-72C3262.38,-72 3370.37,-72 3421.45,-72"/>
-<polygon fill="green" stroke="green" points="3421.72,-75.5001 3431.72,-72 3421.72,-68.5001 3421.72,-75.5001"/>
-<text text-anchor="middle" x="3326" y="-75.8" font-family="Times,serif" font-size="14.00">Own_Above_Threat</text>
-</g>
 <!-- q14 -->
-<g id="node16" class="node"><title>q14</title>
+<g id="node15" class="node"><title>q14</title>
 <ellipse fill="none" stroke="black" cx="3018" cy="-72" rx="18" ry="18"/>
 </g>
 <!-- q14&#45;&gt;q5 -->
-<g id="edge16" class="edge"><title>q14&#45;&gt;q5</title>
+<g id="edge15" class="edge"><title>q14&#45;&gt;q5</title>
 <path fill="none" stroke="green" d="M3034.43,-79.41C3040.43,-82.0827 3047.44,-84.9438 3054,-87 3102.49,-102.198 3117.69,-94.2243 3166,-110 3169.41,-111.112 3172.92,-112.461 3176.35,-113.897"/>
 <polygon fill="green" stroke="green" points="3175.07,-117.157 3185.62,-118.058 3177.93,-110.771 3175.07,-117.157"/>
 <text text-anchor="middle" x="3110" y="-113.8" font-family="Times,serif" font-size="14.00">Own_Below_Threat</text>
 </g>
-<!-- q14&#45;&gt;q13 -->
-<g id="edge17" class="edge"><title>q14&#45;&gt;q13</title>
+<!-- q20 -->
+<g id="node21" class="node"><title>q20</title>
+<ellipse fill="none" stroke="black" cx="3202" cy="-72" rx="18" ry="18"/>
+</g>
+<!-- q14&#45;&gt;q20 -->
+<g id="edge16" class="edge"><title>q14&#45;&gt;q20</title>
 <path fill="none" stroke="green" d="M3036.12,-72C3067.69,-72 3135.33,-72 3173.43,-72"/>
 <polygon fill="green" stroke="green" points="3173.79,-75.5001 3183.79,-72 3173.79,-68.5001 3173.79,-75.5001"/>
 <text text-anchor="middle" x="3110" y="-75.8" font-family="Times,serif" font-size="14.00">Own_Above_Threat</text>
 </g>
 <!-- q15 -->
-<g id="node17" class="node"><title>q15</title>
+<g id="node16" class="node"><title>q15</title>
 <ellipse fill="none" stroke="black" cx="2732" cy="-72" rx="18" ry="18"/>
 </g>
 <!-- q15&#45;&gt;q14 -->
-<g id="edge18" class="edge"><title>q15&#45;&gt;q14</title>
+<g id="edge17" class="edge"><title>q15&#45;&gt;q14</title>
 <path fill="none" stroke="green" d="M2750.34,-72C2798.08,-72 2931.77,-72 2989.68,-72"/>
 <polygon fill="green" stroke="green" points="2989.89,-75.5001 2999.89,-72 2989.89,-68.5001 2989.89,-75.5001"/>
 <text text-anchor="middle" x="2894" y="-75.8" font-family="Times,serif" font-size="14.00">Non_Crossing_Biased_Descend</text>
@@ -191,46 +185,52 @@
 <ellipse fill="none" stroke="black" cx="3018" cy="-18" rx="18" ry="18"/>
 </g>
 <!-- q15&#45;&gt;q23 -->
-<g id="edge19" class="edge"><title>q15&#45;&gt;q23</title>
+<g id="edge18" class="edge"><title>q15&#45;&gt;q23</title>
 <path fill="none" stroke="green" d="M2749.42,-67.2715C2764.15,-63.1399 2786.4,-57.1671 2806,-53 2871.54,-39.0642 2949.53,-27.3841 2989.84,-21.7041"/>
 <polygon fill="green" stroke="green" points="2990.52,-25.1433 2999.95,-20.296 2989.56,-18.2103 2990.52,-25.1433"/>
 <text text-anchor="middle" x="2894" y="-56.8" font-family="Times,serif" font-size="14.00">Own_Below_Threat</text>
 </g>
 <!-- q16 -->
-<g id="node18" class="node"><title>q16</title>
+<g id="node17" class="node"><title>q16</title>
 <ellipse fill="none" stroke="black" cx="2586" cy="-72" rx="18" ry="18"/>
 </g>
 <!-- q16&#45;&gt;q15 -->
-<g id="edge20" class="edge"><title>q16&#45;&gt;q15</title>
+<g id="edge19" class="edge"><title>q16&#45;&gt;q15</title>
 <path fill="none" stroke="green" d="M2604.08,-72C2628.66,-72 2674.25,-72 2703.57,-72"/>
 <polygon fill="green" stroke="green" points="2703.94,-75.5001 2713.94,-72 2703.94,-68.5001 2703.94,-75.5001"/>
 <text text-anchor="middle" x="2640" y="-75.8" font-family="Times,serif" font-size="14.00">ALIM</text>
 </g>
 <!-- q17 -->
-<g id="node19" class="node"><title>q17</title>
+<g id="node18" class="node"><title>q17</title>
 <ellipse fill="none" stroke="black" cx="2408" cy="-72" rx="18" ry="18"/>
 </g>
 <!-- q17&#45;&gt;q16 -->
-<g id="edge21" class="edge"><title>q17&#45;&gt;q16</title>
+<g id="edge20" class="edge"><title>q17&#45;&gt;q16</title>
 <path fill="none" stroke="green" d="M2426.2,-72C2456.77,-72 2520.81,-72 2557.54,-72"/>
 <polygon fill="green" stroke="green" points="2557.99,-75.5001 2567.99,-72 2557.99,-68.5001 2557.99,-75.5001"/>
 <text text-anchor="middle" x="2532" y="-75.8" font-family="Times,serif" font-size="14.00">fake1</text>
 </g>
 <!-- q18 -->
-<g id="node20" class="node"><title>q18</title>
+<g id="node19" class="node"><title>q18</title>
 <ellipse fill="none" stroke="black" cx="2154" cy="-75" rx="18" ry="18"/>
 </g>
 <!-- q18&#45;&gt;q17 -->
-<g id="edge22" class="edge"><title>q18&#45;&gt;q17</title>
+<g id="edge21" class="edge"><title>q18&#45;&gt;q17</title>
 <path fill="none" stroke="green" d="M2172.32,-74.7938C2215.4,-74.2809 2327.67,-72.9444 2379.74,-72.3245"/>
 <polygon fill="green" stroke="green" points="2379.93,-75.8226 2389.89,-72.2037 2379.85,-68.8231 2379.93,-75.8226"/>
 <text text-anchor="middle" x="2246" y="-77.8" font-family="Times,serif" font-size="14.00">Own_Below_Threat</text>
 </g>
 <!-- q19&#45;&gt;q18 -->
-<g id="edge23" class="edge"><title>q19&#45;&gt;q18</title>
+<g id="edge22" class="edge"><title>q19&#45;&gt;q18</title>
 <path fill="none" stroke="green" d="M2064.03,-76.6787C2080.62,-76.3656 2106.12,-75.8846 2125.57,-75.5176"/>
 <polygon fill="green" stroke="green" points="2125.73,-79.0153 2135.66,-75.3272 2125.6,-72.0165 2125.73,-79.0153"/>
 <text text-anchor="middle" x="2100" y="-79.8" font-family="Times,serif" font-size="14.00">fake1</text>
+</g>
+<!-- q20&#45;&gt;q4 -->
+<g id="edge23" class="edge"><title>q20&#45;&gt;q4</title>
+<path fill="none" stroke="green" d="M3220.3,-72C3262.38,-72 3370.37,-72 3421.45,-72"/>
+<polygon fill="green" stroke="green" points="3421.72,-75.5001 3431.72,-72 3421.72,-68.5001 3421.72,-75.5001"/>
+<text text-anchor="middle" x="3326" y="-75.8" font-family="Times,serif" font-size="14.00">Own_Above_Threat</text>
 </g>
 <!-- q21 -->
 <g id="node22" class="node"><title>q21</title>
