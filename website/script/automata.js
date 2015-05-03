@@ -40,6 +40,10 @@ function update_tree_false() {
 	update_automaton("_tree_false");
 }
 
+function update_schedule() {
+	update_automaton("_schedule");
+}
+
 function update_DockingApproachExample_Ext() {
 	update_automaton("_DockingApproachExample_Ext");
 }

@@ -233,7 +233,7 @@
 					width="1300em">
 			</div>
 
-			<h3>tree_false</h3>
+			<!--<h3>tree_false</h3>
 			<form>
 				<table>
 					<tr>
@@ -262,7 +262,39 @@
 			<div style="overflow: scroll; width: 70em">
 				<img id="_tree_false" src="automata/_tree_false-1-4.svg"
 					onerror="this.src='automata/_tree_false-1-4.png'" width="1300em">
+			</div>-->
+
+			<h3>schedule</h3>
+			<form>
+				<table>
+					<tr>
+						<td>User bound:</td>
+						<td><input id="_schedule_user_bound" type="range" step="1" min="2"
+							value="2" max="2" disabled onchange="update_schedule()"
+							oninput="update_schedule()"></td>
+						<td id="_schedule_user_bound_lexical">1</td>
+					</tr>
+					<tr>
+						<td>Maximum word length:</td>
+						<td><input id="_schedule_max_word_length" type="range" step="1"
+							min="4" value="4" max="11" onchange="update_schedule()"
+							oninput="update_schedule()"></td>
+						<td id="_schedule_max_word_length_lexical">4</td>
+					</tr>
+					<tr>
+						<td>Zoom:</td>
+						<td><input id="_schedule_zoom" type="range" step="10" min="10"
+							value="100" max="300" onchange="update_schedule()"
+							oninput="update_schedule()"></td>
+						<td id="_schedule_zoom_lexical">100</td>
+					</tr>
+				</table>
+			</form>
+			<div style="overflow: scroll; width: 70em">
+				<img id="_schedule" src="automata/_schedule-2-4.svg"
+					onerror="this.src='automata/_schedule-2-4.png'" width="1300em">
 			</div>
+
 
 			<h2 class="accessory_section">Resources</h2>
 			All automata in .dot, .svg and .png format:
