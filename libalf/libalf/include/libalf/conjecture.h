@@ -687,7 +687,7 @@ class finite_automaton : public moore_machine<bool> {
 		virtual void clear_sinks(); // ~MDC
 		virtual char* transition_to_label(int t); // ~MDC
 		virtual int index_of_label(char* label); // ~MDC
-		virtual int get_transition(int s, int t); // ~MDC
+		virtual std::vector<int> get_transitions(int s, int t); // ~MDC
 		virtual std::vector<std::pair<int,int> > nodes_connecting_letter(int a); // ~MDC
 		virtual bool find_lasso(std::list<int>& path); //ofer
 		virtual std::list<std::list<int> > find_all_paths(); // ~MDC

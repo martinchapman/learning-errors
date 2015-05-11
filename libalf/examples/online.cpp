@@ -187,9 +187,9 @@ int generate_func_names(int letter) {
     add_learn_instrumentation(input_file_working_copy, "-c");
     
     // ~MDC Manually add main for consistency with original version, may not be necessary.
-    FILE *func_names2 = fopen(FUNC_NAMES, "a");
-    fprintf(func_names2, "%s\n", "main");
-    fclose(func_names2);
+    FILE *func_names_add_main = fopen(FUNC_NAMES, "a");
+    fprintf(func_names_add_main, "%s\n", "main");
+    fclose(func_names_add_main);
     
     // reads func names from FUNC_NAMES and
     // 1) fills the global list node_index (to be used later in compute_allowed_pairs())
@@ -1133,7 +1133,7 @@ bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_l
         
         for ( int current_length = word_length - NUMBER_MATCHING; current_length < word_length; current_length++ ) {
             
-			if ( conjectured_automata[current_length]->recursive_non_accepting() || conjectured_automata[current_length + 1]->recursive_non_accepting() ) matching = false;
+			//if ( conjectured_automata[current_length]->recursive_non_accepting() || conjectured_automata[current_length + 1]->recursive_non_accepting() ) matching = false;
 			
             if ( conjectured_automata[current_length]->get_final_states().size() == 0 || conjectured_automata[current_length + 1]->get_final_states().size() == 0 ) matching = false;
            
@@ -1157,12 +1157,15 @@ finite_automaton* reduce_to_accepting_paths(finite_automaton* &A, string name) {
 	
 	list<int> automaton_states;
 	for (std::list<std::list<int> >::const_iterator paths=paths_list.begin(); paths!=paths_list.end(); ++paths) {
+		
 		int last_state = -1;
 		for (std::list<int>::const_iterator path=paths->begin(); path!=paths->end(); ++path) {
 			if (last_state > -1 ) { 
-				int transition = A->get_transition(last_state, *path);
-				reduced_automaton->transitions[last_state][transition].insert(*path);
-				reduced_automaton->label[transition] = A->label.find(transition)->second;
+				std::vector<int> transitions = A->get_transitions(last_state, *path);
+				for (std::vector<int>::const_iterator transition=transitions.begin(); transition!=transitions.end(); ++transition) {
+					reduced_automaton->transitions[last_state][*transition].insert(*path);
+					reduced_automaton->label[*transition] = A->transition_to_label(*transition);
+				}
 			} else {
 				if(reduced_automaton->initial_states.find(*path) == reduced_automaton->initial_states.end()) { 
 					reduced_automaton->initial_states.insert(*path);
@@ -1182,7 +1185,7 @@ finite_automaton* reduce_to_accepting_paths(finite_automaton* &A, string name) {
 	reduced_automaton->is_deterministic = true;
 	reduced_automaton->valid = true;
 	
-	visualise_automaton_full(reduced_automaton, false, name);
+	visualise_automaton(reduced_automaton, true, name);
 	
 	return reduced_automaton;
 	
@@ -1196,14 +1199,14 @@ finite_automaton* reduce_to_accepting_paths(finite_automaton* &A) { // ~MDC
 
 finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MDC
 	
+	if ( A->input_alphabet_size != B->input_alphabet_size) cout << "Automata alphabets should match." << endl;
+	
 	std::map<std::pair<int, int>, int> states_to_numbers;
 	
 	finite_automaton* intersection_automaton = new finite_automaton;
 
 	int state_count = 0;
 	
-	/*~MDC Alphabet size should be A or max of A and B?
-	int MAX_ALPHABET = std::max(A->input_alphabet_size, B->input_alphabet_size);*/
 	int MAX_ALPHABET = A->input_alphabet_size;
 	
 	// SA∩B=SA×SB
@@ -1229,27 +1232,31 @@ finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MD
 	
 	// iA∩B=⟨iA,iB⟩
 	for (std::set<int>::const_iterator iA = A->initial_states.begin(); iA != A->initial_states.end(); ++iA) {
-		intersection_automaton->initial_states.insert( *iA );
-		for (std::set<int>::const_iterator iB = B->initial_states.begin(); iB != B->initial_states.end(); ++iB) intersection_automaton->initial_states.insert(states_to_numbers[std::pair<int, int>(*iA, *iB)]);
+		for (std::set<int>::const_iterator iB = B->initial_states.begin(); iB != B->initial_states.end(); ++iB) {
+			intersection_automaton->initial_states.insert(states_to_numbers[std::pair<int, int>(*iA, *iB)]);
+		}
 	}
 	
 	// FA∩B=FA×FB;
 	for (std::map<int, bool>::const_iterator fA = A->output_mapping.begin(); fA != A->output_mapping.end(); ++fA) {
-		for (std::map<int, bool>::const_iterator fB = B->output_mapping.begin(); fB != B->output_mapping.end(); ++fB) {
-			if ( fA->second && fB->second ) intersection_automaton->output_mapping[states_to_numbers[std::pair<int, int>(fA->first, fB->first)]] = true;
+			for (std::map<int, bool>::const_iterator fB = B->output_mapping.begin(); fB != B->output_mapping.end(); ++fB) {
+				if ( fA->second && fB->second ) {
+					intersection_automaton->output_mapping[states_to_numbers[std::pair<int, int>(fA->first, fB->first)]] = true;
+				}
+			}
 		}
 	}
 	
 	// for any letter α ∈ Σ
-	for (int a = 0; a < MAX_ALPHABET; a++) {
+	for (int l = 0; l < MAX_ALPHABET; l++) {
 
 		// Find the states in A connected by this letter
-		std::vector<std::pair<int, int> > A_connections = A->nodes_connecting_letter(A->index_of_label(A->transition_to_label(a)));
+		std::vector<std::pair<int, int> > A_connections = A->nodes_connecting_letter(A->index_of_label(A->transition_to_label(l)));
 	
 		// Find the states in B connected by this letter
-		std::vector<std::pair<int, int> > B_connections = B->nodes_connecting_letter(B->index_of_label(A->transition_to_label(a)));
+		std::vector<std::pair<int, int> > B_connections = B->nodes_connecting_letter(B->index_of_label(A->transition_to_label(l)));
 	
-		intersection_automaton->label[a] = A->transition_to_label(a);
+		intersection_automaton->label[l] = A->transition_to_label(l);
 		
 		// Look through all states in A which are connected by this letter
 		for (int i = 0; i < A_connections.size(); i++) {
@@ -1264,7 +1271,7 @@ finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MD
 				int q1 = B_connections[j].first;
 				int q2 = B_connections[j].second;
 				
-				intersection_automaton->transitions[states_to_numbers[std::pair<int, int>(p1, q1)]][a].insert(states_to_numbers[std::pair<int, int>(p2, q2)]);
+				intersection_automaton->transitions[states_to_numbers[std::pair<int, int>(p1, q1)]][l].insert(states_to_numbers[std::pair<int, int>(p2, q2)]);
 				
 			}
 				
@@ -1371,12 +1378,8 @@ int main(int argc, const char**argv) {
 	            cout << "in experiment_mode" << endl;
 	            reset(ss);
             
-				cout << " (1) " << endl;
-				
 	            bool hasConverged = test_convergence(conjectured_automata, lower_bound, word_length, user_bound);
-            
-				cout << " (2) " << endl;
-			
+            	
 	            if (hasConverged || LOG_EACH_BOUND) {
                 
 #endif
@@ -1388,15 +1391,12 @@ int main(int argc, const char**argv) {
                 
 	                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".dot";
 	                copy_file("a.dot", ss.str().c_str());
-					
-					cout << " (3) " << endl;
                 
 #ifdef _QUERY_LOG
                 
 	                reset(ss);
 	                ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << "-query.log";
 	                copy_file("query.log", ss.str().c_str());
-					cout << " (4) " << endl;
 	                std::ofstream remove_log;
 	                remove_log.open("queries.log", std::ofstream::out | std::ofstream::trunc);
 	                remove_log.close();
@@ -1438,13 +1438,11 @@ int main(int argc, const char**argv) {
 	        }
         
 			if ( strcmp(argv[1], "--compare") != 0 ) {
-				cout << " (5) " << endl;
 		        for (int a = lower_bound; a <= MAX_UPPER_BOUND; a++) {
 					if (conjectured_automata[a]) {
 						delete conjectured_automata[a];
 					}
 				}
-				cout << " (6) " << endl;
 			}
         
 	        if ( !has_loops() ) {
@@ -1454,8 +1452,6 @@ int main(int argc, const char**argv) {
 	    }
 		
 		exit_learn();
-		
-		cout << " (7) " << endl;
 
 #endif
 	
@@ -1466,6 +1462,7 @@ int main(int argc, const char**argv) {
 		program_versions[0]->clear_sinks();
 
 		program_versions[1]->clear_sinks();
+		
 		program_versions[1]->invert_accepting();
 
 		finite_automaton* a_inter_neg_b = intersect(program_versions[0], program_versions[1]);

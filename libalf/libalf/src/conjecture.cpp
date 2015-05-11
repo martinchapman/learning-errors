@@ -590,15 +590,15 @@ bool finite_automaton::recursive_non_accepting() { // ~MDC
 	return result;    
 }
 
-int finite_automaton::get_transition(int s, int t) { // ~MDC	
+std::vector<int> finite_automaton::get_transitions(int s, int t) { // ~MDC
+	 std::vector<int> transitions;
 	 map<int, set<int> >::const_iterator msi;
 	 for(msi = this->transitions.find(s)->second.begin(); msi != this->transitions.find(s)->second.end(); ++msi) {
 	     if ( std::find(msi->second.begin(), msi->second.end(), t) != msi->second.end() ) {
-			 return msi->first;
+			 transitions.push_back(msi->first);
 	     }
 	 }
-	 
-	 return 0;
+	 return transitions;
 } 
 
 std::vector<std::pair<int,int> > finite_automaton::nodes_connecting_letter(int a) { // ~MDC	
@@ -623,7 +623,7 @@ std::vector<std::pair<int,int> > finite_automaton::nodes_connecting_letter(int a
 		std::pair<int, int> start_end( 0, 0 );
 		nodes_connected_by_letter.push_back(start_end);
 	}
-		
+	
 	return nodes_connected_by_letter;
 } 
 
@@ -672,14 +672,8 @@ std::list<std::list<int> > finite_automaton::find_all_paths() { // ~MDC
     set<int>::const_iterator si;
     for(mmsi = this->transitions.begin(); mmsi != this->transitions.end(); ++mmsi)
         for(msi = mmsi->second.begin(); msi != mmsi->second.end(); ++msi)
-            for(si = msi->second.begin(); si != msi->second.end(); ++si)
-            {
-                if (this->sinks_set.find(mmsi->first)  == this->sinks_set.end() && this->sinks_set.find(*si)  == this->sinks_set.end())
-                {
-                    g1.add_edge(mmsi->first, *si, msi->first);
-                }
-            }
-	
+			for(si = msi->second.begin(); si != msi->second.end(); ++si)
+				g1.add_edge(mmsi->first, *si, msi->first);
 	
 	std::list<std::list<int> > paths;
 	
