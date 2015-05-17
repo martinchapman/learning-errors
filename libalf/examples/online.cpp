@@ -1239,10 +1239,9 @@ finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MD
 	
 	// FA∩B=FA×FB;
 	for (std::map<int, bool>::const_iterator fA = A->output_mapping.begin(); fA != A->output_mapping.end(); ++fA) {
-			for (std::map<int, bool>::const_iterator fB = B->output_mapping.begin(); fB != B->output_mapping.end(); ++fB) {
-				if ( fA->second && fB->second ) {
-					intersection_automaton->output_mapping[states_to_numbers[std::pair<int, int>(fA->first, fB->first)]] = true;
-				}
+		for (std::map<int, bool>::const_iterator fB = B->output_mapping.begin(); fB != B->output_mapping.end(); ++fB) {
+			if ( fA->second && fB->second ) {
+				intersection_automaton->output_mapping[states_to_numbers[std::pair<int, int>(fA->first, fB->first)]] = true;
 			}
 		}
 	}
