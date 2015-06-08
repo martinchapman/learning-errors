@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include "../../file_names.h" // ofer
 #include <boost/algorithm/string.hpp> // ~MDC
+#include <boost/lexical_cast.hpp>
 #ifdef _EXPERIMENT_MODE
 #include <boost/unordered_map.hpp>
 #endif
@@ -32,6 +33,8 @@ enum {CONJ_FALSE, CONJ_TRUE, CONJ_UNKNOWN} conjecture_result = CONJ_UNKNOWN;
 void Abort(string msg);
 int run(const char* cmd);
 bool verbose = false;
+list<int> *CURRENT_QUERY = 0;
+finite_automaton *CURRENT_CONJECTURE = 0;
 
 map<int, string> func_name; // maps index to a function name
 
@@ -105,7 +108,7 @@ void remember_query(const std::list<int> &query, bool result) { }
 
 // Backend modes
 static enum {
-  CBMC, SYMEX, MIXED
+  CBMC, SYMEX, SYMEX_CBMC, LOG_CBMC, LOG
 } backend = CBMC;
 
 //~MDC Needs to be addressed
@@ -311,7 +314,7 @@ void parse_options(int argc, const char**argv) {
             unwind = atoi(argv[i]);
         }
         else if (!strcmp(argv[i], "--symex")) { backend = SYMEX; }
-        else if (!strcmp(argv[i], "--mixed")) { backend = MIXED; }
+        else if (!strcmp(argv[i], "--mixed")) { backend = SYMEX_CBMC; }
         else Abort(string("wrong argument: ") + string(argv[i]));
     }
     
@@ -671,6 +674,109 @@ int run_symex(bool membership) {
     return 0; //unreachable
 }
 
+namespace {
+const char QUERY_FILE[] = "queries.log";
+
+void get_letters(vector<int> &result, const std::string &line) {
+  vector<string> letters;
+  boost::split(letters, line, boost::is_any_of(" "));
+  for(vector<string>::const_iterator it(letters.begin()); it != letters.end(); ++it) {
+    const std::string &letter(*it);
+    if(!letter.empty())
+      result.push_back(boost::lexical_cast<int>(letter));
+  }
+}
+
+int write_counterexample(const vector<int> &letters, char feedback) {
+  // Manually write counterexample file
+  ofstream model(MODEL);
+  model << "    " << feedback << endl; // Word missing
+  model << "    " << letters.size() << endl;
+  model << "     ";
+  copy(letters.begin(), letters.end(), ostream_iterator<int>(model, " "));
+  return 0;
+}
+
+bool is_query_not_in_log(const vector<int> &word) {
+  ostringstream oss;
+  copy(word.begin(), word.end(), ostream_iterator<int>(oss, " "));
+  const string word_line(oss.str());
+
+  string line;
+  for (ifstream log_file(QUERY_FILE); getline(log_file, line); )
+    if (word_line == line)
+      return false;
+
+  return true;
+}
+
+bool log_conjecture_enumerate(vector<int> &word, const finite_automaton &a, int state) {
+  if (word.size() >= word_length)
+    return false;
+
+  const map<int, set<int> > &delta=a.transitions.find(state)->second;
+  for(typeof(delta.begin()) it(delta.begin()); it != delta.end(); ++it) {
+    assert(it->second.size() == 1); // DFA
+    const int letter(it->first);
+    const int next_state(*it->second.begin());
+    word.push_back(letter);
+    if (a.output_mapping.find(next_state)->second) {
+      if (is_query_not_in_log(word))
+        return true;
+    } else if (log_conjecture_enumerate(word, a, next_state))
+      return true;
+    word.pop_back();
+  }
+  return false;
+}
+}
+
+int run_log_conjecture() {
+  assert(CURRENT_CONJECTURE);
+  const finite_automaton &a(*CURRENT_CONJECTURE);
+  CURRENT_CONJECTURE = 0;
+  const int initial_state=*a.initial_states.begin();
+  
+  // Check log file for queries not in automaton (positive feedback)
+  string line;
+  for (ifstream log_file(QUERY_FILE); getline(log_file, line); ) {
+    vector<int> letters;
+    get_letters(letters, line);
+
+    int state = initial_state;
+    for(typeof(letters.begin()) it(letters.begin()); it != letters.end(); ++it)
+      state = *a.transitions.find(state)->second.find(*it)->second.begin();
+
+    if(!a.output_mapping.find(state)->second)
+      return write_counterexample(letters, '1');
+  }
+  
+  // Check automaton for accepted words not in query file (negative feedback)
+  vector<int> word;
+  if (log_conjecture_enumerate(word, a, initial_state))
+    return write_counterexample(word, '0');
+  
+  return 1; // Equivalent
+}
+
+int run_log(bool membership) {
+  if (!membership)
+    return run_log_conjecture();
+  assert(CURRENT_QUERY);
+  const list<int> &query(*CURRENT_QUERY);
+  CURRENT_QUERY = 0;
+  ostringstream convert;
+  copy(query.begin(), query.end(), ostream_iterator<int>(convert, " "));
+  const string query_line(convert.str());
+  ifstream log_file(QUERY_FILE);
+  string line;
+  while (getline(log_file, line))
+    if (query_line == line)
+      return 0; // In language
+
+  return 1; // Not in language
+}
+
 int run_mixed(bool membership) {
 	return membership ? run_symex(true) : run_cbmc(false);
 }
@@ -681,8 +787,12 @@ int run_backend(bool membership) {
 		return run_cbmc(membership);
 	case SYMEX:
 		return run_symex(membership);
-	case MIXED:
+	case LOG:
+	  return run_log(membership);
+	case SYMEX_CBMC:
 		return run_mixed(membership);
+	case LOG_CBMC:
+		return membership ? run_log(membership) : run_cbmc(membership);
 	}
 	return -1;
 } 
@@ -729,6 +839,7 @@ bool answer_Conjecture_cbmc(conjecture * cj) {
     string st;
 	//cout << "press enter to continue" << endl;
 	//cin >>  st;
+  CURRENT_CONJECTURE = a;
 	int res = run_backend(false);
     cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;
     return (res != 0);
@@ -949,6 +1060,7 @@ bool answer_Membership(list<int> query) {
     
     fflush(stdout);
     
+    CURRENT_QUERY = &query;
     const int res = run_backend(true);
     const bool cbmc_result = res == 0;
 #ifdef _EXPERIMENT_MODE
@@ -1292,7 +1404,7 @@ finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MD
 #endif
 /*******************************  main  ****************************/
 int main(int argc, const char**argv) {
-   
+
 	std::vector<std::vector<const char*> > params;
 	std::vector<finite_automaton*> program_versions;
 	string version_a, version_b;
