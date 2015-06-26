@@ -27,6 +27,7 @@
 #include <list>
 #include <queue>
 #include <string>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <winsock.h>
