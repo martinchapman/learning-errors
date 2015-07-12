@@ -13,7 +13,15 @@ else
     if [ "$1" == "--compare" ]
     then
     echo $0 >word_length
-    libalf/examples/online $1 $2 $3 0 --auto f --v --user-unwind 1
+		if [ -z "$4" ]
+		then
+    	libalf/examples/online $1 $2 $3 0 --auto f --v --user-unwind 1
+		elif [ -z "$5" ]
+		then
+		libalf/examples/online $1 $2 $3 $4 --auto f --v --user-unwind 1
+		else
+		libalf/examples/online $1 $2 $3 $4 --auto f --v --user-unwind $5
+		fi
     else
     echo $2 >word_length
     libalf/examples/online $1 $2 --auto f --v --user-unwind $3

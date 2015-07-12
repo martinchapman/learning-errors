@@ -1076,6 +1076,7 @@ bool answer_Membership(list<int> query) {
 }
 
 finite_automaton* learn() {
+	
     // Create new knowledge-base. In this case, we choose bool as type for the knowledge-base.
     knowledgebase<bool> base;
     conjecture *result = NULL;
@@ -1152,9 +1153,18 @@ finite_automaton* learn() {
     
 	finite_automaton* result_as_automaton = dynamic_cast<finite_automaton*> (result);
 	
-    visualise_automaton_full(result_as_automaton, false);	// we do it inside learn because result is a pointer to a local object.
+	#ifdef _EXPERIMENT_MODE
+	
+    	visualise_automaton_full(result_as_automaton, false);	// we do it inside learn because result is a pointer to a local object.
     
+	#else 
+	
+		visualise_automaton_full(result_as_automaton, true);
+	
+	#endif
+		
     return result_as_automaton;
+	
 }
 
 void exit_learn() {
@@ -1400,7 +1410,7 @@ finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MD
 #ifdef _EXPERIMENT_MODE
 #define WORD_LENGTH_ARGUMENT_INDEX 2 
 #define USER_BOUND_ARGUMENT_INDEX 7
-#define LOG_EACH_BOUND true
+#define LOG_EACH_BOUND false
 #endif
 /*******************************  main  ****************************/
 int main(int argc, const char**argv) {
@@ -1433,12 +1443,18 @@ int main(int argc, const char**argv) {
         const char** argv_copy = &argv_vector[0];
 	    parse_options(params_it->size(), argv_copy);
     
-#ifdef _EXPERIMENT_MODE
+#ifdef _EXPERIMENT_MODE 
 		
-	    int lower_bound = estimate_wordlength();
+		int lower_bound = word_length;
+		
+		if ( lower_bound == 0 ) {
+			
+	    	lower_bound = estimate_wordlength();
     
-	    cout << "Estimating lower_bound as: " << lower_bound << endl;
-    
+	    	cout << "Estimating lower_bound as: " << lower_bound << endl;
+    	
+		}
+		
 #endif
     
 	    struct timeval begin;
@@ -1538,6 +1554,7 @@ int main(int argc, const char**argv) {
 					
 	                if ( hasConverged ) {
 	                    cout << "Converged at: bwl = " << word_length << " b = " << user_bound << endl;
+						visualise_automaton_full(conjectured_automata[word_length], true);
 						program_versions.push_back(conjectured_automata[word_length]);
 	                    // ~MDC Comment both to not break after first convergence
 	                    MAX_UPPER_BOUND = word_length;
