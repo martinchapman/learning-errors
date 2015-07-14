@@ -31,6 +31,7 @@
 #ifdef _MYWIN32
  // main batch file: 
  #define CE "ce.bat" 
+ #define CE_SYMEX "./ce-symex.sh"
  #define GENERATE_CALL_GRAPH "generate_call_graph.bat"
  // retrieves function names from a goto-instrument output: 
  #define GET_FUNC_NAMES "get_func_names.bat"
