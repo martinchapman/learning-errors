@@ -16,11 +16,13 @@
 #define NOZCROSS   100		/* in feet */
 				/* variables */
 
-//typedef int bool;
+// ~MDC Having this commented out is ok for the main environment, but upsets bound checkers, and vice-versa when it is in. Needs checking.
+//typedef bool int;
+typedef _Bool bool;
 
 int Cur_Vertical_Sep;
-bool High_Confidence;
-bool Two_of_Three_Reports_Valid;
+int High_Confidence;
+int Two_of_Three_Reports_Valid;
 
 int Own_Tracked_Alt;
 int Own_Tracked_Alt_Rate;
@@ -50,10 +52,10 @@ int Climb_Inhibit;		/* true/false */
 
 int  ALIM();
 int  Inhibit_Biased_Climb();
-bool   Non_Crossing_Biased_Climb();
-bool   Non_Crossing_Biased_Descend();
-bool   Own_Below_Threat();
-bool   Own_Above_Threat();
+int   Non_Crossing_Biased_Climb();
+int   Non_Crossing_Biased_Descend();
+int   Own_Below_Threat();
+int   Own_Above_Threat();
 int  alt_sep_test();
 void initialize()
 {
@@ -73,11 +75,11 @@ int Inhibit_Biased_Climb ()
     return (Climb_Inhibit ? Up_Separation + NOZCROSS : Up_Separation);
 }
 
-bool Non_Crossing_Biased_Climb()
+int Non_Crossing_Biased_Climb()
 {
     int upward_preferred;
     int upward_crossing_situation;
-    bool result;
+    int result;
 
     upward_preferred = Inhibit_Biased_Climb() > Down_Separation;
     if (upward_preferred)
@@ -91,11 +93,11 @@ bool Non_Crossing_Biased_Climb()
     return result;
 }
 
-bool Non_Crossing_Biased_Descend()
+int Non_Crossing_Biased_Descend()
 {
     int upward_preferred;
     int upward_crossing_situation;
-    bool result;
+    int result;
 
     upward_preferred = (Up_Separation + NOZCROSS) > Down_Separation;
     if (upward_preferred)
@@ -117,7 +119,7 @@ int fake1() {
 	return 1;
 }
 
-bool Own_Below_Threat()
+int Own_Below_Threat()
 {
 	//return nondet_int(); //(Own_Tracked_Alt < Other_Tracked_Alt); // ofer
 	if (Own_Tracked_Alt < Other_Tracked_Alt) return fake0();
@@ -125,15 +127,15 @@ bool Own_Below_Threat()
 //	return (Own_Tracked_Alt < Other_Tracked_Alt); // ofer
 }
 
-bool Own_Above_Threat()
+int Own_Above_Threat()
 {
     return (Other_Tracked_Alt < Own_Tracked_Alt);
 }
 
 int alt_sep_test()
 {
-    bool enabled, tcas_equipped, intent_not_known;
-    bool need_upward_RA, need_downward_RA;
+    int enabled, tcas_equipped, intent_not_known;
+    int need_upward_RA, need_downward_RA;
     int alt_sep;
 
     enabled = High_Confidence && (Own_Tracked_Alt_Rate <= OLEV)  && (Cur_Vertical_Sep > MAXALTDIFF); 
@@ -169,7 +171,7 @@ int alt_sep_test()
     return alt_sep;
 }
 
-main(int argc, char*argv[])
+int main(void)
 {	
   initialize();
   Cur_Vertical_Sep = nondet_int(); //860; 
@@ -186,5 +188,5 @@ main(int argc, char*argv[])
   Climb_Inhibit = 0; 
   
   _Learn_assert(alt_sep_test()==0);
-
+  return 0;
 }
