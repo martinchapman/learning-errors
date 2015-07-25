@@ -1,0 +1,21 @@
+Add the following to the GUI:
+
+1. for each function, a checkmark that upon activation also makes an event out of the exit point of the function. It adds letters, which is not so good, but it might be useful to distinguish between, say
+f() {
+g();
+h();
+}
+
+And
+f() {
+g()
+}
+g() {
+h();
+}
+
+Goto-instrument supports adding events at exit points.
+
+2. Slicing: with this option, 'f' will be removed from the alphabet if it is not in the slice of the assertion.
+
+
