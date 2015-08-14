@@ -9,18 +9,18 @@
 #include <libalf/alf.h>
 // Angluin's L* algorithm
 #include <libalf/algorithm_angluin.h>
+#include <libalf/algorithm_rivest_schapire.h>
 #include <vector>
 #include <map>
 #include <ctime>
 #include <ctype.h>
+#include <unordered_set>
 #include "../../file_names.h" // ofer
 #include <boost/algorithm/string.hpp> // ~MDC
 #include <boost/lexical_cast.hpp>
 #ifdef _EXPERIMENT_MODE
 #include <boost/unordered_map.hpp>
 #endif
-
-#define CONJECTURE_PRECHECK
 
 int Assert_letter;
 using namespace std;
@@ -29,7 +29,8 @@ int alphabet_size;
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 int mem_queries, cbmc_conjectures, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
-enum {CONJ_FALSE, CONJ_TRUE, CONJ_UNKNOWN} conjecture_result = CONJ_UNKNOWN;
+enum {CONJ_FALSE, CONJ_TRUE, CONJ_UNKNOWN} conjecture_result = CONJ_UNKNOWN, prev_conjecture_result = CONJ_UNKNOWN;
+enum {Learn_Angluin, Learn_RS} learning_alg = Learn_Angluin;
 void Abort(string msg);
 int run(const char* cmd);
 bool verbose = false;
@@ -43,7 +44,6 @@ input_file_name_full,		// original full path (path/file.c => path/file.c)
 input_file_prefix,			// path/file.c =>  _file
 input_file_exe,				// path/file.c => <input_file_prefix>.exe
 input_file_seq,				// path/file.c => <input_file_prefix>.seq
-input_file_is, 				// path/file.c => <input_file_prefix>.is
 input_file_working_copy,	// path/file.c => <input_file_prefix>.c
 input_file_no_extention;	// path/file.c => path/file
 
@@ -117,23 +117,6 @@ void rewrite_branch( string name, int num)
     
 }
 
-// we duplicate file.f to file.is ("interesting set") where the latter has "c::" prefix before each function name, because
-// 1) we want the user to enter natural names,
-// 2) goto-instrument must have the c:: prefix,
-// 3) func_names is produced by another tool that also generates natural names. So some conversion is necessary in any case.
-void create_interesting_set(FILE *f) {
-    char name[100];
-    string st = "rm " + input_file_is;
-    run(st.c_str()); // remove old .is file, even if we do not create a new one.
-    FILE *func_names_for_goto_inst = fopen(input_file_is.c_str(), "w");  // we duplicate file.f to file.is where the latter has "c::" prefix before each function name, because 1) we want the user to enter natural names, 2) goto-instrument must have the c:: prefix, 3) func_names is produced by another tool that also generates natural names. So some conversion is necessary in any case.
-    while (!feof(f)) {
-        if (fscanf(f, "%s", name) != 1) continue;
-        fprintf(func_names_for_goto_inst, "%s\n", name);
-        //fprintf(func_names_for_goto_inst, "c::%s\n", name);
-    }
-    fclose(func_names_for_goto_inst);
-}
-
 void add_learn_instrumentation(string input_file, string link) {
     
     stringstream tmp;
@@ -169,7 +152,7 @@ void add_learn_instrumentation(string input_file, string link) {
         run(tmp.str().c_str());
         
     } else {
-        
+        cout << "found .f file " << endl;
         // ~MDC Same as instrumentation above, except here we restrict the functions instrumented to a subset specified in an external file
         tmp.str("");
         tmp <<
@@ -207,7 +190,6 @@ int generate_func_names(int letter) {
     
     if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
     
-    create_interesting_set(func_names);
     rewind(func_names);
     
     while (!feof(func_names)) {
@@ -273,7 +255,6 @@ void define_file_prefixes(string file_name)
     input_file_exe			= input_file_prefix + ".o";
 #endif
     input_file_seq			= input_file_prefix + ".seq"; // we rely on the ".seq" extension later so do not change it.
-    input_file_is			= input_file_prefix + ".is";
     input_file_no_extention = input_file_path + base_without_extension;
     
 }
@@ -315,6 +296,7 @@ void parse_options(int argc, const char**argv) {
         }
         else if (!strcmp(argv[i], "--symex")) { backend = SYMEX; }
         else if (!strcmp(argv[i], "--mixed")) { backend = SYMEX_CBMC; }
+		else if (!strcmp(argv[i], "--rs"))    { learning_alg = Learn_RS;} // still buggy -- do not use. apparently the reason is that the positive feedback traces from the conjecture are inserted into positive_queries_filter, despite the fact that these are suffixes and not full traces.
         else Abort(string("wrong argument: ") + string(argv[i]));
     }
     
@@ -458,9 +440,8 @@ void visualise_automaton_full(finite_automaton* a, bool show_immediately) { //~M
 }
 
 /*******************************  Learn  ****************************/
-list<int> get_CounterExample(int alphabetsize) {
+void get_CounterExample(int alphabetsize, list<int>& ce) {   
     
-    list<int> ce;
     int  i;
     int length;
 	int feedback[2];
@@ -485,7 +466,6 @@ list<int> get_CounterExample(int alphabetsize) {
         ce.push_back(i);
     }
     cout << endl;    
-    return ce;
 }
 
 int run(const char* cmd) {
@@ -805,12 +785,9 @@ bool answer_Conjecture_pre_check(conjecture * cj, std::list<int>& path) {
 	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);	
 	bool res = a-> find_lasso(path);
 	std::list<int>::iterator it;
-	/*if (res) {
-		for ( it = path.begin(); it != path.end(); ++it) cout << *it << ",";
-	}
-	cout << endl; */
-	cout << "result is " << res << endl;	
+	
 	if (res) {
+		cout << "found negative feedback " << endl;	
 		conjecture_result = CONJ_FALSE;
 	} else {
 		path.clear();
@@ -846,13 +823,15 @@ bool answer_Conjecture_cbmc(conjecture * cj) {
 }
 
 void positive_queries(list<int> query) {
-    list<int>::iterator it;
+	list<int>::iterator it;
     unsigned size = query.size();
     ostringstream ist;
-    ist << "echo \"if (_Learn_idx == " << size << " && ";
+	cout<< "positive query= ";
+	ist << "echo \"if (_Learn_idx == " << size << " && ";
     int i = 0;
     for (it = query.begin(); it != query.end(); ++i)
     {
+		cout << *it << " ";
         ist << "_Learn_b[" << i  << "] == " << *it;
         it++;
         if (it != query.end()) ist << " && "; else ist << ") __CPROVER_assume (0); \" >> " << POSITIVE_QUERIES_FILE;
@@ -871,20 +850,18 @@ char membership_pre_checks(list<int> query) {
     
     // The query is right after conjecture, and we trust the result. 
 	if (conjecture_result != CONJ_UNKNOWN) {
-		
+		if (conjecture_result == CONJ_FALSE) {
+			cout << "Feedback from conjecture (no)!" << endl;
+			conjecture_result = CONJ_UNKNOWN;		
+			return 0;
+		}
+		if (conjecture_result == CONJ_TRUE) {	
+			cout << "Feedback from conjecture (yes)!" << endl;
+			conjecture_result = CONJ_UNKNOWN;		
+			positive_queries(query);        
+			return 1;
+		}
 	}
-	if (conjecture_result == CONJ_FALSE) {
-		cout << "Feedback from conjecture!" << endl;
-		conjecture_result = CONJ_UNKNOWN;		
-		return 0;
-	}
-	if (conjecture_result == CONJ_TRUE) {	
-		cout << "Feedback from conjecture!" << endl;
-		conjecture_result = CONJ_UNKNOWN;		
-        positive_queries(query);        
-        return 1;
-    }
-
 	if (query.size() > word_length)
     {
         cout << "Word too long!" << endl;
@@ -921,6 +898,167 @@ char membership_pre_checks(list<int> query) {
     return 2;
 }
 
+//only one of those should be defined
+// #define org   // org = original membership_cfg_checks below, which only saves the last prefix, in contrast to the new one that saves them all. 
+//#define cfg_checks_list  // with bad_prefixes= list<list<int>>
+#define cfg_checks_hash
+
+#ifdef cfg_checks_hash
+
+unordered_set<string> bad_prefixes;
+
+string hashlist(list<int>& mylist, int bound) {
+	stringstream st;
+	int i = 0;
+	if (alphabet_size < 10) 
+		for (list<int>::iterator it = mylist.begin(); i< bound && it != mylist.end();++it, ++i) {
+			st << *it;
+		}
+	else
+		for (list<int>::iterator it = mylist.begin(); i< bound && it != mylist.end();++it, ++i) {
+			st << *it << ",";
+		}
+	return st.str();
+}
+
+bool membership_cfg_checks(list<int>& query) {
+	cout << "in mem_cfg_checks. Size of bad_prefixes = " << bad_prefixes.size() << " query size = " << query.size() << endl;
+	list<int>::iterator it;
+    stringstream st;
+    bool same_prefix; 
+	int length = query.size();
+	for (int i = 1; i<= length; ++i)
+		if (bad_prefixes.find(hashlist(query, i)) != bad_prefixes.end()) {
+			cout << "cfg (prefix)" << endl;
+			++cfg_prefix;
+			return false;
+		}
+	
+	for (it = query.begin(); it != query.end(); ++it) // go over query
+		st << func_name[*it] << endl;
+	
+
+    stringstream tmp;
+    FILE *seq = fopen(input_file_seq.c_str(), "w");
+    fprintf(seq, "main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
+    //fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
+    fclose(seq);
+    
+#ifdef _MYWIN32
+    // ~MDC grep search for 'not feasible' may need altering
+    tmp << "cmd /c " <<  "\"goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res\"";
+    // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
+#else
+    tmp <<				   "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res";
+    // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
+#endif
+    
+    run(tmp.str().c_str());
+    ++cfg_queries;
+    FILE *seq_res = fopen ("_seq.res", "r");
+    int res;
+    if (fscanf(seq_res, "%d", &res) != 1) Abort("cannot read _seq.res");
+    fclose(seq_res);
+    if (res == 1) {
+        cout << "cfg! ";
+        // now we find where the point of failure was
+        tmp.str("");
+        tmp << "tail -n 1 tmp1 > _seq_failure.res";
+        run(tmp.str().c_str());
+        seq_res = fopen ("_seq_failure.res", "r");
+		int failure_point;
+        if (fscanf(seq_res, "%d", &failure_point) != 1) Abort("cannot read _seq_failure.res");
+        fclose(seq_res);		
+        bad_prefixes.insert(hashlist(query, failure_point));
+        return false;
+    }
+    return true;
+}
+#endif
+
+#ifdef cfg_checks_list
+list<list<int> > bad_prefixes;
+
+bool membership_cfg_checks(list<int> query) {
+    
+    
+	cout << "in mem_cfg_checks. Size of bad_prefixes = " << bad_prefixes.size() << " query size = " << query.size() << endl;
+	list<int>::iterator it;
+    stringstream st;
+    bool same_prefix; 
+	for (list<list<int> >::iterator bad_prefixes_it = bad_prefixes.begin(); bad_prefixes_it != bad_prefixes.end(); ++bad_prefixes_it) { // for each bad prefix
+		same_prefix = true;
+		list<int>::iterator bad_prefix_it = (*bad_prefixes_it).begin();
+		for (it = query.begin(); same_prefix && it != query.end(); ++it) // go over query
+			if (*it >= min_func_idx) {
+				if (bad_prefix_it == (*bad_prefixes_it).end()) {  // same prefix as the previous failed one; we skip cfg check and return false.
+					cout << "cfg (prefix)" << endl;
+					++cfg_prefix;
+					return false;
+				}
+				if (*bad_prefix_it != *it) same_prefix = false; // will abort this prefix
+				++bad_prefix_it;			
+				//st << "c::" << func_name[*it] << endl;
+			}
+	}
+	
+	for (it = query.begin(); it != query.end(); ++it) // go over query
+		st << func_name[*it] << endl;
+	
+
+	cout << "st  = " << st.str() << endl;
+    stringstream tmp;
+    FILE *seq = fopen(input_file_seq.c_str(), "w");
+    fprintf(seq, "main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
+    //fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
+    fclose(seq);
+    
+#ifdef _MYWIN32
+    // ~MDC grep search for 'not feasible' may need altering
+    tmp << "cmd /c " <<  "\"goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res\"";
+    // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
+#else
+    tmp <<				   "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res";
+    // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
+#endif
+    
+    run(tmp.str().c_str());
+    ++cfg_queries;
+    FILE *seq_res = fopen ("_seq.res", "r");
+    int res;
+    if (fscanf(seq_res, "%d", &res) != 1) Abort("cannot read _seq.res");
+    fclose(seq_res);
+    //cout << res << endl;
+    //exit(1);
+    if (res == 1) {
+        cout << "cfg! ";
+        // now we find where the point of failure was
+        tmp.str("");
+        tmp << "tail -n 1 tmp1 > _seq_failure.res";
+        run(tmp.str().c_str());
+        seq_res = fopen ("_seq_failure.res", "r");
+		int failure_point;
+        if (fscanf(seq_res, "%d", &failure_point) != 1) Abort("cannot read _seq_failure.res");
+        fclose(seq_res);
+		list<int> bad_prefix;
+		
+        list<int>::iterator tmp_it = query.begin();
+        cout << "bad prefix = ";
+        for (int i = 0; i < failure_point; ++i)
+        {
+            bad_prefix.push_back(*tmp_it);
+            cout << *tmp_it << " ";
+            ++tmp_it;
+        }
+		bad_prefixes.push_back(bad_prefix);
+        cout << endl;
+        return false;
+    }
+    return true;
+}
+#endif
+
+#ifdef org
 bool membership_cfg_checks(list<int> query) {
     static list<int> bad_prefix(1,-1);
     static int failure_point = -1;
@@ -989,6 +1127,7 @@ bool membership_cfg_checks(list<int> query) {
     }
     return true;
 }
+#endif
 
 bool answer_Membership(list<int> query) {
     
@@ -1062,28 +1201,29 @@ bool answer_Membership(list<int> query) {
     
     CURRENT_QUERY = &query;
     const int res = run_backend(true);
-    const bool cbmc_result = res == 0;
+    const bool cbmc_result = (res == 0);
 #ifdef _EXPERIMENT_MODE
     if(cbmc_result) { remember_query(query, cbmc_result); }
 #endif
     
     cout << " " << (cbmc_result ? "(yes)" : "(no)") << endl;
-    
     // updating the positive_queries_file: this will block paths that correspond to membership that we already answered positively.
     if (cbmc_result) positive_queries(query);
 
     return report_membership(query, cbmc_result, "run_backend");
 }
 
+// need template because we invoke this function with two types of learning algorithm, which change the way we call algorithm() below. 
+template <typename T> 
 finite_automaton* learn() {
 	
     // Create new knowledge-base. In this case, we choose bool as type for the knowledge-base.
     knowledgebase<bool> base;
     conjecture *result = NULL;
     
-    // Create learning algorithm (Angluin L*) without a logger (2nd argument is NULL) and alphabet size alphabet_size
-    angluin_simple_table<bool> algorithm(&base, NULL, alphabet_size);
-    
+    // Create learning algorithm (Angluin/rivest-schapiro L*) without a logger (2nd argument is NULL) and alphabet size alphabet_size
+	T  algorithm(&base, NULL, alphabet_size);
+	
     bool conjectured = false;
     //int counter = 0;
     do {
@@ -1093,7 +1233,8 @@ finite_automaton* learn() {
         if (cj == NULL) {
             //counter++;
             // retrieve queries
-            list<list<int> > queries = base.get_queries();
+			cout << "** membership " << endl;
+			list<list<int> > queries = base.get_queries();
             
             // iterate through all queries
             list<list<int> >::iterator li;
@@ -1101,7 +1242,12 @@ finite_automaton* learn() {
                 
                 // Answer query				
                 bool a = answer_Membership(*li);
-                
+				if (learning_alg == Learn_RS && prev_conjecture_result == CONJ_UNKNOWN) { 
+					prev_conjecture_result = a ? CONJ_TRUE : CONJ_FALSE; 
+					cout << "query = " ;  // why is not saying 'feedback from query?'
+					for (list<int>::iterator it = li->begin(); it != li -> end(); ++it) cout << *it << " " ; 
+					cout << "now prev_conjecture_result = " << prev_conjecture_result << endl;
+				}
                 // Add answer to knowledge-base
                 base.add_knowledge(*li, a);
             }
@@ -1113,38 +1259,56 @@ finite_automaton* learn() {
         // Resolve equivalence queries
         else {
             //counter++;
+			//if (conjectures == 1) exit(1);
+			cout << "** conjecture " << endl;
 			conjectures++;
 			cout << "conjectures = " << conjectures << endl;
             if (conjectured) Abort(string("last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. "));
             conjectured = true;
-			std::list<int> ce;			
-			bool is_equivalent;
-#ifdef CONJECTURE_PRECHECK
-			is_equivalent = answer_Conjecture_pre_check(cj, ce); // graph analysis, searches for back edges, and fills ce if found one. 
+			std::list<int> ce; 
+			static std::list<int> prev_ce;
+			bool is_equivalent = true;
+
+			if (learning_alg == Learn_RS && prev_ce.size() > 0) {
+				finite_automaton *a = dynamic_cast<finite_automaton*> (cj);	
+				bool in_language = a->contains(prev_ce);
+				cout << "prev_ce.size = " << prev_ce.size() << "prev_conjecture_result = " << prev_conjecture_result << " in_language = " << in_language << endl;
+				if ((prev_conjecture_result == CONJ_TRUE && !in_language) || (prev_conjecture_result == CONJ_FALSE && in_language)) {
+					ce = prev_ce;
+					conjecture_result = prev_conjecture_result;
+					cout << "recycling counterexample"  << endl;
+					is_equivalent = false;
+				}
+			}
+
+			if (is_equivalent)
+				is_equivalent = answer_Conjecture_pre_check(cj, ce); // graph analysis, searches for back edges, and fills ce if found one. 			
+
 			if (is_equivalent) 
-#endif
-			is_equivalent = answer_Conjecture_cbmc(cj); //  cbmc call
+				is_equivalent = answer_Conjecture_cbmc(cj); //  cbmc call			
             
             if (is_equivalent) {
             	report_conjecture(std::list<int>(), -1);
                 result = cj;
             } else {
-                // Get a counter-example
-                //exit(1);
-#ifdef CONJECTURE_PRECHECK
+                // Get a counterexample
                 if (ce.size() == 0) 
-#endif
-				ce = get_CounterExample(alphabet_size); // this means that we called cbmc rather than found a counterexample with the precheck.
+					get_CounterExample(alphabet_size, ce); // this means that we called cbmc rather than found a counterexample with the precheck.
 				
                 report_conjecture(ce, conjecture_result);				
+				
+				if (learning_alg == Learn_RS)  {
+					prev_conjecture_result = CONJ_UNKNOWN;
+					prev_ce = ce;
+				}
                 //++counter;
                 //if (counter == 1) exit(1);
                 
                 // Add counter-example to algorithm
                 algorithm.add_counterexample(ce);
-                
+                //exit(1);
                 // Delete old conjecture
-                delete cj;				
+                delete cj;
             }
         }
         
@@ -1176,9 +1340,6 @@ void exit_learn() {
     
     string rm_input_file_seq = "rm " + input_file_seq;
     run(rm_input_file_seq.c_str());
-    
-    string rm_input_file_is = "rm " + input_file_is;
-    run(rm_input_file_is.c_str());
     
     string rm_input_file_working_copy = "rm " + input_file_working_copy;
     run(rm_input_file_working_copy.c_str());
@@ -1257,7 +1418,7 @@ bool test_convergence(finite_automaton** conjectured_automata, int lowest_word_l
             
 			//if ( conjectured_automata[current_length]->recursive_non_accepting() || conjectured_automata[current_length + 1]->recursive_non_accepting() ) matching = false;
 			
-            if ( conjectured_automata[current_length]->get_final_states().size() == 0 || conjectured_automata[current_length + 1]->get_final_states().size() == 0 ) matching = false;
+            if (conjectured_automata[current_length]->get_final_states().size() == 0 || conjectured_automata[current_length + 1]->get_final_states().size() == 0 ) matching = false;
            
             if (count_nodes(conjectured_automata[current_length]) != count_nodes(conjectured_automata[current_length + 1]) || count_edges(conjectured_automata[current_length]) != count_edges(conjectured_automata[current_length + 1])) {
                 matching = false;
@@ -1446,7 +1607,7 @@ int main(int argc, const char**argv) {
 #ifdef _EXPERIMENT_MODE 
 		
 		int lower_bound = word_length;
-		
+		cout << "word length is " << lower_bound << endl;
 		if ( lower_bound == 0 ) {
 			
 	    	lower_bound = estimate_wordlength();
@@ -1494,11 +1655,12 @@ int main(int argc, const char**argv) {
             
 #ifdef _EXPERIMENT_MODE
             
-	            conjectured_automata[word_length] = learn();
+	            conjectured_automata[word_length] = (learning_alg == Learn_Angluin)? learn<angluin_simple_table<bool> >(): learn<rivest_schapire_table<bool> >();
             
 #else
-	            learn();
-            
+	            if (learning_alg == Learn_Angluin) learn<angluin_simple_table<bool> >();
+				else learn<rivest_schapire_table<bool> >();
+
 #endif
             
 #ifdef _EXPERIMENT_MODE
@@ -1508,7 +1670,6 @@ int main(int argc, const char**argv) {
 	            bool hasConverged = test_convergence(conjectured_automata, lower_bound, word_length, user_bound);
             	
 	            if (hasConverged || LOG_EACH_BOUND) {
-                
 #endif
 	                struct timeval end;
 	                gettimeofday(&end, NULL);

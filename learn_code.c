@@ -99,7 +99,7 @@ void Learn_trap() {
 	for (;_Learn_idx < word_length_bound; ) {
 		_Learn_b[_Learn_idx] =  nondet_int(); 
 		__CPROVER_assume(_Learn_b[_Learn_idx ] >= 0 && _Learn_b[_Learn_idx ] < AlphaBetSize  ); 
-		_Learn_idx++; check_conjecture_at_trap(); 
+		_Learn_idx++; check_conjecture_at_trap(); // TODO: seems that check_conjecture_at_trap() should be at the first line of the for loop, to catch words in the language that should be removed, even without a nondet extension. 
 	} 
 }
 

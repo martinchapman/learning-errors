@@ -37,6 +37,7 @@
  #define GET_FUNC_NAMES "get_func_names.bat"
  #define CONVERT "convert.bat"
  #define CFG2GRAPH "cfg2graph.bat"
+#define CE_SYMEX "./ce-symex.sh"
 #else
  #define CE "./ce.sh"
  #define CE_SYMEX "./ce-symex.sh"
