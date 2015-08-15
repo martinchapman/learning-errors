@@ -1,0 +1,17 @@
+new_ele
+new_list
+new_process
+append_ele
+find_nth
+del_ele
+free_ele
+finish_process
+schedule
+finish_all_processes
+upgrade_process_prio
+unblock_process
+quantum_expire
+block_process
+add_process
+init_prio_queue
+initialize
