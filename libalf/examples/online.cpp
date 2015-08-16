@@ -43,7 +43,8 @@ string
 input_file_name_full,		// original full path (path/file.c => path/file.c)
 input_file_prefix,			// path/file.c =>  _file
 input_file_exe,				// path/file.c => <input_file_prefix>.exe
-input_file_seq,				// path/file.c => <input_file_prefix>.seq
+input_file_seq,				// path/file.c => <input_file_prefix>
+input_file_is, 				// path/file.c => <input_file_prefix>.is
 input_file_working_copy,	// path/file.c => <input_file_prefix>.c
 input_file_no_extention;	// path/file.c => path/file
 
@@ -91,10 +92,11 @@ enum membership_query_cache_resultt {
     NO_ENTRY_FOUND
 };
 #ifndef _DISABLE_CACHE
-boost::unordered_map<std::list<int>, bool> MEMBERSHIP_QUERY_CACHE;
+typedef boost::unordered_map<std::list<int>, bool> membership_query_cachet;
+membership_query_cachet MEMBERSHIP_QUERY_CACHE;
 
 membership_query_cache_resultt lookup_query(const std::list<int> &query) {
-    const typeof(MEMBERSHIP_QUERY_CACHE.begin()) it(MEMBERSHIP_QUERY_CACHE.find(query));
+    const membership_query_cachet::const_iterator it(MEMBERSHIP_QUERY_CACHE.find(query));
     if(MEMBERSHIP_QUERY_CACHE.end() == it) { return NO_ENTRY_FOUND; }
     return it->second ? IN_LANGUAGE : NOT_IN_LANGUAGE;
 }
@@ -115,6 +117,19 @@ static enum {
 void rewrite_branch( string name, int num)
 {
     
+}
+
+// We copy the contents file.f to file.is ("interesting set") in the format which is expected by goto-instrument for the call-sequence-check.
+void create_interesting_set(FILE *f) {
+    char name[100];
+    string st = "rm " + input_file_is;
+    run(st.c_str()); // remove old .is file, even if we do not create a new one.
+    FILE *func_names_for_goto_inst = fopen(input_file_is.c_str(), "w");
+    while (!feof(f)) {
+        if (fscanf(f, "%s", name) != 1) continue;
+        fprintf(func_names_for_goto_inst, "%s\n", name);
+    }
+    fclose(func_names_for_goto_inst);
 }
 
 void add_learn_instrumentation(string input_file, string link) {
@@ -189,7 +204,8 @@ int generate_func_names(int letter) {
     *Labels = fopen(AUTO_LABELS_FUNCTIONS, "w");
     
     if (func_names == NULL) Abort(string("cannot open ") + string(FUNC_NAMES));
-    
+
+    create_interesting_set(func_names);
     rewind(func_names);
     
     while (!feof(func_names)) {
@@ -255,6 +271,7 @@ void define_file_prefixes(string file_name)
     input_file_exe			= input_file_prefix + ".o";
 #endif
     input_file_seq			= input_file_prefix + ".seq"; // we rely on the ".seq" extension later so do not change it.
+    input_file_is			  = input_file_prefix + ".is"; // goto-instrument tacitly expects .is file to be present. Do not change.
     input_file_no_extention = input_file_path + base_without_extension;
     
 }
@@ -440,8 +457,9 @@ void visualise_automaton_full(finite_automaton* a, bool show_immediately) { //~M
 }
 
 /*******************************  Learn  ****************************/
-void get_CounterExample(int alphabetsize, list<int>& ce) {   
+list<int> get_CounterExample(int alphabetsize) {
     
+    list<int> ce;
     int  i;
     int length;
 	int feedback[2];
@@ -466,6 +484,7 @@ void get_CounterExample(int alphabetsize, list<int>& ce) {
         ce.push_back(i);
     }
     cout << endl;    
+    return ce;
 }
 
 int run(const char* cmd) {
@@ -655,9 +674,10 @@ int run_symex(bool membership) {
 }
 
 namespace {
-const char QUERY_FILE[] = "queries.log";
+const char QUERY_FILE[] = "query-database.log";
 
-void get_letters(vector<int> &result, const std::string &line) {
+void get_letters(list<int> &result, const std::string &line) {
+  result.clear();
   vector<string> letters;
   boost::split(letters, line, boost::is_any_of(" "));
   for(vector<string>::const_iterator it(letters.begin()); it != letters.end(); ++it) {
@@ -667,7 +687,7 @@ void get_letters(vector<int> &result, const std::string &line) {
   }
 }
 
-int write_counterexample(const vector<int> &letters, char feedback) {
+int write_counterexample(const list<int> &letters, char feedback) {
   // Manually write counterexample file
   ofstream model(MODEL);
   model << "    " << feedback << endl; // Word missing
@@ -677,7 +697,7 @@ int write_counterexample(const vector<int> &letters, char feedback) {
   return 0;
 }
 
-bool is_query_not_in_log(const vector<int> &word) {
+bool is_query_not_in_log(const list<int> &word) {
   ostringstream oss;
   copy(word.begin(), word.end(), ostream_iterator<int>(oss, " "));
   const string word_line(oss.str());
@@ -690,12 +710,12 @@ bool is_query_not_in_log(const vector<int> &word) {
   return true;
 }
 
-bool log_conjecture_enumerate(vector<int> &word, const finite_automaton &a, int state) {
+bool log_conjecture_enumerate(list<int> &word, const finite_automaton &a, int state) {
   if (word.size() >= word_length)
     return false;
 
   const map<int, set<int> > &delta=a.transitions.find(state)->second;
-  for(typeof(delta.begin()) it(delta.begin()); it != delta.end(); ++it) {
+  for(map<int, set<int> >::const_iterator it(delta.begin()); it != delta.end(); ++it) {
     assert(it->second.size() == 1); // DFA
     const int letter(it->first);
     const int next_state(*it->second.begin());
@@ -709,33 +729,63 @@ bool log_conjecture_enumerate(vector<int> &word, const finite_automaton &a, int 
   }
   return false;
 }
+
+void add_last_ce_to_logfile() {
+  const list<int> ce=get_CounterExample(alphabet_size);
+  ofstream ofs(QUERY_FILE, ofstream::app);
+  for(list<int>::const_iterator it=ce.begin(); it != ce.end(); ++it) {
+    ofs << *it << ' ';
+  }
+  ofs << endl;
 }
 
-int run_log_conjecture() {
-  assert(CURRENT_CONJECTURE);
-  const finite_automaton &a(*CURRENT_CONJECTURE);
-  CURRENT_CONJECTURE = 0;
+bool log_conjecture_pre_check_positive_feedback(const conjecture &cj, list<int> &path) {
+	cout << "in log_conjecture_pre_check_positive_feedback" << endl;
+  const finite_automaton &a(static_cast<const finite_automaton &>(cj));
   const int initial_state=*a.initial_states.begin();
-  
+
   // Check log file for queries not in automaton (positive feedback)
   string line;
   for (ifstream log_file(QUERY_FILE); getline(log_file, line); ) {
-    vector<int> letters;
-    get_letters(letters, line);
+    get_letters(path, line);
+    if (path.size() > word_length) continue;
 
     int state = initial_state;
-    for(typeof(letters.begin()) it(letters.begin()); it != letters.end(); ++it)
+    for(list<int>::iterator it(path.begin()); it != path.end(); ++it)
       state = *a.transitions.find(state)->second.find(*it)->second.begin();
 
     if(!a.output_mapping.find(state)->second)
-      return write_counterexample(letters, '1');
+    {
+		  cout << "found positive feedback " << endl;	
+		  conjecture_result = CONJ_TRUE;
+      return false;
+    }
   }
+  path.clear();
+  return true; 
+}
+}
+
+int run_log_conjecture(bool include_negative_feedback = false) {
+  assert(CURRENT_CONJECTURE);
+  const finite_automaton &a(*CURRENT_CONJECTURE);
+  CURRENT_CONJECTURE = 0;
+  
+  // Check log file for queries not in automaton (positive feedback)
+  list<int> letters;
+  if (!log_conjecture_pre_check_positive_feedback(a, letters))
+    return write_counterexample(letters, '1');
   
   // Check automaton for accepted words not in query file (negative feedback)
-  vector<int> word;
-  if (log_conjecture_enumerate(word, a, initial_state))
-    return write_counterexample(word, '0');
-  
+  // XXX: Doesn't scale
+  if (include_negative_feedback)
+  {
+    letters.clear();
+    const int initial_state=*a.initial_states.begin();
+    if (log_conjecture_enumerate(letters, a, initial_state))
+      return write_counterexample(letters, '0');
+  }
+
   return 1; // Equivalent
 }
 
@@ -823,11 +873,11 @@ bool answer_Conjecture_cbmc(conjecture * cj) {
 }
 
 void positive_queries(list<int> query) {
-	list<int>::iterator it;
+	  list<int>::iterator it;
     unsigned size = query.size();
     ostringstream ist;
-	cout<< "positive query= ";
-	ist << "echo \"if (_Learn_idx == " << size << " && ";
+  	cout<< "positive query= ";
+	  ist << "echo \"if (_Learn_idx == " << size << " && ";
     int i = 0;
     for (it = query.begin(); it != query.end(); ++i)
     {
@@ -894,7 +944,13 @@ char membership_pre_checks(list<int> query) {
             return 0;
         }
     }
-    
+
+#ifdef _LOG_PRE_CHECK
+    // Entries in the query log (e.g. generated by smid) are definitely in the language.
+    CURRENT_QUERY=&query;
+    if (!run_log(true)) return 1;
+#endif 
+
     return 2;
 }
 
@@ -902,6 +958,7 @@ char membership_pre_checks(list<int> query) {
 // #define org   // org = original membership_cfg_checks below, which only saves the last prefix, in contrast to the new one that saves them all. 
 //#define cfg_checks_list  // with bad_prefixes= list<list<int>>
 #define cfg_checks_hash
+//#define org
 
 #ifdef cfg_checks_hash
 
@@ -997,8 +1054,7 @@ bool membership_cfg_checks(list<int> query) {
 					return false;
 				}
 				if (*bad_prefix_it != *it) same_prefix = false; // will abort this prefix
-				++bad_prefix_it;			
-				//st << "c::" << func_name[*it] << endl;
+				++bad_prefix_it;
 			}
 	}
 	
@@ -1079,7 +1135,6 @@ bool membership_cfg_checks(list<int> query) {
                 ++bad_prefix_it;
             }
             st << func_name[*it] << endl;
-            //st << "c::" << func_name[*it] << endl;
         }
     stringstream tmp;
     FILE *seq = fopen(input_file_seq.c_str(), "w");
@@ -1263,7 +1318,11 @@ finite_automaton* learn() {
 			cout << "** conjecture " << endl;
 			conjectures++;
 			cout << "conjectures = " << conjectures << endl;
-            if (conjectured) Abort(string("last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. "));
+            if (conjectured) 
+            {
+              cerr << "last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. " << endl;
+              return 0;
+            }
             conjectured = true;
 			std::list<int> ce; 
 			static std::list<int> prev_ce;
@@ -1281,6 +1340,11 @@ finite_automaton* learn() {
 				}
 			}
 
+#ifdef _LOG_PRE_CHECK
+      if (is_equivalent)
+        is_equivalent = log_conjecture_pre_check_positive_feedback(*cj, ce);
+#endif
+
 			if (is_equivalent)
 				is_equivalent = answer_Conjecture_pre_check(cj, ce); // graph analysis, searches for back edges, and fills ce if found one. 			
 
@@ -1293,7 +1357,7 @@ finite_automaton* learn() {
             } else {
                 // Get a counterexample
                 if (ce.size() == 0) 
-					get_CounterExample(alphabet_size, ce); // this means that we called cbmc rather than found a counterexample with the precheck.
+					ce = get_CounterExample(alphabet_size); // this means that we called cbmc rather than found a counterexample with the precheck.
 				
                 report_conjecture(ce, conjecture_result);				
 				
@@ -1340,6 +1404,9 @@ void exit_learn() {
     
     string rm_input_file_seq = "rm " + input_file_seq;
     run(rm_input_file_seq.c_str());
+
+    string rm_input_file_is = "rm " + input_file_is;
+    run(rm_input_file_is.c_str());
     
     string rm_input_file_working_copy = "rm " + input_file_working_copy;
     run(rm_input_file_working_copy.c_str());
@@ -1624,9 +1691,10 @@ int main(int argc, const char**argv) {
     
 #ifdef _EXPERIMENT_MODE
     
-	    for(int user_bound = 1; user_bound < 4; ++user_bound) { 
+	    //for(int user_bound = 1; user_bound < 4; ++user_bound) {
+      for(int user_bound = 2; user_bound < 3; ++user_bound) { 
         
-	    	int MAX_UPPER_BOUND = 30;
+	    	int MAX_UPPER_BOUND = 13;
 
 			finite_automaton *conjectured_automata[MAX_UPPER_BOUND + 1];
 			std::fill(conjectured_automata, conjectured_automata + sizeof(conjectured_automata) / sizeof(conjectured_automata[0]), (finite_automaton *) 0);
@@ -1655,12 +1723,28 @@ int main(int argc, const char**argv) {
             
 #ifdef _EXPERIMENT_MODE
             
-	            conjectured_automata[word_length] = (learning_alg == Learn_Angluin)? learn<angluin_simple_table<bool> >(): learn<rivest_schapire_table<bool> >();
-            
+              while(!(conjectured_automata[word_length] = (learning_alg == Learn_Angluin)? learn<angluin_simple_table<bool> >(): learn<rivest_schapire_table<bool> >()))
+              {
+                if (LOG_CBMC != backend)
+                {
+                  reset(ss);
+                  ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".log";
+                  std::ofstream ofs(ss.str().c_str());
+                  ofs << "last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. " << endl;
+                  break;
+                }
+                else
+                  add_last_ce_to_logfile();
+              }
+              if (!conjectured_automata[word_length]) continue;
 #else
-	            if (learning_alg == Learn_Angluin) learn<angluin_simple_table<bool> >();
-				else learn<rivest_schapire_table<bool> >();
-
+              while(!(learning_alg == Learn_Angluin ? learn<angluin_simple_table<bool> >() : learn<rivest_schapire_table<bool> >()))
+              {
+                if (LOG_CBMC != backend)
+                  exit(1);
+                else
+                  add_last_ce_to_logfile();
+              }
 #endif
             
 #ifdef _EXPERIMENT_MODE
