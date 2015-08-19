@@ -697,9 +697,15 @@ int write_counterexample(const list<int> &letters, char feedback) {
   return 0;
 }
 
+#if defined(_EXPERIMENT_MODE) && defined(_LOG_PRE_CHECK)
 bool is_query_not_in_log(const list<int> &word) {
   return NO_ENTRY_FOUND == lookup_query(word);
 }
+#else
+bool is_query_not_in_log(const list<int> &word) {
+  return true;
+}
+#endif
 
 bool log_conjecture_enumerate(list<int> &word, const finite_automaton &a, int state) {
   if (word.size() >= word_length)
@@ -721,6 +727,7 @@ bool log_conjecture_enumerate(list<int> &word, const finite_automaton &a, int st
   return false;
 }
 
+#if defined(_EXPERIMENT_MODE) && defined(_LOG_PRE_CHECK)
 void add_last_ce_to_logfile() {
   const list<int> ce=get_CounterExample(alphabet_size);
   remember_query(ce, true);
@@ -754,6 +761,14 @@ bool log_conjecture_pre_check_positive_feedback(const conjecture &cj, list<int> 
   path.clear();
   return true; 
 }
+#else
+void add_last_ce_to_logfile() {
+}
+
+bool log_conjecture_pre_check_positive_feedback(const conjecture &cj, list<int> &path) {
+  return true;
+}
+#endif
 }
 
 int run_log_conjecture(bool include_negative_feedback = false) {
@@ -779,6 +794,7 @@ int run_log_conjecture(bool include_negative_feedback = false) {
   return 1; // Equivalent
 }
 
+#if defined(_EXPERIMENT_MODE) && defined(_LOG_PRE_CHECK)
 int run_log(bool membership) {
   if (!membership)
     return run_log_conjecture();
@@ -791,6 +807,11 @@ int run_log(bool membership) {
   // No entry in query database. We're guessing.
   return 1;
 }
+#else
+int run_log(bool membership) {
+  assert("Log backend outside of experiment mode (query cache needed)." == 0);
+}
+#endif
 
 #ifdef _EXPERIMENT_MODE
 void prefill_query_cache()
