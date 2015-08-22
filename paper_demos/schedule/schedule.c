@@ -1,6 +1,6 @@
 /*  -*- Last-Edit:  Wed May 7 10:12:52 1993 by Monica; -*- */
 
-
+#include <malloc.h>
 #include <stdio.h>
 
 /* A job descriptor. */
@@ -156,6 +156,8 @@ Ele* cur_proc;
 List *prio_queue[EXPERIMENT_MAXPRIO+1]; 	/* 0th element unused */
 List *block_queue;
 
+void schedule(void);
+
 void
 finish_process()
 {
@@ -178,7 +180,8 @@ finish_all_processes()
 	finish_process();
 }
 
-schedule()
+void
+schedule(void)
 {
     int i;
     
@@ -372,7 +375,7 @@ char *argv[];
 	    fscanf(stdin, "%f", &ratio);
 	    if (prio > MAXPRIO || prio <= 0) { 
 		fprintf(stdout, "** invalid priority\n");
-		return;
+		//return;
 	    }
 	    else 
 		upgrade_process_prio(prio, ratio);
@@ -381,7 +384,7 @@ char *argv[];
 	    fscanf(stdin, "%d", &prio);
 	    if (prio > MAXPRIO || prio <= 0) {
 		fprintf(stdout, "** invalid priority\n");
-		return;
+		//return;
 	    }
 	    else 
 		add_process(prio);
