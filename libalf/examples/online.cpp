@@ -30,6 +30,10 @@ int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
 int mem_queries, cbmc_conjectures, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
 enum {CONJ_FALSE, CONJ_TRUE, CONJ_UNKNOWN} conjecture_result = CONJ_UNKNOWN, prev_conjecture_result = CONJ_UNKNOWN;
+// JQ experiments have shown that the first membership query after the conjecture is not always the path returned
+// by the conjecture! This lead to spurious words in the automaton and in the worst case a nondet error. We keep
+// track of the last CE from the conjcture to avoid this.
+list<int> LAST_CONJECTURE_CE;
 enum {Learn_Angluin, Learn_RS} learning_alg = Learn_Angluin;
 void Abort(string msg);
 int run(const char* cmd);
@@ -75,6 +79,8 @@ bool report_conjecture(const std::list<int> &word, int result) {
   return report_query(word, result, 'C', "run_backend");
 }
 #else
+bool report_query(const list<int> &word, bool result, const char type, const char *respondent) { return result; }
+
 bool report_membership(const list<int> &word, bool result, const char *respondent) { return result; }
 
 bool report_conjecture(const std::list<int> &word, int result) { return result; }
@@ -95,11 +101,22 @@ enum membership_query_cache_resultt {
 #ifndef _DISABLE_CACHE
 typedef boost::unordered_map<std::list<int>, bool> membership_query_cachet;
 membership_query_cachet MEMBERSHIP_QUERY_CACHE;
-membership_query_cachet MEMBERSHIP_AND_CONJECTURE_CACHE;
 
-membership_query_cache_resultt lookup_query_from(const membership_query_cachet &cache, const std::list<int> &query)
+typedef std::map<std::list<int>, bool, bool(*)(const std::list<int> &, const std::list<int> &)> membership_and_conjecture_query_cachet;
+bool compare_cached_query(const std::list<int> &lhs, const std::list<int> &rhs)
 {
-  const membership_query_cachet::const_iterator it(cache.find(query));
+  const size_t lhs_size=lhs.size();
+  const size_t rhs_size=rhs.size();
+  if (lhs_size < rhs_size) return true;
+  if (lhs_size > rhs_size) return false;
+  return lhs < rhs; // lexicographical compare
+}
+membership_and_conjecture_query_cachet MEMBERSHIP_AND_CONJECTURE_CACHE(&compare_cached_query);
+
+template<class cachet>
+membership_query_cache_resultt lookup_query_from(const cachet &cache, const std::list<int> &query)
+{
+  const typename cachet::const_iterator it(cache.find(query));
   if(cache.end() == it) { return NO_ENTRY_FOUND; }
   return it->second ? IN_LANGUAGE : NOT_IN_LANGUAGE;
 }
@@ -757,8 +774,8 @@ bool log_conjecture_pre_check_positive_feedback(const conjecture &cj, list<int> 
   // Check if postive entries in the membership query cache are not in the automaton.
   // This check only makes sense in the context of a pre-filled membership query cache using log file data.
   // Outside of that, L* does not have such inconsistencies.
-  const membership_query_cachet &queries=MEMBERSHIP_AND_CONJECTURE_CACHE;
-  for (membership_query_cachet::const_iterator it=queries.begin(); it != queries.end(); ++it)
+  const membership_and_conjecture_query_cachet &queries=MEMBERSHIP_AND_CONJECTURE_CACHE;
+  for (membership_and_conjecture_query_cachet::const_iterator it=queries.begin(); it != queries.end(); ++it)
   {
     if (!it->second) continue;
     const list<int> &path=it->first;
@@ -933,7 +950,7 @@ char membership_pre_checks(list<int> query) {
     }
     
     // The query is right after conjecture, and we trust the result. 
-	if (conjecture_result != CONJ_UNKNOWN) {
+	if (conjecture_result != CONJ_UNKNOWN && LAST_CONJECTURE_CE == query) {
 		if (conjecture_result == CONJ_FALSE) {
 			cout << "Feedback from conjecture (no)!" << endl;
 			conjecture_result = CONJ_UNKNOWN;		
@@ -1391,8 +1408,9 @@ finite_automaton* learn() {
                 // Get a counterexample
                 if (ce.size() == 0) 
 					ce = get_CounterExample(alphabet_size); // this means that we called cbmc rather than found a counterexample with the precheck.
-				
-                report_conjecture(ce, CONJ_TRUE == conjecture_result);				
+
+                LAST_CONJECTURE_CE=ce; // We store this for the membership "from conjecture" pre-check
+                report_conjecture(ce, CONJ_TRUE == conjecture_result);			
 				
 				if (learning_alg == Learn_RS)  {
 					prev_conjecture_result = CONJ_UNKNOWN;
@@ -1669,6 +1687,7 @@ finite_automaton* intersect(finite_automaton* &A, finite_automaton* &B) { // ~MD
 	
 }
 
+#ifdef _QUERY_LOG
 void copy_queries_log_to_learn_output(int user_bound)
 {
   std::ostringstream ss;
@@ -1678,6 +1697,7 @@ void copy_queries_log_to_learn_output(int user_bound)
   remove_log.open(QUERY_LOG_FILE, std::ofstream::out | std::ofstream::trunc);
   remove_log.close();
 }
+#endif
 
 #ifdef _EXPERIMENT_MODE
 #define WORD_LENGTH_ARGUMENT_INDEX 2 
@@ -1741,11 +1761,23 @@ int main(int argc, const char**argv) {
     
 	    //for(int user_bound = 1; user_bound < 4; ++user_bound) {
       //for(int user_bound = 2; user_bound < 3; ++user_bound) {
-      for(int user_bound = 2; user_bound < 3; ++user_bound) { // schedule 
+      for(int user_bound = 2; user_bound < 3; ++user_bound) { // schedule
+      //for(int user_bound = 1; user_bound < 2; ++user_bound) { // tcas
+      //for(int user_bound = 1; user_bound < 4; ++user_bound) { // sll
+      //for(int user_bound = 1; user_bound < 4; ++user_bound) { // merge_sort
+      //for(int user_bound = 1; user_bound < 2; ++user_bound) { // defroster
+      //for(int user_bound = 1; user_bound < 4; ++user_bound) { // bubble
+      //for(int user_bound = 1; user_bound < 5; ++user_bound) { // docking 
         
 	    	//int MAX_UPPER_BOUND = 13;
-        //int MAX_UPPER_BOUND = 14; // schedule
-        int MAX_UPPER_BOUND = 6; // schedule
+        int MAX_UPPER_BOUND = 13; // schedule
+        //int MAX_UPPER_BOUND = 25; // tcas
+        //int MAX_UPPER_BOUND = 31; // sll
+        //int MAX_UPPER_BOUND = 16; // merge_sort
+        //int MAX_UPPER_BOUND = 29; // defroster
+        //int MAX_UPPER_BOUND = 18; // bubble
+        //int MAX_UPPER_BOUND = 16; // docking
+
 
 			finite_automaton *conjectured_automata[MAX_UPPER_BOUND + 1];
 			std::fill(conjectured_automata, conjectured_automata + sizeof(conjectured_automata) / sizeof(conjectured_automata[0]), (finite_automaton *) 0);
@@ -1784,9 +1816,11 @@ int main(int argc, const char**argv) {
                     std::ofstream ofs(ss.str().c_str());
                     ofs << "last counterexample corresponds to a nondeterministic path: it can either belong or not belong to the language. " << endl;
                   }
+#ifdef _QUERY_LOG
                   QUERY_LOG.close();
                   copy_queries_log_to_learn_output(user_bound);
                   QUERY_LOG.open(QUERY_LOG_FILE);
+#endif
                   {
                     reset(ss);
                     ss << "learn_output/" << input_file_prefix << "-" << user_bound << "-" << word_length << ".tmpfile";
