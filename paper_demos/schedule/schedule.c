@@ -322,7 +322,8 @@ char *argv[];
 {
     // Simulate user input
     const int number_of_priorities = nondet_int();
-    __CPROVER_assume(1 <= number_of_priorities && number_of_priorities <= EXPERIMENT_MAXPRIO);
+    //__CPROVER_assume(1 <= number_of_priorities && number_of_priorities <= EXPERIMENT_MAXPRIO);
+    __CPROVER_assume(0 <= number_of_priorities && number_of_priorities <= EXPERIMENT_MAXPRIO); // Accommodating Kareem's changes
     MAXPRIO = number_of_priorities;
     const int number_of_user_inputs = nondet_int();
     __CPROVER_assume(0 <= number_of_user_inputs && number_of_user_inputs <= EXPERIMENT_MAX_USER_INPUTS);
