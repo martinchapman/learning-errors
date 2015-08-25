@@ -121,10 +121,11 @@ membership_query_cache_resultt lookup_query_from(const cachet &cache, const std:
   return it->second ? IN_LANGUAGE : NOT_IN_LANGUAGE;
 }
 
-membership_query_cache_resultt lookup_query(const std::list<int> &query, bool is_conjecture=false) {
+membership_query_cache_resultt lookup_query(const std::list<int> &query) {
+#ifdef _LOG_PRE_CHECK
   const membership_query_cache_resultt result=lookup_query_from(MEMBERSHIP_AND_CONJECTURE_CACHE, query);
   if (NO_ENTRY_FOUND != result) return result;
-  if (is_conjecture) return NO_ENTRY_FOUND;
+#endif
   return lookup_query_from(MEMBERSHIP_QUERY_CACHE, query);
 }
 
@@ -774,12 +775,13 @@ bool log_conjecture_pre_check_positive_feedback(const conjecture &cj, list<int> 
   // Check if postive entries in the membership query cache are not in the automaton.
   // This check only makes sense in the context of a pre-filled membership query cache using log file data.
   // Outside of that, L* does not have such inconsistencies.
+  const size_t max_path_length = word_length / 2;  // We're conservative with the counterexamples we return from the log. Large counterexamples lead to longer L* trajectories and more CBMC calls.
   const membership_and_conjecture_query_cachet &queries=MEMBERSHIP_AND_CONJECTURE_CACHE;
   for (membership_and_conjecture_query_cachet::const_iterator it=queries.begin(); it != queries.end(); ++it)
   {
     if (!it->second) continue;
     const list<int> &path=it->first;
-    if (path.size() > word_length) continue;  // Log may contain very long queries which are out of scope.
+    if (path.size() > max_path_length) continue;  // Log may contain very long queries which are out of scope.
     if(!a.contains(path))
     {
 		  cout << "found positive feedback " << endl;
@@ -844,7 +846,7 @@ int run_log(bool membership) {
 }
 #endif
 
-#ifdef _EXPERIMENT_MODE
+#if defined(_EXPERIMENT_MODE) && defined(_LOG_PRE_CHECK)
 void prefill_query_cache()
 {
   ifstream log_file(QUERY_FILE);
@@ -1000,12 +1002,10 @@ char membership_pre_checks(list<int> query) {
 }
 
 //only one of those should be defined
-// #define org   // org = original membership_cfg_checks below, which only saves the last prefix, in contrast to the new one that saves them all. 
-//#define cfg_checks_list  // with bad_prefixes= list<list<int>>
-#define cfg_checks_hash
-//#define org
+// Default: original membership_cfg_checks below, which only saves the last prefix, in contrast to the new one that saves them all. 
+//#define _CFG_CHECKS_HASH
 
-#ifdef cfg_checks_hash
+#ifdef _CFG_CHECKS_HASH
 
 unordered_set<string> bad_prefixes;
 
@@ -1076,90 +1076,9 @@ bool membership_cfg_checks(list<int>& query) {
     }
     return true;
 }
-#endif
 
-#ifdef cfg_checks_list
-list<list<int> > bad_prefixes;
+#else // _CFG_CHECKS_HASH
 
-bool membership_cfg_checks(list<int> query) {
-    
-    
-	cout << "in mem_cfg_checks. Size of bad_prefixes = " << bad_prefixes.size() << " query size = " << query.size() << endl;
-	list<int>::iterator it;
-    stringstream st;
-    bool same_prefix; 
-	for (list<list<int> >::iterator bad_prefixes_it = bad_prefixes.begin(); bad_prefixes_it != bad_prefixes.end(); ++bad_prefixes_it) { // for each bad prefix
-		same_prefix = true;
-		list<int>::iterator bad_prefix_it = (*bad_prefixes_it).begin();
-		for (it = query.begin(); same_prefix && it != query.end(); ++it) // go over query
-			if (*it >= min_func_idx) {
-				if (bad_prefix_it == (*bad_prefixes_it).end()) {  // same prefix as the previous failed one; we skip cfg check and return false.
-					cout << "cfg (prefix)" << endl;
-					++cfg_prefix;
-					return false;
-				}
-				if (*bad_prefix_it != *it) same_prefix = false; // will abort this prefix
-				++bad_prefix_it;
-			}
-	}
-	
-	for (it = query.begin(); it != query.end(); ++it) // go over query
-		st << func_name[*it] << endl;
-	
-
-	cout << "st  = " << st.str() << endl;
-    stringstream tmp;
-    FILE *seq = fopen(input_file_seq.c_str(), "w");
-    fprintf(seq, "main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
-    //fprintf(seq, "c::main\n%s", st.str().c_str()); // we add main because 1) it is not in the alphabet, but 2) it is necessary for identifying the sequence in the cfg by goto-instrument
-    fclose(seq);
-    
-#ifdef _MYWIN32
-    // ~MDC grep search for 'not feasible' may need altering
-    tmp << "cmd /c " <<  "\"goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res\"";
-    // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
-#else
-    tmp <<				   "goto-instrument " << input_file_exe << " --check-call-sequence " << input_file_prefix << " --call-sequence-bound 35 | tee tmp1 | grep -c \"not feasible\" > _seq.res";
-    // TODO: change '35' to something more proportional to the word-length. It prevents observing sequence of non-interesting function of length > 35, which is important for preventing non-termination when there is recursion of such functions.
-#endif
-    
-    run(tmp.str().c_str());
-    ++cfg_queries;
-    FILE *seq_res = fopen ("_seq.res", "r");
-    int res;
-    if (fscanf(seq_res, "%d", &res) != 1) Abort("cannot read _seq.res");
-    fclose(seq_res);
-    //cout << res << endl;
-    //exit(1);
-    if (res == 1) {
-        cout << "cfg! ";
-        // now we find where the point of failure was
-        tmp.str("");
-        tmp << "tail -n 1 tmp1 > _seq_failure.res";
-        run(tmp.str().c_str());
-        seq_res = fopen ("_seq_failure.res", "r");
-		int failure_point;
-        if (fscanf(seq_res, "%d", &failure_point) != 1) Abort("cannot read _seq_failure.res");
-        fclose(seq_res);
-		list<int> bad_prefix;
-		
-        list<int>::iterator tmp_it = query.begin();
-        cout << "bad prefix = ";
-        for (int i = 0; i < failure_point; ++i)
-        {
-            bad_prefix.push_back(*tmp_it);
-            cout << *tmp_it << " ";
-            ++tmp_it;
-        }
-		bad_prefixes.push_back(bad_prefix);
-        cout << endl;
-        return false;
-    }
-    return true;
-}
-#endif
-
-#ifdef org
 bool membership_cfg_checks(list<int> query) {
     static list<int> bad_prefix(1,-1);
     static int failure_point = -1;
@@ -1388,7 +1307,7 @@ finite_automaton* learn() {
 				}
 			}
 
-#ifdef _LOG_PRE_CHECK
+#if defined(_LOG_PRE_CHECK) && defined(_LOG_CONJECTURE_PRE_CHECK)
       if (is_equivalent)
         if (!(is_equivalent = log_conjecture_pre_check_positive_feedback(*cj, ce)))
           report_query(ce, true, 'C', "run_backend_log_pre_check");
