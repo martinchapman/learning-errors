@@ -13,6 +13,19 @@
 .disabled_gray {
 	color: #C8C8C8;
 }
+
+.setup_instructions {
+  width: 1000px;
+}
+
+.shell_command {
+  color: #000000;
+  background: #F1F0F0;
+}
+
+.shell_url {
+  color: #40015a;
+}
 </style>
 <title>Learning the Language of Error: Accessory Homepage</title>
 </head>
@@ -22,7 +35,13 @@
 		<div id="main">
 			<h1>Learning the Language of Error: Accessory Information</h1>
 
-			<h2 class="accessory_section">Demos</h2>
+      <ul>
+        <li><a href="#demos">Demos</a></li>
+        <li><a href="#instructions">Usage instructions</a></li>
+        <li><a href="#resources">Resources</a></li>
+      </ul>
+
+			<h2 class="accessory_section" id="demos">Demos</h2>
 
 			<h3>DockingApproachExample_Ext</h3>
 			<form>
@@ -277,7 +296,7 @@
 					<tr>
 						<td>Maximum word length:</td>
 						<td><input id="_schedule_max_word_length" type="range" step="1"
-							min="4" value="4" max="11" onchange="update_schedule()"
+							min="4" value="4" max="13" onchange="update_schedule()"
 							oninput="update_schedule()"></td>
 						<td id="_schedule_max_word_length_lexical">4</td>
 					</tr>
@@ -295,8 +314,54 @@
 					onerror="this.src='automata/_schedule-2-4.png'" width="1300em">
 			</div>
 
+			<h2 class="accessory_section" id="instructions">Usage Instructions</h2>
+      <ol class="setup_instructions">
+        <li>Get Learn Environment
+<pre class="shell_command shell_url">svn co https://subversion.assembla.com/svn/learn_environment/ learn_trunk</pre></li>
+        <li>Get CBMC
+<pre class="shell_command shell_url">svn co http://www.cprover.org/svn/cbmc/trunk/@5190 cbmc_trunk</pre></li>
+        <li>Patch CBMC
+<pre class="shell_command shell_url">svn patch learn_trunk/trunk/cbmc-patch/learn-v3-full-cbmc-5190.diff cbmc_trunk/</pre></li>
+        <li>Build CBMC
+As instructed in cbmc_trunk/COMPILING, per OS. For example on OSX:
+<pre class="shell_command shell_url">
+make -C cbmc_trunk/src minisat2-download
+make -C cbmc_trunk/src</pre></li>
+        <li>
+Add CBMC, goto-cc and goto-instrument to path or move to bin
+<pre class="shell_command shell_url">
+ln -s cbmc_trunk/src/cbmc/cbmc /usr/bin
+ln -s cbmc_trunk/src/goto-cc/goto-cc /usr/bin
+ln -s cbmc_trunk/src/goto-instrument/goto-instrument /usr/bin</pre></li>
+        <li>(optional) If on a Windows OS, enable makefile
+<pre class="shell_command shell_url">
+mv Makefile Makefile.linux
+mv Makefile.win Makefile</pre></li>
+        <li>Build learn environment
+<pre class="shell_command shell_url">make -C learn_trunk/trunk/</pre></li>
+        <li>Run GUI (for command line skip to Step 11.)
+<pre class="shell_command shell_url">
+cd learn_trunk/trunk/
+java -jar gui.jar</pre></li>
+        <li>Press &#39;Select File&#39; and navigate to &#39;learn_trunk/trunk/paper_demos/tcas_auto_instrumented/tcas_auto_instrumented.c&#39;</li>
+        <li>Press &#39;Run&#39;</li>
+        <li>(optional) Run on command line
+<pre class="shell_command shell_url">
+cd learn_trunk/trunk/
+./run.sh paper_demos/tcas_auto_instrumented/tcas_auto_instrumented.c</pre></li>
+      </ol>
 
-			<h2 class="accessory_section">Resources</h2>
+      <h2 class="accessory_section" id="contact">Contact</h2>
+			<ul>
+				<li><a target="_blank" href="http://www.kcl.ac.uk/nms/depts/informatics/people/atoz/chapmanm.aspx">Martin Chapman, Department of Informatics, King's College London, UK</a></li>
+        <li><a target="_blank" href="http://www.kcl.ac.uk/nms/depts/informatics/people/atoz/chocklerh.aspx">Hana Chockler, Department of Informatics, King's College London, UK</a></li>
+        <li><a target="_blank" href="https://www.cs.ox.ac.uk/people/pascal.kesseli/">Pascal Kesseli, Department of Computer Science, University of Oxford, UK</a></li>
+        <li><a target="_blank" href="https://www.cs.ox.ac.uk/people/daniel.kroening/">Daniel Kroening, Department of Computer Science, University of Oxford, UK</a></li>
+        <li><a target="_blank" href="http://ie.technion.ac.il/~ofers/">Ofer Strichman, Information Systems Engineering, Technion, Haifa, Israel</a></li>
+        <li><a target="_blank" href="http://www.eecs.qmul.ac.uk/people/view/33534/dr-michael-tautschnig">Michael Tautschnig, EECS, Queen Mary University of London, UK</a></li>
+      </ul>
+
+			<h2 class="accessory_section" id="resources">Resources</h2>
 			All automata in .dot, .svg and .png format:
 			<ul>
 				<li><a href="automata/_DockingApproachExample_Ext.tar.gz">DockingApproachExample_Ext.tar.gz</a></li>
