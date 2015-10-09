@@ -1,4 +1,4 @@
-Add the following to the GUI:
+﻿Add the following to the GUI:
 
 1. for each function, a checkmark that upon activation also makes an event out of the exit point of the function. It adds letters, which is not so good, but it might be useful to distinguish between, say
 f() {
@@ -18,34 +18,28 @@ Goto-instrument supports adding events at exit points.
 
 2. Slicing: with this option, 'f' will be removed from the alphabet if it is not in the slice of the assertion.
 
-
 3. positive pre-checks should be added to the positive-queries cache. 
 
-4. (?) currently with the trap mechanism we may delay convergance. 
+4. Spurious traces: 
+Currently with the trap mechanism we do not remove all such traces, and also we may delay convergance. 
 For example, a word a,b,c,assert
 There is a branch after b that lets the program either go to c and assert, or just exit the program. If it exits the program, the trap nondeterministically chooses c,assert and declares this word as a negaive feedback. Despite the fact that we could have converged at that point (answer yes to the conjecture). libalf does not know if we answer with a negative or positive feedback - it just produces membership queries. But what if this is not really a counterexample? i.e., then all the membership queries are supposed to be consistent with the current automaton. This seems to contradict an invariant of L*, namely that the feedback changes the conjecture. 
 It seems that as long as there are words shorter than the bound that are accepted by A but are not supported yet by the assumptions, then we will not converge. What happens is that those words serve as feedback, asked as a membership query, and only then added as an assumption.
+
 Possible solution: do not do it via a feedback to the conjecture. It other words: when we find a negative feedback via the trap, ask separately a membership query about this word, and if it is in the language, then repeat with the same conjecture but with an additional assumption. This is only true about feedback from the trap. 'normal' negative feedback is indeed a counterexample.
+
+* better solution: remove trap mechanism all together. then after convergence 1) intersect A with the control-flow graph, and 2) go over all words up to length 'bound' that we do not have a positive entry forthem in the cache, and pose a membership query. If it is negative then remove it from the language. 
 
 5. Limiting tests to those that have a loop bound. 
 
 
-Summary of the Skype discussion on 09/10/2015 (Ofer, Daniel, Michael, Hana):
 
-- The task of intersecting a conjecture automaton with the CFG in order to get rid of non-existing words is Michael’s. Either Michael will do it, or his undergrad will.
-
-We identified two main directions for continuing the research:
-
-1. Continuing the ideas that we described in the ICSE submission: using a testing tool as an oracle for the learning framework. We focus on large programs with very large log files and position our approach as a new idea in log file analysis. For this, we need to research how to structure the log files better, so that reading them will not in itself be an overhead on the algorithm. One idea is to structure the executions in the log in a dictionary (only keeping suffices for words with common prefixes). Another idea is to create an “automaton” from the log file - then, what is the result of computing a cross-product of this automaton with a conjecture? Can we restrict the model checking oracle for the conjecture only to words that were not present in the log file? What will be the result? Also, more experiments on larger programs. We need to start working now, so that we can improve the (likely to be rejected) ICSE submission for ISSTA.
-
-2. Lazy learning in its most complex variation: updating the internal table constructed by L*. Some theoretical complexity results might be achievable here, in particular if we restrict the iteration where we can introduce the fix or maybe if we compute the average complexity instead of the worst case. Updating L* with lazy learning feature might be useful for other applications that use L*, not only verification. What if we backtrack to a limited depth? What if we save snapshots of the table at times when it was known to be correct?
-
-A future direction (after we finish with these): learning the alphabet while we are learning the language. Essentially, we are looking for a smallest set of interesting events that separate faulty executions from correct ones. Decision trees are relevant here. We will not be able to do automatic instrumentation (or perhaps we will, but we need to define what is the pool of possible events).
-
-Hana will contact Ben Laurie again about funding.
-
-Martin - perhaps is less busy now and can do the GUI? (in particular, the explicit membership query)
-
-Kareem - currently is in internship in Google and is unavailable until December.
+6. Structure the log files better, perhaps via a dictionary struture (only keeping suffixes for words with common prefixes). Can also create an “automaton” (which is inherintly loop-free) from the log file - then, compute a cross-product of this automaton with a conjecture to identify feedbacks. 
 
 
+
+7. Updating the internal table constructed by L* for better lazy learning. 
+
+8. With decision-tree learning (e.g. the ID3 algorithm or others), find a small (or smallest, but this is np-hard) set of events that separate faulty executions from correct ones (currently the logs are projected to a predefined set of events. We can start with a large set ('all functions and branches') and let it find the attributes that make the sepration. 
+
+9. Permit as part of the GUI to remove letters. This will create a non-det automaton, which then has to be re-minimized (and possibly determinized).
