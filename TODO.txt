@@ -28,3 +28,24 @@ It seems that as long as there are words shorter than the bound that are accepte
 Possible solution: do not do it via a feedback to the conjecture. It other words: when we find a negative feedback via the trap, ask separately a membership query about this word, and if it is in the language, then repeat with the same conjecture but with an additional assumption. This is only true about feedback from the trap. 'normal' negative feedback is indeed a counterexample.
 
 5. Limiting tests to those that have a loop bound. 
+
+
+Summary of the Skype discussion on 09/10/2015 (Ofer, Daniel, Michael, Hana):
+
+- The task of intersecting a conjecture automaton with the CFG in order to get rid of non-existing words is Michael’s. Either Michael will do it, or his undergrad will.
+
+We identified two main directions for continuing the research:
+
+1. Continuing the ideas that we described in the ICSE submission: using a testing tool as an oracle for the learning framework. We focus on large programs with very large log files and position our approach as a new idea in log file analysis. For this, we need to research how to structure the log files better, so that reading them will not in itself be an overhead on the algorithm. One idea is to structure the executions in the log in a dictionary (only keeping suffices for words with common prefixes). Another idea is to create an “automaton” from the log file - then, what is the result of computing a cross-product of this automaton with a conjecture? Can we restrict the model checking oracle for the conjecture only to words that were not present in the log file? What will be the result? Also, more experiments on larger programs. We need to start working now, so that we can improve the (likely to be rejected) ICSE submission for ISSTA.
+
+2. Lazy learning in its most complex variation: updating the internal table constructed by L*. Some theoretical complexity results might be achievable here, in particular if we restrict the iteration where we can introduce the fix or maybe if we compute the average complexity instead of the worst case. Updating L* with lazy learning feature might be useful for other applications that use L*, not only verification. What if we backtrack to a limited depth? What if we save snapshots of the table at times when it was known to be correct?
+
+A future direction (after we finish with these): learning the alphabet while we are learning the language. Essentially, we are looking for a smallest set of interesting events that separate faulty executions from correct ones. Decision trees are relevant here. We will not be able to do automatic instrumentation (or perhaps we will, but we need to define what is the pool of possible events).
+
+Hana will contact Ben Laurie again about funding.
+
+Martin - perhaps is less busy now and can do the GUI? (in particular, the explicit membership query)
+
+Kareem - currently is in internship in Google and is unavailable until December.
+
+
