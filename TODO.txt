@@ -43,3 +43,5 @@ Possible solution: do not do it via a feedback to the conjecture. It other words
 8. With decision-tree learning (e.g. the ID3 algorithm or others), find a small (or smallest, but this is np-hard) set of events that separate faulty executions from correct ones (currently the logs are projected to a predefined set of events. We can start with a large set ('all functions and branches') and let it find the attributes that make the sepration. 
 
 9. Permit as part of the GUI to remove letters. This will create a non-det automaton, which then has to be re-minimized (and possibly determinized).
+
+10. Automatically add functions up to a given distance (on the call graph, or on its undirected version) from the assert.
