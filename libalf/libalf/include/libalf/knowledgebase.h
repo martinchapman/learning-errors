@@ -1449,31 +1449,37 @@ class knowledgebase {
 		}}}
 
 		// XXX: Incremental L*
-    bool change_knowledge(std::list<int> & word, answer acceptance)
-    // will return false if knowledge for this word was
-    // already set and is != acceptance. in this case, the
-    // holder is in an inconsistent state and the
-    // knowledgebase will not change itself.
+		std::map<unsigned int, std::pair<std::list<int>, answer> > undo_knowledge(std::map<std::list<int>, answer> new_knowledge)
     {{{
-      node * const existing=root->find_descendant(word.begin(), word.end());
-      if(!existing) return false;
-      const unsigned int milestone=existing->timestamp;
+      unsigned int milestone=timestamp;
+      for (typename std::map<std::list<int>, answer>::const_iterator it=new_knowledge.begin(); it != new_knowledge.end(); ++it)
+      {
+        const std::list<int> &word=it->first;
+        const node * const existing=root->find_descendant(word.begin(), word.end());
+        assert(existing);
+        milestone=std::min(milestone, existing->timestamp);
+      }
       std::map<unsigned int, std::pair<std::list<int>, answer> > knowledge_replay;
       for(iterator it = begin(); it != end(); ++it)
       {
         const unsigned int key=it->timestamp;
         if(key >= milestone)
         {
-          const std::list<int> saved_word=it->get_word();
-          const answer new_answer=word == saved_word ? acceptance : it->get_answer();
-          assert(knowledge_replay.insert(key, std::make_pair(saved_word, new_answer)).second);
+          const std::list<int> word=it->get_word();
+          const typename std::map<std::list<int>, answer>::const_iterator new_entry=new_knowledge.find(word);
+          const answer new_answer=new_entry == new_knowledge.end() ? it->get_answer() : new_entry->second;
+          assert(knowledge_replay.insert(std::make_pair(key, std::make_pair(word, new_answer))).second);
         }
       }
-      undo(timestamp - existing->timestamp);
-      for (typename std::map<unsigned int, std::pair<std::list<int>, answer> >::const_iterator it=knowledge_replay.begin(); it != knowledge_replay.end(); ++it)
+      undo(timestamp - milestone);
+      return knowledge_replay;
+    }}}
+    bool replay_knowledge(std::map<unsigned int, std::pair<std::list<int>, answer> > replay)
+    {{{
+      for (typename std::map<unsigned int, std::pair<std::list<int>, answer> >::iterator it=replay.begin(); it != replay.end(); ++it)
       {
-        const std::pair<std::list<int>, answer> &new_info=it->second;
-        add_knowledge(new_info.first, new_info.second);
+        std::pair<std::list<int>, answer> &new_info=it->second;
+        if(!add_knowledge(new_info.first, new_info.second)) return false;
       }
       return true;
     }}}
