@@ -343,16 +343,6 @@ class knowledgebase {
 				// this was already known and both knowledges
 				// differ)
 				{{{
-				  // XXX: Incremental learn pkesseli
-				  //if(NODE_ANSWERED == status) {
-				  //  if((answer) this->ans) return ans; // Existing 'yes'. Don't change, just report possible inconsistency.
-				  //  else if(!ans) return true;  // Existing 'no'. If new answer is also 'no', report consistency and exit.
-	        //  this->ans = ans;
-	        //  //this->timestamp = base->timestamp;
-	        //  return true;
-				  //}
-					// XXX: Incremental learn pkesseli
-				  // XXX: Original (non-incremental) handling
           // check for inconsistencies
           if(status == NODE_ANSWERED)
             return ((answer)this->ans == (answer)ans);
@@ -1474,6 +1464,7 @@ class knowledgebase {
       undo(timestamp - milestone);
       return knowledge_replay;
     }}}
+
     bool replay_knowledge(std::map<unsigned int, std::pair<std::list<int>, answer> > replay)
     {{{
       for (typename std::map<unsigned int, std::pair<std::list<int>, answer> >::iterator it=replay.begin(); it != replay.end(); ++it)

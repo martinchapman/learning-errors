@@ -40,10 +40,6 @@
 #include <arpa/inet.h>
 #endif
 
-// XXX: Incremental L*: Change existing answer
-#include <memory>
-// XXX: Incremental L*: Change existing answer
-
 #include <libalf/alphabet.h>
 #include <libalf/logger.h>
 #include <libalf/learning_algorithm.h>
@@ -121,6 +117,7 @@ class angluin_table : public learning_algorithm<answer> {
 		table lower_table;
 
 		bool initialized;
+
 	public: // methods
 		angluin_table()
 		{{{
@@ -320,17 +317,6 @@ class angluin_table : public learning_algorithm<answer> {
 			return true;
 		}}}
 
-		// XXX: Incremental L*: Change existing answer
-		virtual void fix_table(const std::list<int> &word, const answer value)
-		{{{
-		  const std::deque<typename table::size_type> changed_row_indexes=change_answer_in_table(upper_table, word, value);
-		  change_answer_in_table(lower_table, word, value);
-		  demote_redundant_states(changed_row_indexes);
-		  //remove_redundant_rows(lower_table);
-		  //remove_redundant_rows(upper_table);
-		}}}
-		// XXX: Incremental L*: Change existing answer
-
 		virtual std::list< std::list<int> > *get_columns()
 		{{{
 			std::list< std::list<int> > *l = new std::list< std::list<int> >();
@@ -345,85 +331,6 @@ class angluin_table : public learning_algorithm<answer> {
 		virtual void increase_alphabet_size(int new_asize) = 0;
 
 	protected:
-		// XXX: Incremental L*
-		std::deque<typename table::size_type> change_answer_in_table(table &t, const std::list<int> &word, const answer value)
-    {{{
-      std::deque<typename table::size_type> changed_row_indexes;
-      for (typename table::iterator row=t.begin(); row != t.end(); ++row)
-        for (columnlist::const_iterator col=column_names.begin(); col != column_names.end(); ++col)
-        {
-          const std::auto_ptr<std::list<int> > w(concat(row->index, *col));
-          if (word == *w)
-          {
-            const columnlist::const_iterator::difference_type index=std::distance(static_cast<const columnlist &>(column_names).begin(), col);
-            typename acceptances::iterator cell=row->acceptance.begin();
-            std::advance(cell, index);
-            *cell=value;
-            // XXX: Debug
-            const char * const table_name=&t==&upper_table ? "upper_table" : "lower_table";
-            std::ostringstream oss;
-            std::copy(word.begin(), word.end(), std::ostream_iterator<int>(oss, " "));
-            std::cout << "[fix_table] Changed word: " << oss.str() << " to: " << value << " in " << table_name << std::endl;
-            // XXX: Debug
-            changed_row_indexes.push_back(std::distance(t.begin(), row));
-          }
-        }
-      return changed_row_indexes;
-    }}}
-
-    void demote_redundant_states(const std::deque<typename table::size_type> &changed_row_indexes)
-    {{{
-      for (typename std::deque<typename table::size_type>::const_iterator idx=changed_row_indexes.begin(); idx != changed_row_indexes.end(); ++idx)
-      {
-        const size_t changed_row_idx=*idx;
-        typename table::iterator changed_row=upper_table.begin();
-        std::advance(changed_row, changed_row_idx);
-        for (typename table::iterator row=upper_table.begin(); row != upper_table.end(); ++row)
-        {
-          if (changed_row == row || changed_row->acceptance != row->acceptance) continue;
-          // XXX: Debug
-          std::ostringstream oss;
-          std::copy(row->index.begin(), row->index.end(), std::ostream_iterator<int>(oss, " "));
-          std::cout << "[fix_table] Demoted state: " << oss.str() << std::endl;
-          // XXX: Debug
-          if (changed_row->index.size() < row->index.size())
-          {
-            lower_table.push_back(*row);
-            upper_table.erase(row);
-          }
-          else
-          {
-            lower_table.push_back(*changed_row);
-            upper_table.erase(changed_row);
-          }
-          break;
-        }
-      }
-    }}}
-
-    void remove_redundant_rows(table &t)
-    {{{
-      std::set<size_t> row_indexes_to_remove;
-      std::set<acceptances> unique_acceptances;
-      std::deque<typename table::size_type> changed_rows;
-      const typename table::iterator first=t.begin();
-      for (typename table::iterator row=first; row != t.end(); ++row)
-      {
-        const acceptances &acc=row->acceptance;
-        if (unique_acceptances.end() == unique_acceptances.find(acc))
-          unique_acceptances.insert(acc);
-        else
-          row_indexes_to_remove.insert(std::distance(first, row));
-      }
-      for (std::set<size_t>::const_reverse_iterator row=row_indexes_to_remove.rbegin(); row != row_indexes_to_remove.rend(); ++row)
-      {
-        typename table::iterator it=first;
-        std::advance(it, *row);
-        t.erase(it);
-      }
-    }}}
-		// XXX: Incremental L*
-
 		virtual void initialize_table() = 0;
 		virtual void add_word_to_upper_table(std::list<int> word, bool check_uniq = true) = 0;
 

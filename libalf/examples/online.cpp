@@ -1297,21 +1297,11 @@ finite_automaton* learn() {
 	  list<list<int> > unconfirmed_queries;
     bool conjectured = false;
     //int counter = 0;
-    // XXX: Debug
-    int membership_count=0;
-    // XXX: Debug
     do {
-      // XXX: Debug
-      cout << "###### CURRENT TABLE ######" << endl;
-      algorithm.print(cout);
-      cout << "###### CURRENT TABLE ######" << endl;
-      // XXX: Debug
-
         // Advance the learning algorithm
         conjecture *cj = algorithm.advance();
         // Resolve membership queries
         if (cj == NULL) {
-          ++membership_count;
             //counter++;
             // retrieve queries
 			cout << "** membership " << endl;
@@ -1339,10 +1329,6 @@ finite_automaton* learn() {
         }
         // Resolve equivalence queries
         else {
-          // XXX: Debug
-          std::cout << "<membership_count>" << membership_count << "</membership_count>" << std::endl;
-          membership_count=0;
-          // XXX: Debug
             //counter++;
 			//if (conjectures == 1) exit(1);
 			cout << "** conjecture " << endl;
