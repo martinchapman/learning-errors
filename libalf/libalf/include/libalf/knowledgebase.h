@@ -343,9 +343,20 @@ class knowledgebase {
 				// this was already known and both knowledges
 				// differ)
 				{{{
-					// check for inconsistencies
-					if(status == NODE_ANSWERED)
-						return ((answer)this->ans == (answer)ans);
+				  // XXX: Incremental learn pkesseli
+				  //if(NODE_ANSWERED == status) {
+				  //  if((answer) this->ans) return ans; // Existing 'yes'. Don't change, just report possible inconsistency.
+				  //  else if(!ans) return true;  // Existing 'no'. If new answer is also 'no', report consistency and exit.
+	        //  this->ans = ans;
+	        //  //this->timestamp = base->timestamp;
+	        //  return true;
+				  //}
+					// XXX: Incremental learn pkesseli
+				  // XXX: Original (non-incremental) handling
+          // check for inconsistencies
+          if(status == NODE_ANSWERED)
+            return ((answer)this->ans == (answer)ans);
+          // XXX: Original (non-incremental) handling
 
 					if(status == NODE_REQUIRED)
 						base->required.remove(this);
@@ -1436,6 +1447,38 @@ class knowledgebase {
 		{{{
 			return root->find_or_create_descendant(word.begin(), word.end())->set_answer(acceptance);
 		}}}
+
+		// XXX: Incremental L*
+    bool change_knowledge(std::list<int> & word, answer acceptance)
+    // will return false if knowledge for this word was
+    // already set and is != acceptance. in this case, the
+    // holder is in an inconsistent state and the
+    // knowledgebase will not change itself.
+    {{{
+      node * const existing=root->find_descendant(word.begin(), word.end());
+      if(!existing) return false;
+      const unsigned int milestone=existing->timestamp;
+      std::map<unsigned int, std::pair<std::list<int>, answer> > knowledge_replay;
+      for(iterator it = begin(); it != end(); ++it)
+      {
+        const unsigned int key=it->timestamp;
+        if(key >= milestone)
+        {
+          const std::list<int> saved_word=it->get_word();
+          const answer new_answer=word == saved_word ? acceptance : it->get_answer();
+          assert(knowledge_replay.insert(key, std::make_pair(saved_word, new_answer)).second);
+        }
+      }
+      undo(timestamp - existing->timestamp);
+      for (typename std::map<unsigned int, std::pair<std::list<int>, answer> >::const_iterator it=knowledge_replay.begin(); it != knowledge_replay.end(); ++it)
+      {
+        const std::pair<std::list<int>, answer> &new_info=it->second;
+        add_knowledge(new_info.first, new_info.second);
+      }
+      return true;
+    }}}
+    // XXX: Incremental L*
+
 		int add_query(std::list<int> & word, int prefix_count = 0)
 		// returns the number of new required nodes (excluding
 		// those already known.

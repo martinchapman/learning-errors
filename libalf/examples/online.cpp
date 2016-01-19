@@ -47,6 +47,7 @@ string
 input_file_name_full,		// original full path (path/file.c => path/file.c)
 input_file_prefix,			// path/file.c =>  _file
 input_file_exe,				// path/file.c => <input_file_prefix>.exe
+input_file_unrestricted_exe, // path/file.c => <input_file_prefix>.org.exe
 input_file_seq,				// path/file.c => <input_file_prefix>
 input_file_is, 				// path/file.c => <input_file_prefix>.is
 input_file_working_copy,	// path/file.c => <input_file_prefix>.c
@@ -146,7 +147,11 @@ void remember_query(const std::list<int> &query, bool result) { }
 // Backend modes
 static enum {
   CBMC, SYMEX, SYMEX_CBMC, LOG_CBMC, LOG
+#ifdef _INCREMENTAL
+} backend = LOG_CBMC;
+#else
 } backend = CBMC;
+#endif
 
 //~MDC Needs to be addressed
 void rewrite_branch( string name, int num)
@@ -301,13 +306,15 @@ void define_file_prefixes(string file_name)
     input_file_prefix		= "_" + base_without_extension;
     input_file_working_copy = input_file_prefix + ".c";
 #ifdef _MYWIN32
-    input_file_exe			= input_file_prefix + ".exe";
+    input_file_exe			        = input_file_prefix + ".exe";
+    input_file_unrestricted_exe = input_file_prefix + ".org.exe";
 #else
-    input_file_exe			= input_file_prefix + ".o";
+    input_file_exe			        = input_file_prefix + ".o";
+    input_file_unrestricted_exe = input_file_prefix + ".org.exe";
 #endif
-    input_file_seq			= input_file_prefix + ".seq"; // we rely on the ".seq" extension later so do not change it.
-    input_file_is			  = input_file_prefix + ".is"; // goto-instrument tacitly expects .is file to be present. Do not change.
-    input_file_no_extention = input_file_path + base_without_extension;
+    input_file_seq			        = input_file_prefix + ".seq"; // we rely on the ".seq" extension later so do not change it.
+    input_file_is			          = input_file_prefix + ".is"; // goto-instrument tacitly expects .is file to be present. Do not change.
+    input_file_no_extention     = input_file_path + base_without_extension;
     
 }
 
@@ -557,36 +564,40 @@ int run_with_numeric_result(const char* cmd) {
     return -1;
 }
 
-int run_cbmc(bool membership) {
-    stringstream tmp;
-    string tmp_file("tmpfile");
-    tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
-    run(tmp.str().c_str());
-    
-    // ~MDC Convert learn code per run of cbmc to account for changes
-    tmp.str("");
-    tmp <<
+void compile_exe_for_run_cbmc(bool membership) {
+  stringstream tmp;
+  tmp << "echo \"#define " << (membership ? "membership" : "conjecture") << "\" > " << MODE;
+  run(tmp.str().c_str());
+
+  // ~MDC Convert learn code per run of cbmc to account for changes
+  tmp.str("");
+  tmp <<
 #ifdef _MYWIN32
-    "cmd /c \"goto-cl -c learn_code.c /Folearn_code.o \"";
+  "cmd /c \"goto-cl -c learn_code.c /Folearn_code.o \"";
 #else
-    "goto-cc -c learn_code.c -o learn_code.o";
+  "goto-cc -c learn_code.c -o learn_code.o";
 #endif
-    
-    run(tmp.str().c_str());
-    
-    // ~MDC Combine learn code object with target code object
-    tmp.str("");
-    tmp <<
+
+  run(tmp.str().c_str());
+
+  // ~MDC Combine learn code object with target code object
+  tmp.str("");
+  tmp <<
 #ifdef _MYWIN32
-    "cmd /c \"goto-cl " << input_file_exe << " learn_code.o /Fe" << "learn" << input_file_exe << "\"";
+  "cmd /c \"goto-cl " << input_file_exe << " learn_code.o /Fe" << "learn" << input_file_exe << "\"";
 #else
-    "goto-cc " << input_file_exe << " learn_code.o -o " << "learn" << input_file_exe;
+  "goto-cc " << input_file_exe << " learn_code.o -o " << "learn" << input_file_exe;
 #endif
-    
-    run(tmp.str().c_str());
+
+  run(tmp.str().c_str());
+}
+
+int run_cbmc(bool membership, bool compile) {
+    if (compile) compile_exe_for_run_cbmc(membership);
     
     // ~MDC Run combined objects through CBMC
-    tmp.str("");
+    stringstream tmp;
+    string tmp_file("tmpfile");
     tmp <<
 #ifdef _MYWIN32
     "cmd /c \"" <<
@@ -738,6 +749,7 @@ bool is_query_not_in_log(const list<int> &word) {
 }
 #else
 bool is_query_not_in_log(const list<int> &word) {
+  assert(!"is_query_not_in_log unavailable in current configuration");
   return true;
 }
 #endif
@@ -796,9 +808,11 @@ bool log_conjecture_pre_check_positive_feedback(const conjecture &cj, list<int> 
 }
 #else
 void add_last_ce_to_logfile() {
+  assert(!"add_last_ce_to_logfile unavailable in current configuration");
 }
 
 bool log_conjecture_pre_check_positive_feedback(const conjecture &cj, list<int> &path) {
+  assert(!"log_conjecture_pre_check_positive_feedback unavailable in current configuration");
   return true;
 }
 #endif
@@ -827,7 +841,7 @@ int run_log_conjecture(bool include_negative_feedback = false) {
   return 1; // Equivalent
 }
 
-#if defined(_EXPERIMENT_MODE) && defined(_LOG_PRE_CHECK)
+#if defined(_EXPERIMENT_MODE) && (defined(_LOG_PRE_CHECK) || defined(_INCREMENTAL))
 int run_log(bool membership) {
   if (!membership)
     return run_log_conjecture();
@@ -846,7 +860,7 @@ int run_log(bool membership) {
 }
 #endif
 
-#if defined(_EXPERIMENT_MODE) && defined(_LOG_PRE_CHECK)
+#if defined(_EXPERIMENT_MODE) && (defined(_LOG_PRE_CHECK) || defined(_INCREMENTAL))
 void prefill_query_cache()
 {
   ifstream log_file(QUERY_FILE);
@@ -860,22 +874,22 @@ void prefill_query_cache()
 }
 #endif
 
-int run_mixed(bool membership) {
-	return membership ? run_symex(true) : run_cbmc(false);
+int run_mixed(bool membership, bool compile) {
+	return membership ? run_symex(true) : run_cbmc(false, compile);
 }
 
-int run_backend(bool membership) {
+int run_backend(bool membership, bool compile=true) {
 	switch (backend) {
 	case CBMC:
-		return run_cbmc(membership);
+		return run_cbmc(membership, compile);
 	case SYMEX:
 		return run_symex(membership);
 	case LOG:
 	  return run_log(membership);
 	case SYMEX_CBMC:
-		return run_mixed(membership);
+		return run_mixed(membership, compile);
 	case LOG_CBMC:
-		return membership ? run_log(membership) : run_cbmc(membership);
+		return membership ? run_log(membership) : run_cbmc(membership, compile);
 	}
 	return -1;
 } 
@@ -898,31 +912,67 @@ bool answer_Conjecture_pre_check(conjecture * cj, std::list<int>& path) {
 	return !res; // false if path found, to be compatible with answer_Conjecture_cbmc. 
 }
 
-bool answer_Conjecture_cbmc(conjecture * cj) {    
-    assert(cj != NULL);    
-    cbmc_conjectures++;
-    cout << endl << "Conjecture:" << endl << endl;
-	finite_automaton * a = dynamic_cast<finite_automaton*> (cj);	
-    cout << a->visualize();
-    streambuf* strm_buffer = cout.rdbuf();		// redirecting cout to a.out. We need this because visualize() returns an ostream.
-    // ~MDC Temporary disable of visualising intermediate cbmc_conjectures
-    //ofstream dot("a.dot");
-    //cout.rdbuf (dot.rdbuf());
-    //cout << a->visualize();
-    //dot.close();
-    
-    ofstream candidate(CONJECTURE_DATA);    // same thing for write()
-    cout.rdbuf (candidate.rdbuf());
-    cout << a->write(); // write() is a rewrite of the original lib function.
-    candidate.close();
-    cout.rdbuf (strm_buffer); // reverting cout to its normal behavior.
-    string st;
-	//cout << "press enter to continue" << endl;
-	//cin >>  st;
-  CURRENT_CONJECTURE = a;
-	int res = run_backend(false);
+void process_conjecture_data(conjecture * cj) {
+  cbmc_conjectures++;
+  cout << endl << "Conjecture:" << endl << endl;
+finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
+  cout << a->visualize();
+  streambuf* strm_buffer = cout.rdbuf();    // redirecting cout to a.out. We need this because visualize() returns an ostream.
+  // ~MDC Temporary disable of visualising intermediate cbmc_conjectures
+  //ofstream dot("a.dot");
+  //cout.rdbuf (dot.rdbuf());
+  //cout << a->visualize();
+  //dot.close();
+
+  ofstream candidate(CONJECTURE_DATA);    // same thing for write()
+  cout.rdbuf (candidate.rdbuf());
+  cout << a->write(); // write() is a rewrite of the original lib function.
+  candidate.close();
+  cout.rdbuf (strm_buffer); // reverting cout to its normal behavior.
+  string st;
+//cout << "press enter to continue" << endl;
+//cin >>  st;
+CURRENT_CONJECTURE = a;
+}
+
+bool answer_Conjecture_cbmc(conjecture * cj, bool compile=true) {
+  assert(cj != NULL);
+  if (compile) process_conjecture_data(cj);
+	int res = run_backend(false, compile);
     cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;
     return (res != 0);
+}
+
+bool answer_limited_Conjecture_cbmc(conjecture * cj, const list<list<int> > &queries) {
+  if (queries.empty()) return true;
+  process_conjecture_data(cj);
+  compile_exe_for_run_cbmc(false);
+  std::string learn_file("learn" + input_file_exe);
+  std::string unrestricted_learn_file("learn" + input_file_unrestricted_exe);
+  copy_file(learn_file.c_str(), unrestricted_learn_file.c_str());
+  stringstream param;
+  for (list<list<int> >::const_iterator query_it=queries.begin(); query_it != queries.end(); ++query_it)
+  {
+    if (query_it != queries.begin()) param << ',';
+    const list<int> &query=*query_it;
+    for (list<int>::const_iterator letter_it=query.begin(); letter_it != query.end(); ++letter_it) {
+      if (letter_it != query.begin()) param << ':';
+      param << *letter_it;
+    }
+  }
+  stringstream command;
+  command <<
+#ifdef _MYWIN32
+  "cmd /c \"goto-instrument --learn-enforce-words " << param.str() << " " << learn_file << " " << learn_file << "\"";
+#else
+  "goto-instrument --learn-enforce-words " << param.str() << " " << learn_file << " " << learn_file;
+#endif
+  run(command.str().c_str());
+
+  // TODO: Implement
+  const bool result=answer_Conjecture_cbmc(cj, false);
+  copy_file(unrestricted_learn_file.c_str(), learn_file.c_str());
+  return result;
 }
 
 void positive_queries(list<int> query) {
@@ -1148,7 +1198,7 @@ bool membership_cfg_checks(list<int> query) {
 }
 #endif
 
-bool answer_Membership(list<int> query) {
+bool answer_Membership(list<int> query, list<list<int> > &unconfirmed_queries) {
     
     list<int>::iterator it;
     stringstream st;
@@ -1228,6 +1278,7 @@ bool answer_Membership(list<int> query) {
     cout << " " << (cbmc_result ? "(yes)" : "(no)") << endl;
     // updating the positive_queries_file: this will block paths that correspond to membership that we already answered positively.
     if (cbmc_result) positive_queries(query);
+    if (!cbmc_result) unconfirmed_queries.push_back(query);
 
     return report_membership(query, cbmc_result, "run_backend");
 }
@@ -1242,12 +1293,17 @@ finite_automaton* learn() {
     
     // Create learning algorithm (Angluin/rivest-schapiro L*) without a logger (2nd argument is NULL) and alphabet size alphabet_size
 	T  algorithm(&base, NULL, alphabet_size);
-	
+
+	  list<list<int> > unconfirmed_queries;
     bool conjectured = false;
     //int counter = 0;
     do {
+      cout << "###### CURRENT TABLE ######" << endl;
+      algorithm.print(cout);
+      cout << "###### CURRENT TABLE ######" << endl;
+
         // Advance the learning algorithm
-        conjecture *cj = algorithm.advance();		
+        conjecture *cj = algorithm.advance();
         // Resolve membership queries
         if (cj == NULL) {
             //counter++;
@@ -1260,7 +1316,7 @@ finite_automaton* learn() {
             for (li = queries.begin(); li != queries.end(); li++) {
                 
                 // Answer query				
-                bool a = answer_Membership(*li);
+                bool a = answer_Membership(*li, unconfirmed_queries);
 				if (learning_alg == Learn_RS && prev_conjecture_result == CONJ_UNKNOWN) { 
 					prev_conjecture_result = a ? CONJ_TRUE : CONJ_FALSE; 
 					cout << "query = " ;  // why is not saying 'feedback from query?'
@@ -1313,12 +1369,37 @@ finite_automaton* learn() {
           report_query(ce, true, 'C', "run_backend_log_pre_check");
 #endif
 
+      // XXX: Conjecture over previous answers only (pkesseli)
+#ifdef _INCREMENTAL
+      if (is_equivalent && !unconfirmed_queries.empty())
+      {
+        while (!answer_limited_Conjecture_cbmc(cj, unconfirmed_queries)) // cbmc call
+        {
+          ce = get_CounterExample(alphabet_size);
+          assert(CONJ_TRUE == conjecture_result); // Can only be positive
+          remember_query(ce, true);
+          assert(base.add_knowledge(ce, true));
+          algorithm.fix_table(ce, true);
+          unconfirmed_queries.erase(remove(unconfirmed_queries.begin(), unconfirmed_queries.end(), ce), unconfirmed_queries.end());
+        }
+        const size_t remaining_queries=unconfirmed_queries.size();
+        if (remaining_queries > 0)
+          cout << "Incremental L* saved " << (remaining_queries - 1) << " CBMC calls." << endl;
+        unconfirmed_queries.clear();
+        cj=algorithm.advance(); // Recreate same conjecture with new info.
+        cout << "###### TABLE AFTER FIX ######" << endl;
+        algorithm.print(cout);
+        cout << "###### TABLE AFTER FIX ######" << endl;
+      }
+#endif
+      // XXX: Conjecture over previous answers only (pkesseli)
+
 			if (is_equivalent)
 				if (!(is_equivalent = answer_Conjecture_pre_check(cj, ce))) // graph analysis, searches for back edges, and fills ce if found one.
           report_query(ce, false, 'C', "run_backend_pre_check");
 
-			if (is_equivalent) 
-				is_equivalent = answer_Conjecture_cbmc(cj); //  cbmc call			
+			if (is_equivalent)
+				is_equivalent = answer_Conjecture_cbmc(cj); //  cbmc call
             
             if (is_equivalent) {
             	report_conjecture(std::list<int>(), -1);
@@ -1626,7 +1707,7 @@ void copy_queries_log_to_learn_output(int user_bound)
 #endif
 /*******************************  main  ****************************/
 int main(int argc, const char**argv) {
-#if defined(_EXPERIMENT_MODE) && defined(_LOG_PRE_CHECK)
+#if defined(_EXPERIMENT_MODE) && (defined(_LOG_PRE_CHECK) || defined(_INCREMENTAL))
   prefill_query_cache();
 #endif
 
@@ -1679,8 +1760,8 @@ int main(int argc, const char**argv) {
 #ifdef _EXPERIMENT_MODE
     
 	    //for(int user_bound = 1; user_bound < 4; ++user_bound) {
-      //for(int user_bound = 2; user_bound < 3; ++user_bound) {
-      for(int user_bound = 2; user_bound < 3; ++user_bound) { // schedule
+      for(int user_bound = 3; user_bound < 4; ++user_bound) {
+      //for(int user_bound = 2; user_bound < 3; ++user_bound) { // schedule
       //for(int user_bound = 1; user_bound < 2; ++user_bound) { // tcas
       //for(int user_bound = 1; user_bound < 4; ++user_bound) { // sll
       //for(int user_bound = 1; user_bound < 4; ++user_bound) { // merge_sort
@@ -1688,8 +1769,8 @@ int main(int argc, const char**argv) {
       //for(int user_bound = 1; user_bound < 4; ++user_bound) { // bubble
       //for(int user_bound = 1; user_bound < 5; ++user_bound) { // docking 
         
-	    	//int MAX_UPPER_BOUND = 13;
-        int MAX_UPPER_BOUND = 13; // schedule
+	    	int MAX_UPPER_BOUND = 15;
+        //int MAX_UPPER_BOUND = 13; // schedule
         //int MAX_UPPER_BOUND = 25; // tcas
         //int MAX_UPPER_BOUND = 31; // sll
         //int MAX_UPPER_BOUND = 16; // merge_sort

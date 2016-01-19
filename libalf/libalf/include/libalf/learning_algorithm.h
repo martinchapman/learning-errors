@@ -261,6 +261,7 @@ class learning_algorithm {
 			conjecture * ret = NULL;
 
 			if(my_knowledge == NULL) {
+			  std::cout << "learning_algorithm::advance(): no knowledgebase was set!" << std::endl; // XXX: Debug
 				(*my_logger)(LOGGER_ERROR, "learning_algorithm::advance(): no knowledgebase was set!\n");
 				return NULL;
 			}
@@ -269,9 +270,11 @@ class learning_algorithm {
 
 			if(complete()) {
 				ret = derive_conjecture();
-				if(!ret)
+				if(!ret) { // XXX: Debug
+				  std::cout << "learning_algorithm::advance(): derive from completed data structure failed! possibly internal error." << std::endl; // XXX: Debug
 					(*my_logger)(LOGGER_ERROR, "learning_algorithm::advance(): derive from completed data structure failed! possibly internal error.\n");
-			}
+				} // XXX: Debug
+			} else std::cout << "learning_algorithm::advance(): not complete." << std::endl; // XXX: Debug
 
 			stop_timing();
 
@@ -280,6 +283,9 @@ class learning_algorithm {
 
 		// in case the hypothesis is wrong, use this function to give a counter-example
 		virtual bool add_counterexample(std::list<int>) = 0;
+
+		// XXX: Incremental L*: Change existing answer
+		virtual void fix_table(const std::list<int> &, answer) = 0;
 
 	protected:
 		// complete table in such a way that an automaton can be derived
