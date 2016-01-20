@@ -28,7 +28,7 @@ using namespace libalf;
 int alphabet_size;
 int min_func_idx; // index of first function
 bool instrument_branches = false, instrument_functions = false;
-int mem_queries, cbmc_conjectures, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
+int mem_queries, cbmc_conjectures, limited_conjectures, conjectures, cbmc_mem_queries, cache_mem_queries, cfg_queries, cfg_prefix;
 enum {CONJ_FALSE, CONJ_TRUE, CONJ_UNKNOWN} conjecture_result = CONJ_UNKNOWN, prev_conjecture_result = CONJ_UNKNOWN;
 // JQ experiments have shown that the first membership query after the conjecture is not always the path returned
 // by the conjecture! This lead to spurious words in the automaton and in the worst case a nondet error. We keep
@@ -913,7 +913,6 @@ bool answer_Conjecture_pre_check(conjecture * cj, std::list<int>& path) {
 }
 
 void process_conjecture_data(conjecture * cj) {
-  cbmc_conjectures++;
   cout << endl << "Conjecture:" << endl << endl;
 finite_automaton * a = dynamic_cast<finite_automaton*> (cj);
   cout << a->visualize();
@@ -937,7 +936,11 @@ CURRENT_CONJECTURE = a;
 
 bool answer_Conjecture_cbmc(conjecture * cj, bool compile=true) {
   assert(cj != NULL);
-  if (compile) process_conjecture_data(cj);
+  if (compile)
+  {
+    cbmc_conjectures++;
+    process_conjecture_data(cj);
+  }
 	int res = run_backend(false, compile);
     cout << " " << (res != 0 ? "(yes - equivalent)" : "(no - not equivalent)") << endl;
     return (res != 0);
@@ -945,6 +948,7 @@ bool answer_Conjecture_cbmc(conjecture * cj, bool compile=true) {
 
 bool answer_limited_Conjecture_cbmc(conjecture * cj, const list<list<int> > &queries) {
   if (queries.empty()) return true;
+  ++limited_conjectures;
   process_conjecture_data(cj);
   compile_exe_for_run_cbmc(false);
   std::string learn_file("learn" + input_file_exe);
@@ -1864,7 +1868,7 @@ int main(int argc, const char**argv) {
                 
 #endif
                 
-	                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << " cbmc conjectures = " << cbmc_conjectures << endl;
+	                cout << "membership queries: " << mem_queries << " (" << cbmc_mem_queries << " cbmc calls - " << (float)cbmc_mem_queries * 100/(float)mem_queries << "\%)" << " cfg queries: " << cfg_queries << " cfg queries (prefix): " << cfg_prefix << " membership cache queries: " << cache_mem_queries << " total conjectures: " << conjectures << " cbmc conjectures = " << cbmc_conjectures << " limited conjectures = " << limited_conjectures << endl;
 	                cout << "Time: " << elapsed_secs << endl;
                 
 #ifdef _EXPERIMENT_MODE
