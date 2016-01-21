@@ -1374,18 +1374,33 @@ finite_automaton* learn() {
       if (is_equivalent && !unconfirmed_queries.empty())
       {
         map<list<int>, bool> changed_knowledge;
-        while (!answer_limited_Conjecture_cbmc(cj, unconfirmed_queries)) // cbmc call
+        while (!unconfirmed_queries.empty())
         {
-          ce = get_CounterExample(alphabet_size);
-          assert(CONJ_TRUE == conjecture_result); // Can only be positive
-          remember_query(ce, true);
-          assert(changed_knowledge.insert(std::make_pair(ce, true)).second);
-          unconfirmed_queries.erase(remove(unconfirmed_queries.begin(), unconfirmed_queries.end(), ce), unconfirmed_queries.end());
+          if (unconfirmed_queries.size() <= 1) // Can do regular membership
+          {
+            const std::list<int> &query=unconfirmed_queries.front();
+            backend=CBMC;
+            if (answer_Membership(query, unconfirmed_queries))
+              changed_knowledge.insert(std::make_pair(query, true));
+            backend=LOG_CBMC;
+            --mem_queries;
+            ++limited_conjectures;
+            unconfirmed_queries.clear();
+          }
+          else // Do limited conjecture
+          {
+            if (answer_limited_Conjecture_cbmc(cj, unconfirmed_queries))
+              unconfirmed_queries.clear();
+            else
+            {
+              ce = get_CounterExample(alphabet_size);
+              assert(CONJ_TRUE == conjecture_result); // Can only be positive
+              remember_query(ce, true);
+              assert(changed_knowledge.insert(std::make_pair(ce, true)).second);
+              unconfirmed_queries.erase(remove(unconfirmed_queries.begin(), unconfirmed_queries.end(), ce), unconfirmed_queries.end());
+            }
+          }
         }
-        const size_t remaining_queries=unconfirmed_queries.size();
-        if (remaining_queries > 0)
-          cout << "Incremental L* saved " << (remaining_queries - 1) << " CBMC calls." << endl;
-        unconfirmed_queries.clear();
 
         // Recreate same conjecture with changed info.
         const std::map<unsigned int, std::pair<std::list<int>, bool> > replay_info=base.undo_knowledge(changed_knowledge);
