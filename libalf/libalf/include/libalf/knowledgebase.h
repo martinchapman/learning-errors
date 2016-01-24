@@ -346,7 +346,6 @@ class knowledgebase {
           // check for inconsistencies
           if(status == NODE_ANSWERED)
             return ((answer)this->ans == (answer)ans);
-          // XXX: Original (non-incremental) handling
 
 					if(status == NODE_REQUIRED)
 						base->required.remove(this);
@@ -360,6 +359,14 @@ class knowledgebase {
 
 					return true;
 				}}}
+        // XXX: Incremental L*
+        bool change_answer(answer ans)
+        {{{
+          if (NODE_ANSWERED != status) return false;
+          this->ans=ans;
+          return true;
+        }}}
+        // XXX: Incremental L*
 				answer get_answer() const
 				{{{
 					  return ans;
@@ -1437,6 +1444,19 @@ class knowledgebase {
 		{{{
 			return root->find_or_create_descendant(word.begin(), word.end())->set_answer(acceptance);
 		}}}
+
+    // XXX: Incremental L*
+    bool change_knowledge(const std::map<std::list<int>, answer> &new_knowledge)
+    {{{
+      for (typename std::map<std::list<int>, answer>::const_iterator it=new_knowledge.begin(); it != new_knowledge.end(); ++it)
+      {
+        const std::list<int> &word=it->first;
+        node * const existing_node=root->find_descendant(word.begin(), word.end());
+        if (!existing_node || !existing_node->change_answer(it->second)) return false;
+      }
+      return true;
+    }}}
+    // XXX: Incremental L*
 
 		// XXX: Incremental L*
 		std::map<unsigned int, std::pair<std::list<int>, answer> > undo_knowledge(std::map<std::list<int>, answer> new_knowledge)
