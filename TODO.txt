@@ -1,4 +1,4 @@
-ÔªøAdd the following to the GUI:
+Add the following to the GUI:
 
 1. for each function, a checkmark that upon activation also makes an event out of the exit point of the function. It adds letters, which is not so good, but it might be useful to distinguish between, say
 f() {
@@ -30,17 +30,15 @@ Possible solution: do not do it via a feedback to the conjecture. It other words
 
 * better solution: remove trap mechanism all together. then after convergence 1) intersect A with the control-flow graph, and 2) go over all words up to length 'bound' that we do not have a positive entry forthem in the cache, and pose a membership query. If it is negative then remove it from the language. 
 
-5. Limiting tests to those that have a loop bound. 
 
-
-
-6. Structure the log files better, perhaps via a dictionary struture (only keeping suffixes for words with common prefixes). Can also create an ‚Äúautomaton‚Äù (which is inherintly loop-free) from the log file - then, compute a cross-product of this automaton with a conjecture to identify feedbacks. 
-
+5. Structure the log files better, perhaps via a dictionary struture (only keeping suffixes for words with common prefixes). Can also create an ìautomatonî (which is inherintly loop-free) from the log file - then, compute a cross-product of this automaton with a conjecture to identify feedbacks. 
+ - Current hash table probably outperforms these options.
 
 
 7. Updating the internal table constructed by L* for better lazy learning. 
 
 8. With decision-tree learning (e.g. the ID3 algorithm or others), find a small (or smallest, but this is np-hard) set of events that separate faulty executions from correct ones (currently the logs are projected to a predefined set of events. We can start with a large set ('all functions and branches') and let it find the attributes that make the sepration. 
+ - Non-obvious problem. It is not clear how to build a classifier based on strings. (Long-term research problem?)
 
 9. Permit as part of the GUI to remove letters. This will create a non-det automaton, which then has to be re-minimized (and possibly determinized).
 
